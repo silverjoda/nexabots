@@ -14,6 +14,12 @@ class AntReach:
         # Set simulation parameters
         p.setGravity(0, 0, -9.81)
 
+        # This is required so that we step simulation
+        p.setRealTimeSimulation(0)
+
+        # Simulation time step (Not recommended to change (?))
+        # p.setTimeStep(0.0001)
+
         # Load simulator objects
         self.planeId = p.loadURDF("plane.urdf")
         self.robotId = p.loadMJCF("ant_reach.xml")[0]

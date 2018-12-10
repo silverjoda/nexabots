@@ -55,73 +55,55 @@ class Centipede8:
         pass
 
 
-    def get_obs_flat(self):
+    def get_obs(self):
         # Base position and orientation
-        base_q = p.getBasePositionAndOrientation(self.robotId)
+        torso_pose = p.getBasePositionAndOrientation(self.robotId)
 
         # Base velocity and angular velocity
-        base_q_ = p.getBaseVelocity(self.robotId)
+        torso_pose_ = p.getBaseVelocity(self.robotId)
 
         # Joint states and velocities
-        q = p.getJointStates(self.robotId, self.joint_ids)
-        q_ = p.getJointStates(self.robotId, self.joint_ids)
+        q, q_, _, _ = zip(*p.getJointStates(self.robotId, self.joint_ids))
 
-        # Target position and velocity
-        # Todo:
+        obs_dict = {'torso_pos': torso_pose[0:3],
+                    'torso_quat': torso_pose[3:7],
+                    'q': q,
+                    'torso_vel': torso_pose_[0:3],
+                    'torso_angvel': torso_pose_[3:6],
+                    'q_vel': q_}
 
-        a = None
-        return np.asarray(a, dtype=np.float32)
+        # TODO: Error here, torso_angvel is empty and error in concat below
 
+        obs_arr = np.concatenate([v for v in obs_dict.values()])
 
-    def get_obs_dict(self):
-        od = {}
-        for j in self.sim.model.joint_names:
-            od[j + "_pos"] = self.sim.data.get_joint_qpos(j)
-            od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
-        return od
+        return obs_arr, obs_dict
 
 
     def step(self, ctrl):
 
-        self.sim.data.ctrl[:] = ctrl
-        self.sim.forward()
-        self.sim.step()
-
-        print(self.sim.data.ncon)
+        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, ctrl)
 
         self.step_ctr += 1
-
-        obs = self.get_obs()
+        obs_arr, obs_dict = self.get_obs()
 
         # Make relevant pose from observation (x,y)
-        x, y, z, q1, q2, q3, q4 = self.sim.data.get_joint_qpos("root")
+        x, y = obs_dict["torso_pos"][0:2]
         pose = (x, y)
 
         prev_dist = np.sqrt(np.sum((np.asarray(self.current_pose) - np.asarray(self.goal)) ** 2))
         current_dist = np.sqrt(np.sum((np.asarray(pose) - np.asarray(self.goal)) ** 2))
 
-        # Check if goal has been reached
-        reached_goal = self.reached_goal(pose, self.goal)
-
         # Reevaluate termination condition
-        done = reached_goal or self.step_ctr > 400
+        done = self.step_ctr > 400
 
-        if reached_goal:
-            print("SUCCESS")
-
-        # Update success rate
-        if done:
-            self._update_stats(reached_goal)
-
-        ctrl_effort = np.square(ctrl).sum() * 0.03
+        ctrl_effort = np.square(ctrl).sum() * 0.01
         target_progress = (prev_dist - current_dist) * 70
-        target_trueness = 0
 
         r = target_progress - ctrl_effort
 
         self.current_pose = pose
 
-        return obs, r, done, None
+        return obs_arr, r, done, obs_dict
 
 
     def reset(self):
@@ -140,13 +122,11 @@ class Centipede8:
         obs_arr = np.concatenate([v for v in obs_dict.values()])
 
         # Set environment state
-        p.resetBasePositionAndOrientation(self.robotId, 'torso_pos', 'torso_quat')
-        p.resetBaseVelocity('torso_vel')
+        p.resetBasePositionAndOrientation(self.robotId, obs_dict['torso_pos'], obs_dict['torso_quat'])
+        p.resetBaseVelocity(self.robotId, obs_dict['torso_vel'])
 
         for j in self.joint_ids:
             p.resetJointState(self.robotId, j, 0, 0)
-
-
 
         return obs_arr, obs_dict
 
@@ -163,7 +143,7 @@ class Centipede8:
 
 
 if __name__ == "__main__":
-    ant = Centipede8()
-    print(ant.obs_dim)
-    print(ant.act_dim)
-    ant.demo()
+    cent = Centipede8()
+    print(cent.obs_dim)
+    print(cent.act_dim)
+    cent.demo()

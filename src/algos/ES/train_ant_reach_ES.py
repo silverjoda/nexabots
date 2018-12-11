@@ -83,7 +83,7 @@ def f_mp(args):
 
 def train(params):
     env_fun, iters, n_hidden, animate = params
-    env = env_fun()
+    env = env_fun(True)
 
     obs_dim, act_dim = env.obs_dim, env.act_dim
     policy = NN(obs_dim, act_dim).float()

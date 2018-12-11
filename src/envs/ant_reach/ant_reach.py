@@ -26,8 +26,8 @@ class AntReach:
         self.robotId, self.targetId = p.loadMJCF(os.path.join(os.path.dirname(__file__), "ant_reach.xml"))
 
         self.joint_dict = {}
-        for i in range(p.getNumJoints(self.robotId, physicsClientId=self.physicsClient)):
-            info  = p.getJointInfo(self.robotId, i, physicsClientId=self.physicsClient)
+        for i in range(p.getNumJoints(self.robotId)):
+            info  = p.getJointInfo(self.robotId, i)
             id, name, joint_type = info[0:3]
             joint_lim_low, joint_lim_high = info[8:10]
             if joint_type == 0:
@@ -57,16 +57,16 @@ class AntReach:
 
     def get_obs(self):
         # Base position and orientation
-        torso_pos, torso_orient = p.getBasePositionAndOrientation(self.robotId, physicsClientId=self.physicsClient)
+        torso_pos, torso_orient = p.getBasePositionAndOrientation(self.robotId)
 
         # Target position and orientation
         target_pos, _ = p.getBasePositionAndOrientation(self.targetId)
 
         # Base velocity and angular velocity
-        torso_pos_, torso_orient_ = p.getBaseVelocity(self.robotId, physicsClientId=self.physicsClient)
+        torso_pos_, torso_orient_ = p.getBaseVelocity(self.robotId)
 
         # Joint states and velocities
-        q, q_, _, _ = zip(*p.getJointStates(self.robotId, self.joint_ids, physicsClientId=self.physicsClient))
+        q, q_, _, _ = zip(*p.getJointStates(self.robotId, self.joint_ids))
 
         obs_dict = {'torso_pos': torso_pos,
                     'torso_quat': torso_orient,
@@ -109,16 +109,16 @@ class AntReach:
     def step(self, ctrl):
 
         # Get measurements before step
-        torso_pos_prev, _ = p.getBasePositionAndOrientation(self.robotId, physicsClientId=self.physicsClient)
+        torso_pos_prev, _ = p.getBasePositionAndOrientation(self.robotId)
 
         # Add control law
-        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, forces=ctrl * 1500, physicsClientId=self.physicsClient)
+        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, forces=ctrl * 1500)
 
         # Perform single step of simulation
         p.stepSimulation()
 
         # Get measurements after step
-        torso_pos_current, _ = p.getBasePositionAndOrientation(self.robotId, physicsClientId=self.physicsClient)
+        torso_pos_current, _ = p.getBasePositionAndOrientation(self.robotId)
 
         prev_dist = np.sqrt(np.sum((np.asarray(torso_pos_prev[0:2]) - np.asarray(self.goal)) ** 2))
         current_dist = np.sqrt(np.sum((np.asarray(torso_pos_current[0:2]) - np.asarray(self.goal)) ** 2))
@@ -150,7 +150,7 @@ class AntReach:
     def reset(self):
 
         # Sample new target goal
-        torso_pos, _ = p.getBasePositionAndOrientation(self.robotId, physicsClientId=self.physicsClient)
+        torso_pos, _ = p.getBasePositionAndOrientation(self.robotId)
         self.goal = self._sample_goal(torso_pos[0:2])
 
         # Reset env variables
@@ -171,12 +171,12 @@ class AntReach:
         target_pos = (self.goal[0], self.goal[1], 0)
 
         # Set environment state
-        p.resetBasePositionAndOrientation(self.robotId, obs_dict['torso_pos'], obs_dict['torso_quat'], physicsClientId=self.physicsClient)
+        p.resetBasePositionAndOrientation(self.robotId, obs_dict['torso_pos'], obs_dict['torso_quat'])
         p.resetBasePositionAndOrientation(self.targetId, target_pos, (0,0,0,1))
-        p.resetBaseVelocity(self.robotId, obs_dict['torso_vel'], physicsClientId=self.physicsClient)
+        p.resetBaseVelocity(self.robotId, obs_dict['torso_vel'])
 
         for j in self.joint_ids:
-            p.resetJointState(self.robotId, j, 0, 0, physicsClientId=self.physicsClient)
+            p.resetJointState(self.robotId, j, 0, 0)
 
         return obs_arr, obs_dict
 

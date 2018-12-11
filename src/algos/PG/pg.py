@@ -3,7 +3,6 @@ import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import time
-import gym
 import src.algos.PG.utils as utils
 from copy import deepcopy
 import quaternion

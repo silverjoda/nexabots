@@ -240,7 +240,6 @@ class Valuefun(nn.Module):
 def train(env, policy, V, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"])
-    #V_optim = T.optim.Adam(V.parameters(), lr=params["V_lr"])
 
     batch_states = []
     batch_actions = []
@@ -263,7 +262,7 @@ def train(env, policy, V, params):
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
-            assert r < 10, print("Large rew {}, step: {}".formatrelu(r, step_ctr))
+            assert r < 10, print("Large rew {}, step: {}".format(r, step_ctr))
             step_ctr += 1
             if step_ctr > 400:
                 done = True
@@ -294,12 +293,7 @@ def train(env, policy, V, params):
             batch_rewards = T.cat(batch_rewards)
             batch_new_states = T.cat(batch_new_states)
 
-            # Refit value function
-            #loss_V = update_V(V, V_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
-            #loss_V = None
-
             # Calculate episode advantages
-            #batch_advantages = calc_advantages(V, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
             if params["ppo"]:

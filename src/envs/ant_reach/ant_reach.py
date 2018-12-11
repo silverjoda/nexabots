@@ -165,7 +165,7 @@ class AntReach:
                     'torso_angvel': np.zeros(3),
                     'q_vel': np.zeros(self.n_joints)}
 
-        obs_arr = np.concatenate([v for v in obs_dict.values()])
+        obs_arr = np.concatenate([v for v in obs_dict.values()]).astype(np.float32)
 
         # Target pos
         target_pos = (self.goal[0], self.goal[1], 0)

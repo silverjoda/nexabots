@@ -408,12 +408,13 @@ if __name__=="__main__":
 
     from src.envs.centipede import centipede
     from src.envs.ant_reach import ant_reach
-    #env = centipede.Centipede(8)
-    env = ant_reach.AntReach()
+    env = centipede.Centipede(8, gui=False)
+    #env = ant_reach.AntReach(gui=False)
 
     policy = Policy(env)
-    params = {"iters" : 30000, "batchsize" : 32, "gamma" : 0.97, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
+    params = {"iters" : 50000, "batchsize" : 32, "gamma" : 0.98, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
     print(params)
     train(env, policy, None, params)
+    T.save(policy, "agents/centipede8.p")
 
     # TODO: debug and test

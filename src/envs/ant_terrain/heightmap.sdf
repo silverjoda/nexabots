@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<sdf version="1.5">
+    <model name="heightmap">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <heightmap>
+              <uri>file://home/silverjoda/SW/python-research/nexabots/src/envs/ant_terrain/hf_l.png</uri>
+              <size>129 129 10</size>
+              <pos>0 0 0</pos>
+            </heightmap>
+          </geometry>
+        </collision>
+      </link>
+    </model>
+</sdf>

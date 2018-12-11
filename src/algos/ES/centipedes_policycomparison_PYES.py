@@ -5,7 +5,7 @@ from time import sleep
 import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
+import torch as T
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import os
 from envs.centipede.centipede import *
@@ -101,9 +101,7 @@ class ConvPolicy8(nn.Module):
         self.deconv_3 = nn.ConvTranspose1d(4, 8, kernel_size=3, stride=1, padding=1)
         self.deconv_4 = nn.ConvTranspose1d(14, 6, kernel_size=3, stride=1, padding=1)
 
-        self.upsample = nn.Upsample(size=4)
-
-        self.afun = F.tanh
+        self.afun = T.tanh
 
     def forward(self, x):
         obs = x[:, :7]
@@ -135,7 +133,7 @@ class ConvPolicy8(nn.Module):
         fm_dc1 = self.afun(self.deconv_1(emb_2))
         fm_dc2 = self.afun(self.deconv_2(fm_dc1))
         fm_dc3 = self.afun(self.deconv_3(fm_dc2))
-        fm_upsampled = self.upsample(fm_dc3)
+        fm_upsampled = F.interpolate(fm_dc3, size=4)
         fm_dc4 = self.deconv_4(T.cat((fm_upsampled, jlrs), 1))
 
         acts = fm_dc4.squeeze(2).view((1, -1))
@@ -328,7 +326,7 @@ class PhasePolicy(nn.Module):
         return acts[:, 2:]
 
 
-def f_wrapper(env, policy, animate):
+def f_wrapper(env, policy):
     def f(w):
         reward = 0
         done = False
@@ -359,7 +357,7 @@ def f_wrapper(env, policy, animate):
 
 
 def train(params):
-    env_name, env, policy, iters, animate = params
+    env_name, env, policy, iters = params
 
     # Make initial weight vectors from policy
     w = parameters_to_vector(policy.parameters()).detach().numpy()
@@ -368,7 +366,7 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
 
     # Make criterial function
-    f = f_wrapper(env, policy, animate)
+    f = f_wrapper(env, policy)
 
     # Print information
     print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format(env_name, env.act_dim,
@@ -387,6 +385,9 @@ def train(params):
             else:
                 it += 1
 
+            if it % 1000 == 0:
+                T.save(policy, "agents/{}.p".format(env_name))
+
     except KeyboardInterrupt:
         print("User interrupted process.")
 
@@ -398,25 +399,22 @@ def train(params):
 # Make environment
 N = 8
 env_name = "CentipedeEight"
-env = Centipede(N)
+env = Centipede(N, gui=False)
 
 print(env.obs_dim, env.act_dim)
 policyfunctions = [ConvPolicy8]
 
 for p in policyfunctions:
     print("Training with {} policy.".format(p.__name__))
-    fbest, policy = train(("CentipedeEight", env, p(N).float(), 30000, True))
+    fbest, policy = train(("CentipedeEight", env, p(N).float(), 10000))
     print("Policy {} max score: {}".format(p.__name__, fbest))
-    ctr = 0
-    while os.path.exists("agents/ES/{}_{}.p".format(p.__name__, ctr)):
-        ctr += 1
-    T.save(policy, "agents/ES/{}_{}.p".format(p.__name__, ctr))
+    T.save(policy, "agents/{}.p".format(p.__name__))
 
 exit()
 
 # Evaluate
 policy = T.load("agents/ES/ConvPolicy8_0.p")
-f = f_wrapper(env, policy, True)
+f = f_wrapper(env, policy)
 for i in range(10):
     r = f(parameters_to_vector(policy.parameters()).detach().numpy())
     print(r)

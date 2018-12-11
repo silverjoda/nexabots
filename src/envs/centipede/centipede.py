@@ -5,11 +5,11 @@ from collections import deque
 import time
 
 
-class Centipede8:
-    def __init__(self, GUI=True):
+class Centipede:
+    def __init__(self, n_links, gui=True):
 
         # Start client
-        physicsClient = p.connect(p.GUI if GUI else p.DIRECT)
+        physicsClient = p.connect(p.GUI if gui else p.DIRECT)
         p.setAdditionalSearchPath(pybullet_data.getDataPath())
 
         # Set simulation parameters
@@ -19,11 +19,17 @@ class Centipede8:
         p.setRealTimeSimulation(0)
 
         # Simulation time step (Not recommended to change (?))
-        # p.setTimeStep(0.0001)
+        #p.setTimeStep(0.0001)
 
         # Load simulator objects
         self.planeId = p.loadURDF("plane.urdf")
-        self.robotId = p.loadMJCF("CentipedeEight.xml")[0]
+
+        if n_links == 8:
+            self.robotId = p.loadMJCF("/home/silverjoda/SW/python-research/nexabots/src/envs/centipede/CentipedeEight.xml")[0]
+        elif n_links == 14:
+            self.robotId = p.loadMJCF("/home/silverjoda/SW/python-research/nexabots/src/envs/centipede/CentipedeFourteen.xml")[0]
+        else:
+            raise NotImplementedError
 
         self.joint_dict = {}
         for i in range(p.getNumJoints(self.robotId)):
@@ -39,12 +45,8 @@ class Centipede8:
         self.act_dim = self.n_joints
 
         # Environent inner parameters
-        self.success_queue = deque(maxlen=100)
-        self.viewer = None
-        self.goal = None
-        self.current_pose = None
-        self.success_rate = 0
         self.step_ctr = 0
+
 
         # Initial methods
         self.reset()
@@ -57,51 +59,52 @@ class Centipede8:
 
     def get_obs(self):
         # Base position and orientation
-        torso_pose = p.getBasePositionAndOrientation(self.robotId)
+        torso_pos, torso_orient = p.getBasePositionAndOrientation(self.robotId)
 
         # Base velocity and angular velocity
-        torso_pose_ = p.getBaseVelocity(self.robotId)
+        torso_pos_, torso_orient_ = p.getBaseVelocity(self.robotId)
 
         # Joint states and velocities
         q, q_, _, _ = zip(*p.getJointStates(self.robotId, self.joint_ids))
 
-        obs_dict = {'torso_pos': torso_pose[0:3],
-                    'torso_quat': torso_pose[3:7],
+        obs_dict = {'torso_pos': torso_pos,
+                    'torso_quat': torso_orient,
                     'q': q,
-                    'torso_vel': torso_pose_[0:3],
-                    'torso_angvel': torso_pose_[3:6],
+                    'torso_vel': torso_pos_,
+                    'torso_angvel': torso_orient_,
                     'q_vel': q_}
 
-        # TODO: Error here, torso_angvel is empty and error in concat below
-
-        obs_arr = np.concatenate([v for v in obs_dict.values()])
+        obs_arr = np.concatenate([v for v in obs_dict.values()]).astype(np.float32)
 
         return obs_arr, obs_dict
 
 
     def step(self, ctrl):
 
-        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, ctrl)
+        # Get measurements before step
+        torso_pos, _ = p.getBasePositionAndOrientation(self.robotId)
+        x_prev = torso_pos[0]
+
+        # Add control law
+        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, forces=ctrl * 1500)
+
+        # Perform single step of simulation
+        p.stepSimulation()
+
+        # Get measurements after step
+        torso_pos, _ = p.getBasePositionAndOrientation(self.robotId)
+        x_current = torso_pos[0]
 
         self.step_ctr += 1
         obs_arr, obs_dict = self.get_obs()
-
-        # Make relevant pose from observation (x,y)
-        x, y = obs_dict["torso_pos"][0:2]
-        pose = (x, y)
-
-        prev_dist = np.sqrt(np.sum((np.asarray(self.current_pose) - np.asarray(self.goal)) ** 2))
-        current_dist = np.sqrt(np.sum((np.asarray(pose) - np.asarray(self.goal)) ** 2))
 
         # Reevaluate termination condition
         done = self.step_ctr > 400
 
         ctrl_effort = np.square(ctrl).sum() * 0.01
-        target_progress = (prev_dist - current_dist) * 70
+        target_progress = (x_current - x_prev) * 30
 
         r = target_progress - ctrl_effort
-
-        self.current_pose = pose
 
         return obs_arr, r, done, obs_dict
 
@@ -112,11 +115,11 @@ class Centipede8:
         self.step_ctr = 0
 
         # Variable positions
-        obs_dict = {'torso_pos' : (0, 0, 0.6),
+        obs_dict = {'torso_pos' : (0, 0, 0.4),
                     'torso_quat' : (0, 0, 0, 1),
                     'q' : np.zeros(self.n_joints),
-                    'torso_vel' : np.zeros(self.n_joints),
-                    'torso_angvel' : np.zeros(6),
+                    'torso_vel' : np.zeros(3),
+                    'torso_angvel' : np.zeros(3),
                     'q_vel' : np.zeros(self.n_joints)}
 
         obs_arr = np.concatenate([v for v in obs_dict.values()])
@@ -133,17 +136,24 @@ class Centipede8:
 
     def demo(self):
         self.reset()
-        for i in range(1000):
+        t1 = time.time()
+        iters = 10000
+        for i in range(iters):
+            if i % 1000 == 0:
+                print("Step: {}/{}".format(i, iters))
+                self.reset()
             self.step(np.random.randn(self.n_joints))
-            self.render()
+        t2 = time.time()
+        print("Time Elapsed: {}".format(t2-t1))
 
 
     def random_action(self):
         return np.random.randn(self.n_joints)
 
 
+
 if __name__ == "__main__":
-    cent = Centipede8()
+    cent = Centipede(8, gui=True)
     print(cent.obs_dim)
     print(cent.act_dim)
     cent.demo()

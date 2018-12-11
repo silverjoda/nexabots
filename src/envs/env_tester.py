@@ -1,7 +1,7 @@
-from envs.centipede.centipede import Centipede8
+from envs.centipede.centipede import Centipede
 
-env = Centipede8(GUI=True)
-for i in range(1000):
+env = Centipede(8, gui=True)
+for i in range(10000):
     env.step(env.random_action())
 
 

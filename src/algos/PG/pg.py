@@ -5,7 +5,6 @@ import torch.nn.functional as F
 import time
 import src.algos.PG.utils as utils
 from copy import deepcopy
-import quaternion
 
 T.set_num_threads(1)
 

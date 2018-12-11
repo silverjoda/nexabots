@@ -1,5 +1,4 @@
 import numpy as np
-import gym
 import cma
 from time import sleep
 import torch as T
@@ -9,6 +8,8 @@ import torch as T
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import os
 from envs.centipede.centipede import *
+
+T.set_num_threads(1)
 
 class Baseline(nn.Module):
     def __init__(self, N):

@@ -1,8 +1,6 @@
 import numpy as np
-import gym
 import cma
 from time import sleep
-import quaternion
 import torch
 import torch as T
 import torch.nn as nn

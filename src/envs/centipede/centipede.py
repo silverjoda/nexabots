@@ -6,7 +6,7 @@ import time
 import os
 
 class Centipede:
-    def __init__(self, n_links, gui=True):
+    def __init__(self, n_links, gui=False):
 
         # Start client
         physicsClient = p.connect(p.GUI if gui else p.DIRECT)

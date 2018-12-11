@@ -6,7 +6,7 @@ import time
 import os
 
 class AntReach:
-    def __init__(self, GUI=True):
+    def __init__(self, GUI=False):
 
         # Start client
         physicsClient = p.connect(p.GUI if GUI else p.DIRECT)

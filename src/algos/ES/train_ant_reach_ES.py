@@ -9,6 +9,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import time
+from envs.ant_reach.ant_reach import AntReach
+from multiprocessing import Pool
+from multiprocessing.dummy import Pool as ThreadPool
 
 class LinearPolicy(nn.Module):
     def __init__(self, obs_dim, act_dim):
@@ -57,8 +60,32 @@ def f_wrapper(env, policy):
     return f
 
 
+def f_mp(args):
+    env_class, policy, w = args
+    env = env_class()
+    reward = 0
+    done = False
+    obs, _ = env.reset()
+
+    vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
+
+    while not done:
+
+        # Get action from policy
+        with torch.no_grad():
+            act = policy(torch.from_numpy(np.expand_dims(obs, 0)))[0].numpy()
+
+        # Step environment
+        obs, rew, done, _ = env.step(act)
+
+        reward += rew
+
+    return -reward
+
+
 def train(params):
-    env, iters, n_hidden, animate = params
+    env_fun, iters, n_hidden, animate = params
+    env = env_fun()
 
     obs_dim, act_dim = env.obs_dim, env.act_dim
     policy = NN(obs_dim, act_dim).float()
@@ -68,7 +95,6 @@ def train(params):
 
     print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format("Ant_reach", env.act_dim,
                                                                                   env.obs_dim, len(w)))
-
     try:
         while not es.stop():
             X = es.ask()
@@ -80,9 +106,43 @@ def train(params):
     return es.result.fbest
 
 
-from envs.ant_reach.ant_reach import AntReach
+def train_mt(params):
+    env_fun, iters, n_hidden, animate = params
+    env = env_fun()
 
-env = AntReach()
-train((env, 3000, 7, True))
+    obs_dim, act_dim = env.obs_dim, env.act_dim
+    policy = NN(obs_dim, act_dim).float()
+    w = parameters_to_vector(policy.parameters()).detach().numpy()
+    es = cma.CMAEvolutionStrategy(w, 0.5)
+
+    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format("Ant_reach", env.act_dim,
+                                                                                              env.obs_dim, len(w)))
+
+    ctr = 0
+    try:
+        while not es.stop():
+            ctr += 1
+            if ctr > iters:
+                break
+            X = es.ask()
+
+            N = len(X)
+            p = Pool(4)
+
+            evals = p.map(f_mp, list(zip([env_fun] * N, [policy] * N,  X)))
+
+            es.tell(X, evals)
+            es.disp()
+    except KeyboardInterrupt:
+        print("User interrupted process.")
+
+    return es.result.fbest
+
+env = AntReach
+t1 = time.clock()
+train((AntReach, 100, 7, True))
+t2 = time.clock()
+print("Elapsed time: {}".format(t2 - t1))
+
 
 

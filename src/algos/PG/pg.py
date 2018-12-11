@@ -240,7 +240,7 @@ class Valuefun(nn.Module):
 def train(env, policy, V, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"])
-    V_optim = T.optim.Adam(V.parameters(), lr=params["V_lr"])
+    #V_optim = T.optim.Adam(V.parameters(), lr=params["V_lr"])
 
     batch_states = []
     batch_actions = []
@@ -295,8 +295,8 @@ def train(env, policy, V, params):
             batch_new_states = T.cat(batch_new_states)
 
             # Refit value function
-            loss_V = update_V(V, V_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
-            loss_V = None
+            #loss_V = update_V(V, V_optim, params["gamma"], batch_states, batch_rewards, batch_terminals)
+            #loss_V = None
 
             # Calculate episode advantages
             #batch_advantages = calc_advantages(V, params["gamma"], batch_states, batch_rewards, batch_new_states, batch_terminals)
@@ -414,12 +414,13 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
 
     from src.envs.centipede import centipede
-    env = centipede.Centipede(8)
+    from src.envs.ant_reach import ant_reach
+    #env = centipede.Centipede(8)
+    env = ant_reach.AntReach()
 
     policy = Policy(env)
-    V = Valuefun(env)
     params = {"iters" : 30000, "batchsize" : 32, "gamma" : 0.97, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
     print(params)
-    train(env, policy, V, params)
+    train(env, policy, None, params)
 
     # TODO: debug and test

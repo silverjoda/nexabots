@@ -3,6 +3,7 @@ import pybullet as p
 import pybullet_data
 from collections import deque
 import time
+import os
 
 class AntReach:
     def __init__(self, GUI=True):
@@ -22,7 +23,7 @@ class AntReach:
 
         # Load simulator objects
         self.planeId = p.loadURDF("plane.urdf")
-        self.robotId = p.loadMJCF("ant_reach.xml")[0]
+        self.robotId, self.targetId = p.loadMJCF(os.path.join(os.path.dirname(__file__), "ant_reach.xml"))
 
         self.joint_dict = {}
         for i in range(p.getNumJoints(self.robotId)):
@@ -32,9 +33,10 @@ class AntReach:
             if joint_type == 0:
                 self.joint_dict[name] = (id, joint_lim_low, joint_lim_high)
         self.joint_ids = [j[0] for j in self.joint_dict.values()]
+        self.n_joints = len(self.joint_ids)
 
-        self.obs_dim = 7 + 6 + p.getNumJoints(self.robotId) * 2
-        self.act_dim = p.getNumJoints(self.robotId)
+        self.obs_dim = 7 + 6 + self.n_joints * 2 + 2 # Last 3 are target x,y
+        self.act_dim = self.n_joints
 
         # Environent inner parameters
         self.success_queue = deque(maxlen=100)
@@ -55,41 +57,28 @@ class AntReach:
 
     def get_obs(self):
         # Base position and orientation
-        base_q = p.getBasePositionAndOrientation(self.robotId)
+        torso_pos, torso_orient = p.getBasePositionAndOrientation(self.robotId)
+
+        # Target position and orientation
+        target_pos, _ = p.getBasePositionAndOrientation(self.targetId)
 
         # Base velocity and angular velocity
-        base_q_ = p.getBaseVelocity(self.robotId)
+        torso_pos_, torso_orient_ = p.getBaseVelocity(self.robotId)
 
         # Joint states and velocities
-        q = p.getJointStates(self.robotId, self.joint_ids)
-        q_ = p.getJointStates(self.robotId, self.joint_ids)
+        q, q_, _, _ = zip(*p.getJointStates(self.robotId, self.joint_ids))
 
-        # Target position and velocity
-        # Todo:
+        obs_dict = {'torso_pos': torso_pos,
+                    'torso_quat': torso_orient,
+                    'target_pos': target_pos[0:2],
+                    'q': q,
+                    'torso_vel': torso_pos_,
+                    'torso_angvel': torso_orient_,
+                    'q_vel': q_}
 
-        a = None
-        return np.asarray(a, dtype=np.float32)
+        obs_arr = np.concatenate([v for v in obs_dict.values()]).astype(np.float32)
 
-
-    def get_obs_dict(self):
-        od = {}
-        for j in self.sim.model.joint_names:
-            od[j + "_pos"] = self.sim.data.get_joint_qpos(j)
-            od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
-        return od
-
-
-    def get_state(self):
-        return self.sim.get_state()
-
-
-    def set_state(self, qpos, qvel=None):
-        qvel = np.zeros(self.q_dim) if qvel is None else qvel
-        old_state = self.sim.get_state()
-        new_state = mujoco_py.MjSimState(old_state.time, qpos, qvel,
-                                         old_state.act, old_state.udd_state)
-        self.sim.set_state(new_state)
-        self.sim.forward()
+        return obs_arr, obs_dict
 
 
     def _sample_goal(self, pose):
@@ -117,44 +106,28 @@ class AntReach:
         return (x-xg)**2 < 0.2 and (y-yg)**2 < 0.2
 
 
-    def quat_to_EA(self, quat):
-        return quaternion.as_euler_angles(np.quaternion(quat))
-
-
-    def render(self, human=True):
-        if self.viewer is None:
-            self.viewer = mujoco_py.MjViewer(self.sim)
-        if not human:
-            return self.sim.render(camera_name=None,
-                                   width=224,
-                                   height=224,
-                                   depth=False)
-            #return viewer.read_pixels(width, height, depth=False)
-
-        self.viewer.render()
-
-
     def step(self, ctrl):
 
-        self.sim.data.ctrl[:] = ctrl
-        self.sim.forward()
-        self.sim.step()
+        # Get measurements before step
+        torso_pos_prev, _ = p.getBasePositionAndOrientation(self.robotId)
 
-        print(self.sim.data.ncon)
+        # Add control law
+        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, forces=ctrl * 1500)
+
+        # Perform single step of simulation
+        p.stepSimulation()
+
+        # Get measurements after step
+        torso_pos_current, _ = p.getBasePositionAndOrientation(self.robotId)
+
+        prev_dist = np.sqrt(np.sum((np.asarray(torso_pos_prev[0:2]) - np.asarray(self.goal)) ** 2))
+        current_dist = np.sqrt(np.sum((np.asarray(torso_pos_current[0:2]) - np.asarray(self.goal)) ** 2))
 
         self.step_ctr += 1
-
-        obs = self.get_obs()
-
-        # Make relevant pose from observation (x,y)
-        x, y, z, q1, q2, q3, q4 = self.sim.data.get_joint_qpos("root")
-        pose = (x, y)
-
-        prev_dist  = np.sqrt(np.sum((np.asarray(self.current_pose) - np.asarray(self.goal))**2))
-        current_dist = np.sqrt(np.sum((np.asarray(pose) - np.asarray(self.goal))**2))
+        obs_arr, obs_dict = self.get_obs()
 
         # Check if goal has been reached
-        reached_goal = self.reached_goal(pose, self.goal)
+        reached_goal = self.reached_goal(torso_pos_current[0:2], self.goal)
 
         # Reevaluate termination condition
         done = reached_goal or self.step_ctr > 400
@@ -166,48 +139,63 @@ class AntReach:
         if done:
             self._update_stats(reached_goal)
 
-        ctrl_effort = np.square(ctrl).sum() * 0.03
+        ctrl_effort = np.square(ctrl).mean() * 0.01
         target_progress = (prev_dist - current_dist) * 70
-        target_trueness = 0
 
         r = target_progress - ctrl_effort
 
-        self.current_pose = pose
-
-        return obs, r, done, None
-
-
-    def demo(self):
-        self.reset()
-        for i in range(1000):
-            self.step(self.action_space.sample())
-            self.render()
+        return obs_arr, r, done, obs_dict
 
 
     def reset(self):
 
+        # Sample new target goal
+        torso_pos, _ = p.getBasePositionAndOrientation(self.robotId)
+        self.goal = self._sample_goal(torso_pos[0:2])
+
         # Reset env variables
         self.step_ctr = 0
 
-        # Sample initial configuration
-        init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.randn() * 0.1
-        init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.60 + np.random.rand() * 0.1
-        init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
+        # Variable positions
+        obs_dict = {'torso_pos': (0, 0, 0.4),
+                    'torso_quat': (0, 0, 0, 1),
+                    'target_pos' : self.goal,
+                    'q': np.zeros(self.n_joints),
+                    'torso_vel': np.zeros(3),
+                    'torso_angvel': np.zeros(3),
+                    'q_vel': np.zeros(self.n_joints)}
 
-        obs = np.concatenate((init_q, init_qvel))
+        obs_arr = np.concatenate([v for v in obs_dict.values()])
 
-        self.current_pose = init_q[0:2]
-        self.goal = self._sample_goal(self.current_pose)
-
-        # Set object position
-        init_q[self.q_dim - 2:] = self.goal
+        # Target pos
+        target_pos = (self.goal[0], self.goal[1], 0)
 
         # Set environment state
-        self.set_state(init_q, init_qvel)
+        p.resetBasePositionAndOrientation(self.robotId, obs_dict['torso_pos'], obs_dict['torso_quat'])
+        p.resetBasePositionAndOrientation(self.targetId, target_pos, (0,0,0,1))
+        p.resetBaseVelocity(self.robotId, obs_dict['torso_vel'])
 
-        return obs
+        for j in self.joint_ids:
+            p.resetJointState(self.robotId, j, 0, 0)
+
+        return obs_arr, obs_dict
+
+
+    def demo(self):
+        self.reset()
+        t1 = time.time()
+        iters = 10000
+        for i in range(iters):
+            if i % 1000 == 0:
+                print("Step: {}/{}".format(i, iters))
+                self.reset()
+            self.step(np.random.randn(self.n_joints))
+        t2 = time.time()
+        print("Time Elapsed: {}".format(t2-t1))
+
+
+    def random_action(self):
+        return np.random.randn(self.n_joints)
 
 
 if __name__ == "__main__":

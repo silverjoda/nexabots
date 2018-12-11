@@ -3,7 +3,7 @@ import pybullet as p
 import pybullet_data
 from collections import deque
 import time
-
+import os
 
 class Centipede:
     def __init__(self, n_links, gui=True):
@@ -25,9 +25,9 @@ class Centipede:
         self.planeId = p.loadURDF("plane.urdf")
 
         if n_links == 8:
-            self.robotId = p.loadMJCF("/home/silverjoda/SW/python-research/nexabots/src/envs/centipede/CentipedeEight.xml")[0]
+            self.robotId = p.loadMJCF(os.path.join(os.path.dirname(__file__), "CentipedeEight.xml"))[0]
         elif n_links == 14:
-            self.robotId = p.loadMJCF("/home/silverjoda/SW/python-research/nexabots/src/envs/centipede/CentipedeFourteen.xml")[0]
+            self.robotId = p.loadMJCF(os.path.join(os.path.dirname(__file__), "CentipedeFourteen.xml"))[0]
         else:
             raise NotImplementedError
 
@@ -101,8 +101,8 @@ class Centipede:
         # Reevaluate termination condition
         done = self.step_ctr > 400
 
-        ctrl_effort = np.square(ctrl).sum() * 0.01
-        target_progress = (x_current - x_prev) * 30
+        ctrl_effort = np.square(ctrl).mean() * 0.01
+        target_progress = (x_current - x_prev) * 50
 
         r = target_progress - ctrl_effort
 

@@ -16,15 +16,14 @@
     <material name="geom" texture="texgeom" texuniform="true"/>
   </asset>
 
-
   <worldbody>
     <body name="torso" pos="0 0 0.75">
-      <geom name="torso_geom" pos="0 0 0" size="0.25" type="sphere"/>
+      <geom name="torso_geom" rgba="0 0 1 1" pos="0 0 0" size="0.25" type="sphere"/>
       <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
       <body name="front_left_leg" pos="0 0 0">
-        <geom fromto="0.0 0.0 0.0 0.2 0.2 0.0" name="aux_1_geom" size="0.08" type="capsule"/>
+        <geom fromto="0.0 0.0 0.0 0.2 0.2 0.0" name="aux_1_geom" rgba="0 0 1 1" size="0.08" type="capsule"/>
         <body name="aux_1" pos="0.2 0.2 0">
-          <joint axis="0 0 1" name="hip_1" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
+          <joint axis="0 0 1" name="hip_1" rgba="0 0 1 1" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.2 0.2 0.0" name="left_leg_geom" size="0.08" type="capsule"/>
           <body pos="0.2 0.2 0">
             <joint axis="-1 1 0" name="ankle_1" pos="0.0 0.0 0.0" range="30 70" type="hinge"/>
@@ -67,11 +66,11 @@
       </body>
     </body>
 
-    <!--body name="object0" pos="0 0 0">
-          <geom size="0.1 0.2 0.1" type="sphere" name="object0" mass="1" rgba="1. 0. 0. 1"></geom>
+    <body name="object0" pos="0 0 0">
+          <geom size="0.1 0.2 0.1" type="sphere" name="object0" mass="1" rgba="0. 1. 0. 1"></geom>
           <joint axis="1 0 0" name="slider1" pos="0 0 0" range="-10 10" type="slide"/>
           <joint axis="0 1 0" name="slider2" pos="0 0 0" range="-10 10" type="slide"/>
-    </body-->
+    </body>
 
 
   </worldbody>

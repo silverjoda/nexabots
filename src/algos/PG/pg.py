@@ -1,10 +1,12 @@
+import os
+import sys
+
 import numpy as np
 import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import time
-import src.algos.PG.utils as utils
-from copy import deepcopy
+import my_utils
 
 T.set_num_threads(1)
 
@@ -256,7 +258,7 @@ def train(env, policy, V, params):
 
         while not done:
             # Sample action from policy
-            action = policy.sample_action(utils.to_tensor(s_0, True)).detach()
+            action = policy.sample_action(my_utils.to_tensor(s_0, True)).detach()
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
@@ -272,10 +274,10 @@ def train(env, policy, V, params):
             #     env.render()
 
             # Record transition
-            batch_states.append(utils.to_tensor(s_0, True))
+            batch_states.append(my_utils.to_tensor(s_0, True))
             batch_actions.append(action)
-            batch_rewards.append(utils.to_tensor(np.asarray(r, dtype=np.float32), True))
-            batch_new_states.append(utils.to_tensor(s_1, True))
+            batch_rewards.append(my_utils.to_tensor(np.asarray(r, dtype=np.float32), True))
+            batch_new_states.append(my_utils.to_tensor(s_1, True))
             batch_terminals.append(done)
 
             s_0 = s_1
@@ -407,13 +409,13 @@ if __name__=="__main__":
 
     from src.envs.centipede import centipede
     from src.envs.ant_reach import ant_reach
-    env = centipede.Centipede(8, gui=False)
-    #env = ant_reach.AntReach(gui=False)
+    #env = centipede.Centipede(8, gui=False)
+    env = ant_reach.AntReach(gui=False)
 
     policy = Policy(env)
     params = {"iters" : 50000, "batchsize" : 32, "gamma" : 0.98, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
     print(params)
     train(env, policy, None, params)
-    T.save(policy, "agents/centipede8.p")
+    T.save(policy, "agents/antreach.p")
 
     # TODO: debug and test

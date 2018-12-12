@@ -7,7 +7,7 @@ import torch.nn.functional as F
 import torch as T
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import os
-from envs.centipede.centipede import *
+from src.envs.centipede.centipede import *
 
 T.set_num_threads(1)
 

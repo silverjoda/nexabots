@@ -6,7 +6,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch as T
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
-import os
 from src.envs.centipede.centipede import *
 
 T.set_num_threads(1)
@@ -44,6 +43,7 @@ class ConvPolicy14(nn.Module):
         self.deconv_4 = nn.ConvTranspose1d(18, 6, kernel_size=3, stride=1, padding=1)
 
         self.afun = F.tanh
+
 
     def forward(self, x):
         obs = x[:, :7]
@@ -135,7 +135,7 @@ class ConvPolicy8(nn.Module):
         fm_dc2 = self.afun(self.deconv_2(fm_dc1))
         fm_dc3 = self.afun(self.deconv_3(fm_dc2))
         fm_upsampled = F.interpolate(fm_dc3, size=4)
-        fm_dc4 = self.deconv_4(T.cat((fm_upsampled, jlrs), 1))
+        fm_dc4 = self.afun(self.deconv_4(T.cat((fm_upsampled, jlrs), 1)))
 
         acts = fm_dc4.squeeze(2).view((1, -1))
 

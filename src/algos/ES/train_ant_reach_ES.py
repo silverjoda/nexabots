@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import time
-from envs.ant_reach.ant_reach import AntReach
+from src.envs.ant_reach.ant_reach import AntReach
 from multiprocessing import Pool
 from multiprocessing.dummy import Pool as ThreadPool
 
@@ -83,7 +83,7 @@ def f_mp(args):
 
 def train(params):
     env_fun, iters, n_hidden, animate = params
-    env = env_fun(True)
+    env = env_fun(animate)
 
     obs_dim, act_dim = env.obs_dim, env.act_dim
     policy = NN(obs_dim, act_dim).float()
@@ -125,7 +125,7 @@ def train_mt(params):
             X = es.ask()
 
             N = len(X)
-            p = Pool(4)
+            p = Pool(8)
 
             evals = p.map(f_mp, list(zip([env_fun] * N, [policy] * N,  X)))
 
@@ -138,7 +138,7 @@ def train_mt(params):
 
 env = AntReach
 t1 = time.clock()
-train((AntReach, 100, 7, True))
+train((AntReach, 100, 7, False))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

@@ -4,6 +4,7 @@ import pybullet_data
 from collections import deque
 import time
 import os
+import src.my_utils as my_utils
 
 class Centipede:
     def __init__(self, n_links, gui=False):
@@ -38,6 +39,8 @@ class Centipede:
             joint_lim_low, joint_lim_high = info[8:10]
             if joint_type == 0:
                 self.joint_dict[name] = (id, joint_lim_low, joint_lim_high)
+
+
         self.joint_ids = [j[0] for j in self.joint_dict.values()]
         self.n_joints = len(self.joint_ids)
 
@@ -111,11 +114,15 @@ class Centipede:
 
     def reset(self):
 
+        # Set zero torques
+        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, forces=[0] * self.act_dim)
+        p.stepSimulation()
+
         # Reset env variables
         self.step_ctr = 0
 
         # Variable positions
-        obs_dict = {'torso_pos' : (0, 0, 0.4),
+        obs_dict = {'torso_pos' : (0, 0, 0.7),
                     'torso_quat' : (0, 0, 0, 1),
                     'q' : np.zeros(self.n_joints),
                     'torso_vel' : np.zeros(3),
@@ -131,6 +138,10 @@ class Centipede:
         for j in self.joint_ids:
             p.resetJointState(self.robotId, j, 0, 0)
 
+        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, forces=[0] * self.act_dim)
+        for i in range(30):
+            p.stepSimulation()
+
         return obs_arr, obs_dict
 
 
@@ -145,6 +156,20 @@ class Centipede:
             self.step(np.random.randn(self.n_joints))
         t2 = time.time()
         print("Time Elapsed: {}".format(t2-t1))
+
+
+    def test(self, policy):
+        self.reset()
+        for i in range(100):
+            done = False
+            obs, _ = self.reset()
+            cr = 0
+            while not done:
+                action = policy.sample_action(my_utils.to_tensor(obs, True)).detach()
+                obs, r, done, od, = self.step(action[0])
+                cr += r
+            print("Total episode reward: {}".format(cr))
+
 
 
     def random_action(self):

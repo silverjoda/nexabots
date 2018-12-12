@@ -6,7 +6,7 @@ import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
 import time
-import my_utils
+import src.my_utils as my_utils
 
 T.set_num_threads(1)
 
@@ -406,16 +406,17 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 
 
 if __name__=="__main__":
-
     from src.envs.centipede import centipede
     from src.envs.ant_reach import ant_reach
     #env = centipede.Centipede(8, gui=False)
     env = ant_reach.AntReach(gui=False)
 
     policy = Policy(env)
-    params = {"iters" : 50000, "batchsize" : 32, "gamma" : 0.98, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
+    params = {"iters" : 0, "batchsize" : 32, "gamma" : 0.98, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
     print(params)
     train(env, policy, None, params)
     T.save(policy, "agents/antreach.p")
 
-    # TODO: debug and test
+    # Test policy
+    policy = T.load("agents/antreach.p")
+    env.test(policy)

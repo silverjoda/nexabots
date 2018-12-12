@@ -11,10 +11,9 @@ import src.my_utils as my_utils
 T.set_num_threads(1)
 
 class ConvPolicy8(nn.Module):
-    def __init__(self, env):
+    def __init__(self, N):
         super(ConvPolicy8, self).__init__()
-        self.N_links = 4
-        self.act_dim = self.N_links * 6 - 2
+        self.N_links = int(N / 2)
 
         # rep conv
         self.conv_1 = nn.Conv1d(12, 4, kernel_size=3, stride=1, padding=1)
@@ -23,7 +22,7 @@ class ConvPolicy8(nn.Module):
         self.conv_4 = nn.Conv1d(8, 8, kernel_size=2, stride=1)
 
         # Embedding layers
-        self.conv_emb_1 = nn.Conv1d(10, 8, kernel_size=1, stride=1)
+        self.conv_emb_1 = nn.Conv1d(13, 8, kernel_size=1, stride=1)
         self.conv_emb_2 = nn.Conv1d(8, 8, kernel_size=1, stride=1)
 
         self.deconv_1 = nn.ConvTranspose1d(8, 4, kernel_size=3, stride=1)
@@ -31,31 +30,22 @@ class ConvPolicy8(nn.Module):
         self.deconv_3 = nn.ConvTranspose1d(4, 8, kernel_size=3, stride=1, padding=1)
         self.deconv_4 = nn.ConvTranspose1d(14, 6, kernel_size=3, stride=1, padding=1)
 
-        self.upsample = nn.Upsample(size=4)
-
-        self.afun = F.selu
-
-        self.log_std = T.zeros(1, self.act_dim)
+        self.afun = T.tanh
 
     def forward(self, x):
-        N = x.shape[0]
         obs = x[:, :7]
         obsd = x[:, 7 + self.N_links * 6 - 2: 7 + self.N_links * 6 - 2 + 6]
 
-        # Get psi angle from observation quaternion
-        _, _, psi = quaternion.as_euler_angles(np.quaternion(*(obs[0,3:7].numpy())))
-        psi = T.tensor([psi], dtype=T.float32).unsqueeze(0).repeat(N,1)
-
         # (psi, psid)
-        ext_obs = T.cat((psi, obsd[:, -1:]), 1)
+        ext_obs = T.cat((obs[:,3:7], obsd[:, -1:]), 1)
 
         # Joints angles
-        jl = T.cat((T.zeros(N, 2), x[:, 7:7 + self.N_links * 6 - 2]), 1)
-        jlrs = jl.view((N, 6, -1))
+        jl = T.cat((T.zeros(1, 2), x[:, 7:7 + self.N_links * 6 - 2]), 1)
+        jlrs = jl.view((1, 6, -1))
 
         # Joint angle velocities
-        jdl = T.cat((T.zeros(N, 2), x[:, 7 + self.N_links * 6 - 2 + 6:]), 1)
-        jdlrs = jdl.view((N, 6, -1))
+        jdl = T.cat((T.zeros(1, 2), x[:, 7 + self.N_links * 6 - 2 + 6:]), 1)
+        jdlrs = jdl.view((1, 6, -1))
 
         jcat = T.cat((jlrs, jdlrs), 1) # Concatenate j and jd so that they are 2 parallel channels
 
@@ -72,10 +62,10 @@ class ConvPolicy8(nn.Module):
         fm_dc1 = self.afun(self.deconv_1(emb_2))
         fm_dc2 = self.afun(self.deconv_2(fm_dc1))
         fm_dc3 = self.afun(self.deconv_3(fm_dc2))
-        fm_upsampled = self.upsample(fm_dc3)
-        fm_dc4 = self.deconv_4(T.cat((fm_upsampled, jlrs), 1))
+        fm_upsampled = F.interpolate(fm_dc3, size=4)
+        fm_dc4 = self.afun(self.deconv_4(T.cat((fm_upsampled, jlrs), 1)))
 
-        acts = fm_dc4.squeeze(2).view((N, -1))
+        acts = fm_dc4.squeeze(2).view((1, -1))
 
         return acts[:, 2:]
 

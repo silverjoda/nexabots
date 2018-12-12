@@ -93,8 +93,15 @@ def train(params):
 
     print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format("Ant_reach", env.act_dim,
                                                                                   env.obs_dim, len(w)))
+
+    it = 0
     try:
         while not es.stop():
+            it += 1
+            if it > iters:
+                break
+            if it % 1000 == 0:
+                T.save(policy, "agents/ant_reach_es.p")
             X = es.ask()
             es.tell(X, [f(x) for x in X])
             es.disp()
@@ -136,9 +143,9 @@ def train_mt(params):
 
     return es.result.fbest
 
-env = AntReach
+env = AntReach # ll
 t1 = time.clock()
-train((AntReach, 100, 7, False))
+train((AntReach, 100, 7, True))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

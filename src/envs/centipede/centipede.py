@@ -171,10 +171,8 @@ class Centipede:
             print("Total episode reward: {}".format(cr))
 
 
-
     def random_action(self):
         return np.random.randn(self.n_joints)
-
 
 
 if __name__ == "__main__":

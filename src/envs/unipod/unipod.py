@@ -16,7 +16,6 @@ class Unipod:
         # Set simulation parameters
         p.setGravity(0, 0, -9.81)
 
-        # This is required so that we step simulation
         p.setRealTimeSimulation(0)
 
         # Simulation time step (Not recommended to change (?))
@@ -24,15 +23,20 @@ class Unipod:
 
         # Load simulator objects
         self.planeId = p.loadURDF("plane.urdf")
-        self.robotId = p.loadSDF(os.path.join(os.path.dirname(__file__), "unipod.xml"))
+        self.robotId = p.loadURDF(os.path.join(os.path.dirname(__file__), "unipod.urdf"))
+        for i in range(1000000):
+            p.stepSimulation()
+            p.setJointMotorControl2(self.robotId, 0, p.POSITION_CONTROL, targetPosition=1)
+
+            time.sleep(0.001)
+        exit()
 
         self.joint_dict = {}
         for i in range(p.getNumJoints(self.robotId)):
             info = p.getJointInfo(self.robotId, i)
             id, name, joint_type = info[0:3]
             joint_lim_low, joint_lim_high = info[8:10]
-            if joint_type == 0:
-                self.joint_dict[name] = (id, joint_lim_low, joint_lim_high)
+            self.joint_dict[name] = (id, joint_lim_low, joint_lim_high)
 
 
         self.joint_ids = [j[0] for j in self.joint_dict.values()]

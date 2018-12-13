@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<robot name="Unipod">
+  <material name="blue">
+    <color rgba="0 0 0.8 1"/>
+  </material>
+  <material name="white">
+    <color rgba="1 1 1 1"/>
+  </material>
+
+  <link name="foot">
+    <visual>
+      <geometry>
+        <capsule length="0.2" radius="0.05"/>
+      </geometry>
+      <origin rpy="1.57 0 0" xyz="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <capsule length="0.1" radius="0.05"/>
+      </geometry>
+      <origin rpy="1.57 0 0" xyz="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.2"/>
+      <inertia ixx="0.000322916666667" ixy="0.0" ixz="0.0" iyy="0.000322916666667" iyz="0.0" izz="0.0005625"/>
+    </inertial>
+  </link>
+
+  <link name="leg">
+    <visual>
+      <geometry>
+        <capsule length="0.5" radius="0.05"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </visual>
+    <collision>
+      <geometry>
+        <capsule length="0.1" radius="0.05"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.2"/>
+      <inertia ixx="0.000322916666667" ixy="0.0" ixz="0.0" iyy="0.000322916666667" iyz="0.0" izz="0.0005625"/>
+    </inertial>
+  </link>
+
+  <joint name="joint_0" type="revolute">
+    <axis xyz="1 0 0"/>
+    <limit effort="10000" lower="-3" upper="+3" velocity="5"/>
+    <dynamics damping="0" friction="0"/>
+    <origin rpy="0 0 0" xyz="0.0 0."/>
+    <parent link="foot"/>
+    <child link="leg"/>
+  </joint>
+</robot>
+

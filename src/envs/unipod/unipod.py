@@ -34,7 +34,7 @@ class Unipod:
         self.joint_dict = {}
         for i in range(p.getNumJoints(self.robotId)):
             info = p.getJointInfo(self.robotId, i)
-            id, name, joint_type = info[0:3]
+            id, name, joint_type = info[0:3]#
             joint_lim_low, joint_lim_high = info[8:10]
             self.joint_dict[name] = (id, joint_lim_low, joint_lim_high)
 

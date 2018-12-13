@@ -205,6 +205,7 @@ class AntReach:
                 action = policy.sample_action(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r
+                time.sleep(0.001)
             print("Total episode reward: {}".format(cr))
 
 

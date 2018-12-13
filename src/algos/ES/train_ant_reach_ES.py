@@ -10,6 +10,7 @@ import time
 from src.envs.ant_reach.ant_reach import AntReach
 from multiprocessing import Pool
 from multiprocessing.dummy import Pool as ThreadPool
+import os
 
 class LinearPolicy(nn.Module):
     def __init__(self, obs_dim, act_dim):
@@ -78,6 +79,8 @@ def f_mp(args):
 
         reward += rew
 
+    del env
+
     return -reward
 
 
@@ -101,7 +104,8 @@ def train(params):
             if it > iters:
                 break
             if it % 1000 == 0:
-                T.save(policy, "agents/ant_reach_es.p")
+                T.save(policy, os.path.join(os.getcwd(), "agents/ant_reach_es.p"))
+                print("Saved checkpoint")
             X = es.ask()
             es.tell(X, [f(x) for x in X])
             es.disp()

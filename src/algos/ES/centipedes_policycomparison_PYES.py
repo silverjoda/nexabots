@@ -400,25 +400,24 @@ def train(params):
 # Make environment
 N = 8
 env_name = "CentipedeEight"
-env = Centipede(N, gui=False)
+env = Centipede(N, gui=True)
 
 print(env.obs_dim, env.act_dim)
 policyfunctions = [ConvPolicy8]
 
-for p in policyfunctions:
-    print("Training with {} policy.".format(p.__name__))
-    fbest, policy = train(("CentipedeEight", env, p(N).float(), 10000))
-    print("Policy {} max score: {}".format(p.__name__, fbest))
-    T.save(policy, "agents/{}.p".format(p.__name__))
-
-exit()
+# for p in policyfunctions:
+#     print("Training with {} policy.".format(p.__name__))
+#     fbest, policy = train(("CentipedeEight", env, p(N).float(), 10000))
+#     print("Policy {} max score: {}".format(p.__name__, fbest))
+#     T.save(policy, "agents/{}.p".format(p.__name__))
+#
+# exit()
 
 # Evaluate
-policy = T.load("agents/ES/ConvPolicy8_0.p")
+policy = T.load("agents/ConvPolicy8.p")
 f = f_wrapper(env, policy)
-for i in range(10):
-    r = f(parameters_to_vector(policy.parameters()).detach().numpy())
-    print(r)
+env.test(policy)
+
 
 print("Done, exiting.")
 exit()

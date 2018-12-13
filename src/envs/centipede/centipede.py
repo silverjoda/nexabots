@@ -165,9 +165,10 @@ class Centipede:
             obs, _ = self.reset()
             cr = 0
             while not done:
-                action = policy.sample_action(my_utils.to_tensor(obs, True)).detach()
+                action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r
+                time.sleep(0.001)
             print("Total episode reward: {}".format(cr))
 
 

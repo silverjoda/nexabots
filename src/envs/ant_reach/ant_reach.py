@@ -26,13 +26,21 @@ class AntReach:
         self.planeId = p.loadURDF("plane.urdf")
         self.robotId, self.targetId = p.loadMJCF(os.path.join(os.path.dirname(__file__), "ant_reach.xml"))
 
+        self.joint_lim_lows = []
+        self.joint_lim_highs = []
         self.joint_dict = {}
         for i in range(p.getNumJoints(self.robotId)):
             info  = p.getJointInfo(self.robotId, i)
             id, name, joint_type = info[0:3]
             joint_lim_low, joint_lim_high = info[8:10]
             if joint_type == 0:
+                self.joint_lim_lows.append(joint_lim_low)
+                self.joint_lim_highs.append(joint_lim_high)
                 self.joint_dict[name] = (id, joint_lim_low, joint_lim_high)
+
+        self.joint_lim_lows = np.asarray(self.joint_lim_lows)
+        self.joint_lim_highs = np.asarray(self.joint_lim_highs)
+
         self.joint_ids = [j[0] for j in self.joint_dict.values()]
         self.n_joints = len(self.joint_ids)
 
@@ -113,7 +121,7 @@ class AntReach:
         torso_pos_prev, _ = p.getBasePositionAndOrientation(self.robotId)
 
         # Add control law
-        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, forces=ctrl * 1500)
+        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.TORQUE_CONTROL, forces=ctrl * 1300)
 
         # Perform single step of simulation
         p.stepSimulation()
@@ -144,6 +152,48 @@ class AntReach:
         target_progress = (prev_dist - current_dist) * 70
 
         r = target_progress - ctrl_effort
+
+        return obs_arr, r, done, obs_dict
+
+
+    def step_pos(self, q):
+        # Get measurements before step
+        torso_pos_prev, _ = p.getBasePositionAndOrientation(self.robotId)
+
+        # Rescale -1,1 input targets to actual joint targets
+        resc_q = (2 * (q - self.joint_lim_lows) / (self.joint_lim_highs - self.joint_lim_lows)) - 1
+
+        # Add control law
+        p.setJointMotorControlArray(self.robotId, self.joint_ids, p.POSITION_CONTROL, targetPositions=q, forces=[10000] * 8)
+
+        # Perform single step of simulation
+        p.stepSimulation()
+
+        # Get measurements after step
+        torso_pos_current, _ = p.getBasePositionAndOrientation(self.robotId)
+
+        prev_dist = np.sqrt(np.sum((np.asarray(torso_pos_prev[0:2]) - np.asarray(self.goal)) ** 2))
+        current_dist = np.sqrt(np.sum((np.asarray(torso_pos_current[0:2]) - np.asarray(self.goal)) ** 2))
+
+        self.step_ctr += 1
+        obs_arr, obs_dict = self.get_obs()
+
+        # Check if goal has been reached
+        reached_goal = self.reached_goal(torso_pos_current[0:2], self.goal)
+
+        # Reevaluate termination condition
+        done = reached_goal or self.step_ctr > 400
+
+        if reached_goal:
+            print("SUCCESS")
+
+        # Update success rate
+        if done:
+            self._update_stats(reached_goal)
+
+        target_progress = (prev_dist - current_dist) * 70
+
+        r = target_progress
 
         return obs_arr, r, done, obs_dict
 
@@ -187,10 +237,12 @@ class AntReach:
         t1 = time.time()
         iters = 10000
         for i in range(iters):
+            time.sleep(0.005)
             if i % 1000 == 0:
                 print("Step: {}/{}".format(i, iters))
                 self.reset()
-            self.step(np.random.randn(self.n_joints))
+            self.step_pos(np.random.randn(self.n_joints))
+            #self.step_pos([-1] * 8)
         t2 = time.time()
         print("Time Elapsed: {}".format(t2-t1))
 
@@ -214,7 +266,7 @@ class AntReach:
 
 
 if __name__ == "__main__":
-    ant = AntReach()
+    ant = AntReach(True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

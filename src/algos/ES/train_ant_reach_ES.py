@@ -51,7 +51,9 @@ def f_wrapper(env, policy):
                 act = policy(torch.from_numpy(np.expand_dims(obs, 0)))[0].numpy()
 
             # Step environment
-            obs, rew, done, _ = env.step(act)
+            obs, rew, done, _ = env.step_pos(act)
+
+            #time.sleep(0.001)
 
             reward += rew
 

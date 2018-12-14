@@ -259,9 +259,8 @@ def train(env, policy, V, params):
 
             batch_rew += r
 
-
-            # if params["animate"]:
-            #     env.render()
+            if params["animate"]:
+                env.render()
 
             # Record transition
             batch_states.append(my_utils.to_tensor(s_0, True))
@@ -398,11 +397,13 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     from src.envs.centipede import centipede
     from src.envs.ant_reach import ant_reach
+    from src.envs.ant_terrain_mjc import ant_terrain_mjc
     #env = centipede.Centipede(8, gui=False)
-    env = ant_reach.AntReach(gui=True)
+    #env = ant_reach.AntReach(gui=True)
+    env = ant_terrain_mjc.AntTerrainMjc()
 
     policy = Policy(env)
-    params = {"iters" : 0, "batchsize" : 32, "gamma" : 0.98, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
+    params = {"iters" : 100000, "batchsize" : 32, "gamma" : 0.98, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
     print(params)
     train(env, policy, None, params)
     T.save(policy, "agents/antreach.p")

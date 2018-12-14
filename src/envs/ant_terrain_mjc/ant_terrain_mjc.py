@@ -34,6 +34,8 @@ class AntTerrainMjc:
         self.reset()
         self.setupcam()
 
+        # TODO: ADD CAMERA AND CONTACT INPUTS
+
 
     def setupcam(self):
         if self.viewer is None:

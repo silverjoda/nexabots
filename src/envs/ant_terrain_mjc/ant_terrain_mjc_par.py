@@ -4,7 +4,7 @@ import src.my_utils as my_utils
 import time
 import os
 
-class AntTerrainMjc:
+class AntTerrainMjcPar:
     def __init__(self, animate=False, sim=None):
 
         if sim is not None:
@@ -33,8 +33,6 @@ class AntTerrainMjc:
 
         if animate:
             self.setupcam()
-
-        # TODO: ADD CAMERA AND CONTACT INPUTS
 
 
     def setupcam(self):

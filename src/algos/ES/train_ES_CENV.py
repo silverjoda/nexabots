@@ -7,10 +7,13 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import time
+import mujoco_py
 
 from multiprocessing import Pool
 from multiprocessing.dummy import Pool as ThreadPool
+import multiprocessing as mp
 import os
+from copy import deepcopy
 
 class LinearPolicy(nn.Module):
     def __init__(self, obs_dim, act_dim):
@@ -62,9 +65,9 @@ def f_wrapper(env, policy, animate):
     return f
 
 
-def f_mp(args):
-    env_class, policy, w = args
-    env = env_class()
+def f_mp(pos, env_fun, sim, policy, w, output):
+    env = env_fun(animate=False, sim=sim)
+
     reward = 0
     done = False
     obs, _ = env.reset()
@@ -82,13 +85,11 @@ def f_mp(args):
 
         reward += rew
 
-    del env
-
-    return -reward
+    output.put((pos, -reward))
 
 
 def train(params):
-    env_fun, iters, n_hidden, animate = params
+    env_fun, iters, n_hidden, animate, _ = params
 
     env = env_fun(animate)
     obs_dim, act_dim = env.obs_dim, env.act_dim
@@ -119,10 +120,10 @@ def train(params):
 
 
 def train_mt(params):
-    env_fun, iters, n_hidden, animate = params
+    env_fun, iters, n_hidden, animate, model = params
     env = env_fun()
-
     obs_dim, act_dim = env.obs_dim, env.act_dim
+
     policy = NN(obs_dim, act_dim).float()
     w = parameters_to_vector(policy.parameters()).detach().numpy()
     es = cma.CMAEvolutionStrategy(w, 0.5)
@@ -130,18 +131,35 @@ def train_mt(params):
     print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format("Ant_reach", act_dim,
                                                                                               obs_dim, len(w)))
 
+    sims = [mujoco_py.MjSim(model) for _ in range(es.popsize)]
+    policies = [policy] * es.popsize
+
     ctr = 0
     try:
         while not es.stop():
             ctr += 1
             if ctr > iters:
                 break
+            if ctr % 1000 == 0:
+                sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                    "agents/{}.p".format(env_fun.__name__))
+                T.save(policy, sdir)
+                print("Saved checkpoint")
             X = es.ask()
 
-            N = len(X)
-            p = Pool(4)
+            output = mp.Queue()
+            processes = [mp.Process(target=f_mp, args=(i, env_fun, sim, policy, x, output))
+                         for i, env_fun, sim, policy, x in zip(range(es.popsize), [env_fun] * es.popsize, sims, policies, X)]
 
-            evals = p.map(f_mp, list(zip([env_fun] * N, [policy] * N,  X)))
+            # Run processes
+            for p in processes:
+                p.start()
+
+            # Exit the completed processes
+            for p in processes:
+                p.join()
+
+            evals = [output.get() for _ in processes]
 
             es.tell(X, evals)
             es.disp()
@@ -151,10 +169,14 @@ def train_mt(params):
     return es.result.fbest
 
 from src.envs.ant_terrain_mjc.ant_terrain_mjc import AntTerrainMjc
+modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         "../../envs/ant_terrain_mjc/assets/ant_terrain_mjc.xml")
+model = mujoco_py.load_model_from_path(modelpath)
+T.set_num_threads(1)
 
 env = AntTerrainMjc # ll
 t1 = time.clock()
-train_mt((env, 10, 7, False))
+train_mt((env, 100, 7, False, model))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

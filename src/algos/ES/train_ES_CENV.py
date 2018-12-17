@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import time
-from src.envs.ant_reach.ant_reach import AntReach
+
 from multiprocessing import Pool
 from multiprocessing.dummy import Pool as ThreadPool
 import os
@@ -36,7 +36,7 @@ class NN(nn.Module):
         return x
 
 
-def f_wrapper(env, policy):
+def f_wrapper(env, policy, animate):
     def f(w):
         reward = 0
         done = False
@@ -51,9 +51,10 @@ def f_wrapper(env, policy):
                 act = policy(torch.from_numpy(np.expand_dims(obs, 0)))[0].numpy()
 
             # Step environment
-            obs, rew, done, _ = env.step_pos(act)
+            obs, rew, done, _ = env.step(act)
 
-            #time.sleep(0.001)
+            if animate:
+                env.render()
 
             reward += rew
 
@@ -88,16 +89,16 @@ def f_mp(args):
 
 def train(params):
     env_fun, iters, n_hidden, animate = params
-    env = env_fun(animate)
 
+    env = env_fun(animate)
     obs_dim, act_dim = env.obs_dim, env.act_dim
     policy = NN(obs_dim, act_dim).float()
     w = parameters_to_vector(policy.parameters()).detach().numpy()
     es = cma.CMAEvolutionStrategy(w, 0.5)
-    f = f_wrapper(env, policy)
+    f = f_wrapper(env, policy, animate)
 
-    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format("Ant_reach", env.act_dim,
-                                                                                  env.obs_dim, len(w)))
+    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format(env_fun.__name__, act_dim,
+                                                                                                obs_dim, len(w)))
 
     it = 0
     try:
@@ -106,7 +107,7 @@ def train(params):
             if it > iters:
                 break
             if it % 1000 == 0:
-                T.save(policy, os.path.join(os.getcwd(), "agents/ant_reach_es.p"))
+                T.save(policy, os.path.join(os.getcwd(), "agents/{}.p".format(env_fun.__name__)))
                 print("Saved checkpoint")
             X = es.ask()
             es.tell(X, [f(x) for x in X])
@@ -126,8 +127,8 @@ def train_mt(params):
     w = parameters_to_vector(policy.parameters()).detach().numpy()
     es = cma.CMAEvolutionStrategy(w, 0.5)
 
-    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format("Ant_reach", env.act_dim,
-                                                                                              env.obs_dim, len(w)))
+    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format("Ant_reach", act_dim,
+                                                                                              obs_dim, len(w)))
 
     ctr = 0
     try:
@@ -138,7 +139,7 @@ def train_mt(params):
             X = es.ask()
 
             N = len(X)
-            p = Pool(8)
+            p = Pool(4)
 
             evals = p.map(f_mp, list(zip([env_fun] * N, [policy] * N,  X)))
 
@@ -149,9 +150,11 @@ def train_mt(params):
 
     return es.result.fbest
 
-env = AntReach # ll
+from src.envs.ant_terrain_mjc.ant_terrain_mjc import AntTerrainMjc
+
+env = AntTerrainMjc # ll
 t1 = time.clock()
-train((AntReach, 100, 7, True))
+train_mt((env, 10, 7, False))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

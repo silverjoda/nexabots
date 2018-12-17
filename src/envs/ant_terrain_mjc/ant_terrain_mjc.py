@@ -1,12 +1,10 @@
 import numpy as np
 import mujoco_py
-import gym
-import gym.spaces
 import src.my_utils as my_utils
 import time
 
 class AntTerrainMjc:
-    def __init__(self):
+    def __init__(self, animate=False):
 
         # Simulator objects
         self.modelpath = "/home/silverjoda/SW/python-research/nexabots/src/envs/ant_terrain_mjc/assets/ant_terrain_mjc.xml"
@@ -19,12 +17,8 @@ class AntTerrainMjc:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim  = self.q_dim + self.qvel_dim
+        self.obs_dim = self.q_dim + self.qvel_dim
         self.act_dim = self.sim.data.actuator_length.shape[0]
-
-        # Gym reference (Environment dimensions)
-        self.observation_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(self.obs_dim,))
-        self.action_space =  gym.spaces.Box(low=-1.0, high=1.0, shape=(self.act_dim,))
 
         # Environent inner parameters
         self.viewer = None
@@ -32,7 +26,9 @@ class AntTerrainMjc:
 
         # Initial methods
         self.reset()
-        self.setupcam()
+
+        if animate:
+            self.setupcam()
 
         # TODO: ADD CAMERA AND CONTACT INPUTS
 

@@ -61,7 +61,7 @@ def f_mp(args):
 
 
 def train_mt(params):
-    env_name, iters, n_hidden, animate = params
+    env_name, iters, n_hidden = params
 
     env = gym.make(env_name)
     obs_dim, act_dim = env.observation_space.shape[0], env.action_space.shape[0]

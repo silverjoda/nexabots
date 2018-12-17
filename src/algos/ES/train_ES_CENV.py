@@ -148,8 +148,10 @@ def train_mt(params):
             X = es.ask()
 
             output = mp.Queue()
-            processes = [mp.Process(target=f_mp, args=(i, env_fun, sim, policy, x, output))
-                         for i, env_fun, sim, policy, x in zip(range(es.popsize), [env_fun] * es.popsize, sims, policies, X)]
+            processes = []
+            for i, ef, sim, policy, x in zip(range(es.popsize), [env_fun] * es.popsize, sims, policies, X):
+                processes.append(mp.Process(target=f_mp, args=(i, ef, sim, policy, x, output)))
+
 
             # Run processes
             for p in processes:
@@ -160,6 +162,8 @@ def train_mt(params):
                 p.join()
 
             evals = [output.get() for _ in processes]
+            evals.sort(key=lambda x : x[0])
+            evals = [ev[1] for ev in evals]
 
             es.tell(X, evals)
             es.disp()

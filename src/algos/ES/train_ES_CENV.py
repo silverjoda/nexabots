@@ -143,6 +143,8 @@ def train_mt(params):
             if ctr % 1000 == 0:
                 sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                     "agents/{}.p".format(env_fun.__name__))
+                # TODO: update policy, then save
+                vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
                 T.save(policy, sdir)
                 print("Saved checkpoint")
             X = es.ask()
@@ -151,7 +153,6 @@ def train_mt(params):
             processes = []
             for i, ef, sim, policy, x in zip(range(es.popsize), [env_fun] * es.popsize, sims, policies, X):
                 processes.append(mp.Process(target=f_mp, args=(i, ef, sim, policy, x, output)))
-
 
             # Run processes
             for p in processes:
@@ -178,11 +179,20 @@ modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)),
 model = mujoco_py.load_model_from_path(modelpath)
 T.set_num_threads(1)
 
-env = AntTerrainMjc # ll
+env = AntTerrainMjc
+
+if False:
+    policy = T.load("agents/AntTerrainMjc.p")
+    AntTerrainMjc().test(policy)
+    exit()
+
 t1 = time.clock()
-train_mt((env, 100, 7, False, model))
+train_mt((env, 1001, 7, False, model))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
+
+# TODO: Fix camera position
+# TODO: Get camera array observations
 
 
 

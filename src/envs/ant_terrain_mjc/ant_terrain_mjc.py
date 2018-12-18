@@ -19,6 +19,13 @@ class AntTerrainMjc:
         self.camera = camera
         self.HF = True
 
+        if self.HF:
+            self.hf_data = self.model.hfield_data
+            self.hf_ncol = self.model.hfield_ncol
+            self.hf_nrow = self.model.hfield_nrow
+            self.hf_size = self.model.hfield_size
+
+
         self.model.opt.timestep = 0.02
 
         # Environment dimensions

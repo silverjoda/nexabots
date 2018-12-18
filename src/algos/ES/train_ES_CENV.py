@@ -100,7 +100,6 @@ def train(params):
 
     print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format(env_fun.__name__, act_dim,
                                                                                                 obs_dim, len(w)))
-
     it = 0
     try:
         while not es.stop():
@@ -108,7 +107,10 @@ def train(params):
             if it > iters:
                 break
             if it % 1000 == 0:
-                T.save(policy, os.path.join(os.getcwd(), "agents/{}.p".format(env_fun.__name__)))
+                sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                    "agents/{}.p".format(env_fun.__name__))
+                vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
+                T.save(policy, sdir)
                 print("Saved checkpoint")
             X = es.ask()
             es.tell(X, [f(x) for x in X])
@@ -186,7 +188,7 @@ if False:
     exit()
 
 t1 = time.clock()
-train_mt((env, 1001, False, False, model))
+train((env, 1001, True, False, model))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

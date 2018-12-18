@@ -1,6 +1,7 @@
 <mujoco model="ant">
   <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
   <option integrator="RK4" timestep="0.01"/>
+  <size nconmax="100"/>
   <custom>
     <numeric data="0.0 0.0 0.55 1.0 0.0 0.0 0.0 0.0 1.0 0.0 -1.0 0.0 -1.0 0.0 1.0" name="init_qpos"/>
   </custom>
@@ -14,7 +15,7 @@
     <texture name="texplane" type="2d" width="1" height="1" file="wood2.png"/>
     <material name="MatPlane" reflectance="0.0" shininess="1" specular="1" texrepeat="10 10" texture="texplane"/>
     <material name='geom' texture="texgeom" texuniform="true" />
-    <hfield name="hill" file="hf.png" size="12 3 0.6 0.1"/>
+    <hfield name="hill" file="hf.png" size="12 3 0.4 0.1"/>
   </asset>
 
 

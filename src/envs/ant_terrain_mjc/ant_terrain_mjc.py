@@ -24,7 +24,10 @@ class AntTerrainMjc:
             self.hf_ncol = self.model.hfield_ncol
             self.hf_nrow = self.model.hfield_nrow
             self.hf_size = self.model.hfield_size
-
+            self.hf_grid = np.asarray(self.hf_data).reshape((self.hf_nrow, self.hf_ncol))
+            self.hf_grid_aug = np.zeros((self.hf_nrow * 2, self.hf_ncol * 2))
+            self.hf_grid_aug[:self.hf_nrow, :self.hf_ncol] = self.hf_grid
+            self.hf_res = (self.hf_nrow / self.hf_size[1], self.hf_ncol / self.hf_size[0])
 
         self.model.opt.timestep = 0.02
 
@@ -52,6 +55,9 @@ class AntTerrainMjc:
 
         # TODO: CONTACT INPUTS
 
+    def get_local_HM(self, x, y):
+        return self.hf_grid_aug[x - self.hf_res[1]: x + self.hf_res[1],
+                                y - self.hf_res[0]: y + self.hf_res[0]]
 
     def setupcam(self):
         if self.viewer is None:

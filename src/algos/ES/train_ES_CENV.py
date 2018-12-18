@@ -174,17 +174,22 @@ def train_mt(params):
 
     return es.result.fbest
 
-from src.envs.ant_terrain_mjc.ant_terrain_mjc import AntTerrainMjc
+#from src.envs.ant_terrain_mjc.ant_terrain_mjc import AntTerrainMjc
+#modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+#                         "../../envs/ant_terrain_mjc/assets/ant_terrain_mjc.xml")
+
+
+from src.envs.ant_reach.ant_reach import AntReach
 modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                         "../../envs/ant_terrain_mjc/assets/ant_terrain_mjc.xml")
+                         "../../envs/ant_terrain_mjc/assets/ant_reach_mjc.xml")
+
 model = mujoco_py.load_model_from_path(modelpath)
 T.set_num_threads(1)
-
-env = AntTerrainMjc
+env = AntReach
 
 if False:
     policy = T.load("agents/AntTerrainMjc.p")
-    AntTerrainMjc().test(policy)
+    env().test(policy)
     exit()
 
 t1 = time.clock()

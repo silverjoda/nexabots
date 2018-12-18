@@ -55,9 +55,7 @@ class AntTerrainMjc:
 
         # TODO: CONTACT INPUTS
 
-    def get_local_HM(self, x, y):
-        return self.hf_grid_aug[x - self.hf_res[1]: x + self.hf_res[1],
-                                y - self.hf_res[0]: y + self.hf_res[0]]
+
 
     def setupcam(self):
         if self.viewer is None:
@@ -87,7 +85,7 @@ class AntTerrainMjc:
 
         # Height field
         if self.HF:
-            pass
+            od["hf"] = self.get_local_hf(*od["torso_pos"][0:2])
 
         if self.camera:
             # On board camera input
@@ -98,6 +96,9 @@ class AntTerrainMjc:
 
         return od
 
+    def get_local_hf(self, x, y):
+        return self.hf_grid_aug[x - self.hf_res[1]: x + self.hf_res[1],
+                                y - self.hf_res[0]: y + self.hf_res[0]]
 
     def get_state(self):
         return self.sim.get_state()

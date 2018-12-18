@@ -116,7 +116,7 @@ class AntTerrainMjc:
     def demo(self):
         self.reset()
         for i in range(1000):
-            self.step(self.action_space.sample())
+            self.step(np.random.randn(self.act_dim))
             self.render()
 
 

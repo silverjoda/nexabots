@@ -89,9 +89,9 @@ def f_mp(pos, env_fun, sim, policy, w, output):
 
 
 def train(params):
-    env_fun, iters, n_hidden, animate, _ = params
+    env_fun, iters, animate, camera, _ = params
 
-    env = env_fun(animate)
+    env = env_fun(animate=animate, camera=camera)
     obs_dim, act_dim = env.obs_dim, env.act_dim
     policy = NN(obs_dim, act_dim).float()
     w = parameters_to_vector(policy.parameters()).detach().numpy()
@@ -120,8 +120,8 @@ def train(params):
 
 
 def train_mt(params):
-    env_fun, iters, n_hidden, animate, model = params
-    env = env_fun()
+    env_fun, iters, animate, camera, model = params
+    env = env_fun(animate=False, camera=camera)
     obs_dim, act_dim = env.obs_dim, env.act_dim
 
     policy = NN(obs_dim, act_dim).float()
@@ -143,7 +143,6 @@ def train_mt(params):
             if ctr % 1000 == 0:
                 sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                     "agents/{}.p".format(env_fun.__name__))
-                # TODO: update policy, then save
                 vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
                 T.save(policy, sdir)
                 print("Saved checkpoint")
@@ -187,7 +186,7 @@ if False:
     exit()
 
 t1 = time.clock()
-train_mt((env, 1001, 7, False, model))
+train_mt((env, 1001, False, False, model))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

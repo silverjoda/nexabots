@@ -3,9 +3,10 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
+import cv2
 
 class AntTerrainMjc:
-    def __init__(self, animate=False, sim=None):
+    def __init__(self, animate=False, sim=None, camera=False):
 
         if sim is not None:
             self.sim = sim
@@ -14,6 +15,9 @@ class AntTerrainMjc:
             self.modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/ant_terrain_mjc.xml")
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
+
+        self.camera = camera
+        self.HF = True
 
         self.model.opt.timestep = 0.02
 
@@ -28,13 +32,18 @@ class AntTerrainMjc:
         self.viewer = None
         self.step_ctr = 0
 
-        # Initial methods
-        self.reset()
+        if camera:
+            self.cam_viewer = mujoco_py.MjRenderContextOffscreen(self.sim, 0)
 
+        self.frame_list = []
+
+        # Initial methods
         if animate:
             self.setupcam()
 
-        # TODO: ADD CAMERA AND CONTACT INPUTS
+        self.reset()
+
+        # TODO: CONTACT INPUTS
 
 
     def setupcam(self):
@@ -57,9 +66,23 @@ class AntTerrainMjc:
 
     def get_obs_dict(self):
         od = {}
+
+        # Intrinsic parameters
         for j in self.sim.model.joint_names:
             od[j + "_pos"] = self.sim.data.get_joint_qpos(j)
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
+
+        # Height field
+        if self.HF:
+            pass
+
+        if self.camera:
+            # On board camera input
+            cam_array = self.sim.render(camera_name="frontal", width=128, height=128)
+            img = cv2.cvtColor(np.flipud(cam_array), cv2.COLOR_BGR2GRAY)
+            #self.frame_list.append(img)
+            od['cam'] = img
+
         return od
 
 
@@ -119,6 +142,13 @@ class AntTerrainMjc:
             self.step(np.random.randn(self.act_dim))
             self.render()
 
+        # print("R")
+        # cv2.namedWindow("camy")
+        # for i in range(1000):
+        #     cv2.imshow("camy", self.frame_list[i])
+        #     cv2.waitKey(1)
+        #     time.sleep(0.01)
+
 
     def test(self, policy):
         self.reset()
@@ -156,7 +186,7 @@ class AntTerrainMjc:
 
 
 if __name__ == "__main__":
-    ant = AntTerrainMjc()
+    ant = AntTerrainMjc(animate=True, camera=False)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

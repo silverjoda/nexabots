@@ -185,7 +185,7 @@ if False:
     exit()
 
 t1 = time.clock()
-train((env_fun, 1001, True))
+train_mt((env_fun, 10000, False))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

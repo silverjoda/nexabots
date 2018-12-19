@@ -6,7 +6,6 @@ from collections import deque
 
 class AntReachMjc:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ant_reach.xml")
-
     def __init__(self, animate=False, sim=None):
         if sim is not None:
             self.sim = sim
@@ -17,6 +16,7 @@ class AntReachMjc:
             self.sim = mujoco_py.MjSim(self.model)
 
         self.model.opt.timestep = 0.02
+        self.animate = animate
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -35,7 +35,9 @@ class AntReachMjc:
 
         # Initial methods
         self.reset()
-        self.setupcam()
+
+        if self.animate:
+            self.setupcam()
 
 
     def setupcam(self):
@@ -102,16 +104,11 @@ class AntReachMjc:
         return (x-xg)**2 < 0.2 and (y-yg)**2 < 0.2
 
 
-    def render(self, human=True):
+    def render(self):
+        if not self.animate:
+            return
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
-        if not human:
-            return self.sim.render(camera_name=None,
-                                   width=224,
-                                   height=224,
-                                   depth=False)
-            #return viewer.read_pixels(width, height, depth=False)
-
         self.viewer.render()
 
 
@@ -121,7 +118,7 @@ class AntReachMjc:
         self.sim.forward()
         self.sim.step()
 
-        print(self.sim.data.ncon)
+        #print(self.sim.data.ncon)
 
         self.step_ctr += 1
 
@@ -140,8 +137,8 @@ class AntReachMjc:
         # Reevaluate termination condition
         done = reached_goal or self.step_ctr > 400
 
-        if reached_goal:
-            print("SUCCESS")
+        #if reached_goal:
+        #    print("SUCCESS")
 
         # Update success rate
         if done:
@@ -161,7 +158,7 @@ class AntReachMjc:
     def demo(self):
         self.reset()
         for i in range(1000):
-            self.step(self.action_space.sample())
+            self.step(np.random.randn(self.act_dim))
             self.render()
 
 
@@ -188,7 +185,7 @@ class AntReachMjc:
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        return obs
+        return obs, None
 
 
 if __name__ == "__main__":

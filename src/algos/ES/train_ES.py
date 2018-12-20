@@ -180,12 +180,12 @@ from src.envs.ant_reach_mjc.ant_reach_mjc import AntReachMjc as env_fun
 T.set_num_threads(1)
 
 if False:
-    policy = T.load("agents/AntTerrainMjc.p")
+    policy = T.load("agents/AntReachMjc.p")
     env_fun().test(policy)
     exit()
 
 t1 = time.clock()
-train_mt((env_fun, 10000, False))
+train((env_fun, 10000, True))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

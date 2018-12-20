@@ -396,18 +396,24 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 
 if __name__=="__main__":
     from src.envs.centipede import centipede
-    from src.envs.ant_reach import ant_reach
+    from src.envs.ant_reach_mjc import ant_reach_mjc
     from src.envs.ant_terrain_mjc import ant_terrain_mjc
-    #env = centipede.Centipede(8, gui=False)
-    #env = ant_reach.AntReach(gui=True)
-    env = ant_terrain_mjc.AntTerrainMjc()
+
+    params = {"iters": 100000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
+              "ppo_update_iters": 6, "animate": False}
+    print(params)
+
+    # env = centipede.Centipede(8, gui=False)
+    # env = ant_terrain_mjc.AntTerrainMjc()
+    env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
 
     policy = Policy(env)
-    params = {"iters" : 100000, "batchsize" : 32, "gamma" : 0.98, "policy_lr" : 0.001, "V_lr" : 0.007, "ppo" : True, "ppo_update_iters" : 6, "animate" : True}
-    print(params)
+
     train(env, policy, None, params)
-    T.save(policy, "agents/antreach.p")
+    sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                        "agents/{}.p".format(env.__class__.__name__))
+    T.save(policy, sdir)
 
     # Test policy
-    policy = T.load("agents/antreach.p")
+    policy = T.load(sdir)
     env.test(policy)

@@ -146,7 +146,6 @@ class AntReachMjc:
 
         ctrl_effort = np.square(ctrl).sum() * 0.03
         target_progress = (prev_dist - current_dist) * 70
-        target_trueness = 0
 
         r = target_progress - ctrl_effort
 

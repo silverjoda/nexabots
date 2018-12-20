@@ -154,7 +154,7 @@ class CentipedeMjc:
 
 
 if __name__ == "__main__":
-    ant = CentipedeMjc(30, animate=True)
+    ant = CentipedeMjc(animate=True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

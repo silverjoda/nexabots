@@ -7,206 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import time
 import src.my_utils as my_utils
+import src.policies as policies
 
-T.set_num_threads(1)
-
-class ConvPolicy8(nn.Module):
-    def __init__(self, N):
-        super(ConvPolicy8, self).__init__()
-        self.N_links = int(N / 2)
-
-        # rep conv
-        self.conv_1 = nn.Conv1d(12, 4, kernel_size=3, stride=1, padding=1)
-        self.conv_2 = nn.Conv1d(4, 8, kernel_size=3, stride=1, padding=1)
-        self.conv_3 = nn.Conv1d(8, 8, kernel_size=3, stride=1)
-        self.conv_4 = nn.Conv1d(8, 8, kernel_size=2, stride=1)
-
-        # Embedding layers
-        self.conv_emb_1 = nn.Conv1d(13, 8, kernel_size=1, stride=1)
-        self.conv_emb_2 = nn.Conv1d(8, 8, kernel_size=1, stride=1)
-
-        self.deconv_1 = nn.ConvTranspose1d(8, 4, kernel_size=3, stride=1)
-        self.deconv_2 = nn.ConvTranspose1d(4, 4, kernel_size=3, stride=1, padding=1)
-        self.deconv_3 = nn.ConvTranspose1d(4, 8, kernel_size=3, stride=1, padding=1)
-        self.deconv_4 = nn.ConvTranspose1d(14, 6, kernel_size=3, stride=1, padding=1)
-
-        self.afun = T.tanh
-
-    def forward(self, x):
-        obs = x[:, :7]
-        obsd = x[:, 7 + self.N_links * 6 - 2: 7 + self.N_links * 6 - 2 + 6]
-
-        # (psi, psid)
-        ext_obs = T.cat((obs[:,3:7], obsd[:, -1:]), 1)
-
-        # Joints angles
-        jl = T.cat((T.zeros(1, 2), x[:, 7:7 + self.N_links * 6 - 2]), 1)
-        jlrs = jl.view((1, 6, -1))
-
-        # Joint angle velocities
-        jdl = T.cat((T.zeros(1, 2), x[:, 7 + self.N_links * 6 - 2 + 6:]), 1)
-        jdlrs = jdl.view((1, 6, -1))
-
-        jcat = T.cat((jlrs, jdlrs), 1) # Concatenate j and jd so that they are 2 parallel channels
-
-        fm_c1 = self.afun(self.conv_1(jcat))
-        fm_c2 = self.afun(self.conv_2(fm_c1))
-        fm_c3 = self.afun(self.conv_3(fm_c2))
-        fm_c4 = self.afun(self.conv_4(fm_c3))
-
-        # Combine obs with featuremaps
-        emb_1 = self.afun(self.conv_emb_1(T.cat((fm_c4, ext_obs.unsqueeze(2)),1)))
-        emb_2 = self.afun(self.conv_emb_2(emb_1))
-
-        # Project back to action space
-        fm_dc1 = self.afun(self.deconv_1(emb_2))
-        fm_dc2 = self.afun(self.deconv_2(fm_dc1))
-        fm_dc3 = self.afun(self.deconv_3(fm_dc2))
-        fm_upsampled = F.interpolate(fm_dc3, size=4)
-        fm_dc4 = self.afun(self.deconv_4(T.cat((fm_upsampled, jlrs), 1)))
-
-        acts = fm_dc4.squeeze(2).view((1, -1))
-
-        return acts[:, 2:]
-
-
-    def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
-
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
-
-
-class ConvPolicy14(nn.Module):
-    def __init__(self, N):
-        super(ConvPolicy14, self).__init__()
-        self.N_links = int(N / 2)
-
-        self.act_dim = self.N_links * 6 - 2
-
-        # rep conv
-        self.conv_1 = nn.Conv1d(12, 6, kernel_size=3, stride=1)
-        self.conv_2 = nn.Conv1d(6, 8, kernel_size=3, stride=1)
-        self.conv_3 = nn.Conv1d(8, 8, kernel_size=3, stride=1)
-        self.downsample = nn.AdaptiveAvgPool1d(3)
-        self.pool = nn.AdaptiveAvgPool1d(1)
-
-        # Embedding layers
-        self.conv_emb_1 = nn.Conv1d(13, 10, kernel_size=1, stride=1)
-        self.conv_emb_2 = nn.Conv1d(10, 10, kernel_size=1, stride=1)
-
-        self.deconv_1 = nn.ConvTranspose1d(10, 6, kernel_size=3, stride=1)
-        self.deconv_2 = nn.ConvTranspose1d(6, 6, kernel_size=3, stride=1)
-        self.deconv_3 = nn.ConvTranspose1d(6, 6, kernel_size=3, stride=1)
-        self.deconv_4 = nn.ConvTranspose1d(18, 6, kernel_size=3, stride=1, padding=1)
-
-        self.afun = F.selu
-
-        self.log_std = T.zeros(1, self.act_dim)
-
-    def forward(self, x):
-        M = x.shape[0]
-        obs = x[:, :7]
-        obsd = x[:, 7 + self.N_links * 6 - 2: 7 + self.N_links * 6 - 2 + 6]
-        self.log_std = T.zeros(1, self.act_dim)
-        # (psi, psid)
-        ext_obs = T.cat((obs[:, 3:7], obsd[:, -1:]), 1)
-
-        # Joints angles
-        jl = T.cat((T.zeros(M, 2), x[:, 7:7 + self.N_links * 6 - 2]), 1)
-        jlrs = jl.view((M, 6, -1))
-
-        # Joint angle velocities
-        jdl = T.cat((T.zeros(M, 2), x[:, 7 + self.N_links * 6 - 2 + 6:]), 1)
-        jdlrs = jdl.view((M, 6, -1))
-
-        jcat = T.cat((jlrs, jdlrs), 1) # Concatenate j and jd so that they are 2 parallel channels
-
-        fm_c1 = self.afun(self.conv_1(jcat))
-       # fm_c1_ds = self.downsample(fm_c1)
-        fm_c2 = self.afun(self.conv_2(fm_c1))
-        fm_c3 = self.afun(self.conv_3(fm_c2))
-
-        # Combine obs with featuremaps
-        emb_1 = self.afun(self.conv_emb_1(T.cat((fm_c3, ext_obs.unsqueeze(2)),1)))
-        emb_2 = self.afun(self.conv_emb_2(emb_1))
-
-        # Project back to action space
-        fm_dc1 = self.afun(self.deconv_1(emb_2))
-        fm_dc2 = self.afun(self.deconv_2(fm_dc1))
-        fm_dc3 = self.afun(self.deconv_3(fm_dc2))
-        fm_dc4 = self.deconv_4(T.cat((fm_dc3, jcat), 1))
-
-        acts = fm_dc4.squeeze(2).view((M, -1))
-
-        return acts[:, 2:]
-
-
-    def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
-
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
-
-
-class Policy(nn.Module):
-    def __init__(self, env):
-        super(Policy, self).__init__()
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
-
-        self.fc1 = nn.Linear(self.obs_dim, 64)
-        #self.bn1 = nn.BatchNorm1d(64)
-        self.fc2 = nn.Linear(64, 64)
-        #self.bn2 = nn.BatchNorm2d(64)
-        self.fc3 = nn.Linear(64, self.act_dim)
-
-        #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
-        self.log_std = T.zeros(1, self.act_dim)
-
-
-    def forward(self, x):
-        x = F.selu(self.fc1(x))
-        x = F.selu(self.fc2(x))
-        x = self.fc3(x)
-
-        return x
-
-    def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
-
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
 
 
 class Valuefun(nn.Module):
@@ -302,6 +104,12 @@ def train(env, policy, V, params):
             batch_new_states = []
             batch_terminals = []
 
+        if i % 1000 == 0 and i > 0:
+            sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                "agents/{}_pg.p".format(env.__class__.__name__))
+            T.save(policy, sdir)
+            print("Saved checkpoint")
+
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
     log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
@@ -395,23 +203,29 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 
 
 if __name__=="__main__":
-    from src.envs.centipede import centipede
-    from src.envs.ant_reach_mjc import ant_reach_mjc
-    from src.envs.ant_terrain_mjc import ant_terrain_mjc
+    T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
               "ppo_update_iters": 6, "animate": False}
     print(params)
 
-    # env = centipede.Centipede(8, gui=False)
-    # env = ant_terrain_mjc.AntTerrainMjc()
-    env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
+    # Centipede
+    from src.envs.centipede_mjc.centipede_mjc import CentipedeMjc
+    env = CentipedeMjc()
 
-    policy = Policy(env)
+    # Ant Reach
+    # from src.envs.ant_reach_mjc import ant_reach_mjc
+    # env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
+
+    # Ant terrain
+    # from src.envs.ant_terrain_mjc import ant_terrain_mjc
+    # env = ant_terrain_mjc.AntTerrainMjc()
+
+    policy = policies.ConvPolicy8_PG(env)
 
     train(env, policy, None, params)
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        "agents/{}.p".format(env.__class__.__name__))
+                        "agents/{}_pg.p".format(env.__class__.__name__))
     T.save(policy, sdir)
 
     # Test policy

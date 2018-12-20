@@ -179,7 +179,7 @@ def train_mt(params):
 #                         "../../envs/ant_terrain_mjc/assets/ant_terrain_mjc.xml")
 
 
-from src.envs.ant_reach.ant_reach import AntReach
+from src.envs.ant_reach_pbt.ant_reach import AntReach
 modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                          "../../envs/ant_terrain_mjc/assets/ant_reach_mjc.xml")
 

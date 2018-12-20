@@ -7,7 +7,6 @@ import cv2
 
 class AntTerrainMjc:
     def __init__(self, animate=False, sim=None, camera=False):
-
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
@@ -18,16 +17,21 @@ class AntTerrainMjc:
 
         self.camera = camera
         self.HF = True
+        self.HF_div = 5
 
         if self.HF:
             self.hf_data = self.model.hfield_data
-            self.hf_ncol = self.model.hfield_ncol
-            self.hf_nrow = self.model.hfield_nrow
-            self.hf_size = self.model.hfield_size
-            self.hf_grid = np.asarray(self.hf_data).reshape((self.hf_nrow, self.hf_ncol))
+            self.hf_ncol = self.model.hfield_ncol[0]
+            self.hf_nrow = self.model.hfield_nrow[0]
+            self.hf_size = self.model.hfield_size[0]
+            self.hf_grid = self.hf_data.reshape((self.hf_nrow, self.hf_ncol))
             self.hf_grid_aug = np.zeros((self.hf_nrow * 2, self.hf_ncol * 2))
             self.hf_grid_aug[:self.hf_nrow, :self.hf_ncol] = self.hf_grid
-            self.hf_res = (self.hf_nrow / self.hf_size[1], self.hf_ncol / self.hf_size[0])
+            self.hf_m_per_cell = float(self.hf_size[1]) / self.hf_nrow
+            self.rob_dim = 0.5
+            self.hf_res = int(self.rob_dim / self.hf_m_per_cell)
+            self.hf_offset_x = 0
+            self.hf_offset_y = 0
 
         self.model.opt.timestep = 0.02
 
@@ -53,8 +57,8 @@ class AntTerrainMjc:
 
         self.reset()
 
+        # TODO: Fix heightfield positional offset
         # TODO: CONTACT INPUTS
-
 
 
     def setupcam(self):
@@ -85,7 +89,7 @@ class AntTerrainMjc:
 
         # Height field
         if self.HF:
-            od["hf"] = self.get_local_hf(*od["torso_pos"][0:2])
+            od["hf"] = self.get_local_hf(*od["root_pos"][0:2])
 
         if self.camera:
             # On board camera input
@@ -96,9 +100,13 @@ class AntTerrainMjc:
 
         return od
 
+
     def get_local_hf(self, x, y):
-        return self.hf_grid_aug[x - self.hf_res[1]: x + self.hf_res[1],
-                                y - self.hf_res[0]: y + self.hf_res[0]]
+        x_coord = int((x - self.hf_offset_x) / 0.1)
+        y_coord = int((y - self.hf_offset_y) / 0.1)
+        return self.hf_grid_aug[x_coord - self.hf_res: x_coord + self.hf_res,
+               y_coord - self.hf_res: y_coord + self.hf_res]
+
 
     def get_state(self):
         return self.sim.get_state()

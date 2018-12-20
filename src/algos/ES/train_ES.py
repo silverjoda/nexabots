@@ -180,8 +180,8 @@ def train_mt(params):
 from src.envs.centipede_mjc.centipede_mjc import CentipedeMjc as env_fun
 T.set_num_threads(1)
 
-if False:
-    policy = T.load("agents/AntReachMjc.p")
+if True:
+    policy = T.load("agents/CentipedeMjc.p")
     env_fun(animate=True).test(policy)
     exit()
 

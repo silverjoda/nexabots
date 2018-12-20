@@ -21,21 +21,21 @@ class LinearPolicy(nn.Module):
         self.fc1 = nn.Linear(obs_dim, act_dim)
 
     def forward(self, x):
-        x = T.tanh(self.fc1(x))
+        x = self.fc1(x)
         return x
 
 
 class NN(nn.Module):
     def __init__(self, obs_dim, act_dim):
         super(NN, self).__init__()
-        self.fc1 = nn.Linear(obs_dim, 32)
-        self.fc2 = nn.Linear(32, 12)
-        self.fc3 = nn.Linear(12, act_dim)
+        self.fc1 = nn.Linear(obs_dim, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, act_dim)
 
     def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = T.tanh(self.fc3(x))
+        x = F.selu(self.fc1(x))
+        x = F.selu(self.fc2(x))
+        x = self.fc3(x)
         return x
 
 
@@ -176,16 +176,17 @@ def train_mt(params):
     return es.result.fbest
 
 
-from src.envs.ant_reach_mjc.ant_reach_mjc import AntReachMjc as env_fun
+#from src.envs.ant_reach_mjc.ant_reach_mjc import AntReachMjc as env_fun
+from src.envs.centipede_mjc.centipede_mjc import CentipedeMjc as env_fun
 T.set_num_threads(1)
 
 if False:
     policy = T.load("agents/AntReachMjc.p")
-    env_fun().test(policy)
+    env_fun(animate=True).test(policy)
     exit()
 
 t1 = time.clock()
-train((env_fun, 10000, True))
+train_mt((env_fun, 30000, True))
 t2 = time.clock()
 print("Elapsed time: {}".format(t2 - t1))
 

@@ -54,7 +54,7 @@ def train(env, policy, V, params):
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
-            assert r < 10, print("Large rew {}, step: {}".format(r, step_ctr))
+            assert r < 20, print("Large rew {}, step: {}".format(r, step_ctr))
             step_ctr += 1
             if step_ctr > 400:
                 done = True
@@ -223,11 +223,11 @@ if __name__=="__main__":
 
     policy = policies.ConvPolicy8_PG(env)
 
-    #train(env, policy, None, params)
+    train(env, policy, None, params)
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                         "agents/pg_{}_{}_selu.p".format(env.__class__.__name__, policy.__class__.__name__))
-    #T.save(policy, sdir)
+    T.save(policy, sdir)
 
     # Test policy
-    policy = T.load(sdir)
-    env.test(policy)
+    #policy = T.load(sdir)
+    #env.test(policy)

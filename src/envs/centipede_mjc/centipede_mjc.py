@@ -96,7 +96,7 @@ class CentipedeMjc:
         self.sim.step()
         self.step_ctr += 1
 
-        #print(self.sim.data.ncon) # Prints amount of current contacts
+        print(self.sim.data.ncon) # Prints amount of current contacts
         obs_c = self.get_obs()
         x,y,z = obs_c[0:3]
 
@@ -106,7 +106,7 @@ class CentipedeMjc:
         ctrl_effort = np.square(ctrl).mean() * 0.001
         target_progress = (obs_c[0] - obs_p[0]) * 70
 
-        r = target_progress - ctrl_effort
+        r = target_progress - ctrl_effort + self.sim.data.ncon * 0.3
 
         return obs_c.astype(np.float32), r, done, self.get_obs_dict()
 

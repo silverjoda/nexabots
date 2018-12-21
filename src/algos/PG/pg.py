@@ -203,7 +203,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 
 
 if __name__=="__main__":
-    T.set_num_threads(1)
+    T.set_num_threads(1)#
 
     params = {"iters": 100000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
               "ppo_update_iters": 6, "animate": True}

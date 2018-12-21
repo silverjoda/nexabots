@@ -210,7 +210,7 @@ if __name__=="__main__":
     print(params)
 
     # Centipede
-    from src.envs.centipede_mjc.centipede_mjc import CentipedeMjc
+    from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc
     env = CentipedeMjc()
 
     # Ant Reach
@@ -221,7 +221,7 @@ if __name__=="__main__":
     # from src.envs.ant_terrain_mjc import ant_terrain_mjc
     # env = ant_terrain_mjc.AntTerrainMjc()
 
-    policy = policies.ConvPolicy8_PG(env)
+    policy = policies.ConvPolicy30_PG(env)
 
     train(env, policy, None, params)
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),

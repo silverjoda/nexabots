@@ -5,7 +5,7 @@ import time
 import os
 
 class CentipedeMjc:
-    N = 8
+    N = 14
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}.xml".format(N))
     def __init__(self, animate=False, sim=None):
         if sim is not None:

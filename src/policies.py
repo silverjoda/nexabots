@@ -442,9 +442,9 @@ class ConvPolicy8_PG(nn.Module):
 
 
 class ConvPolicy14_PG(nn.Module):
-    def __init__(self, N):
+    def __init__(self, env):
         super(ConvPolicy14_PG, self).__init__()
-        self.N_links = int(N / 2)
+        self.N_links = 7
 
         self.act_dim = self.N_links * 6 - 2
 

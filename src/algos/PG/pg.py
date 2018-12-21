@@ -223,10 +223,10 @@ if __name__=="__main__":
 
     policy = policies.ConvPolicy8_PG(env)
 
-    train(env, policy, None, params)
+    #train(env, policy, None, params)
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        "agents/{}_pg.p".format(env.__class__.__name__))
-    T.save(policy, sdir)
+                        "agents/pg_{}_{}_selu.p".format(env.__class__.__name__, policy.__class__.__name__))
+    #T.save(policy, sdir)
 
     # Test policy
     policy = T.load(sdir)

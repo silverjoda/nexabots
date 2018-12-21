@@ -381,7 +381,7 @@ class ConvPolicy8_PG(nn.Module):
 
         self.upsample = nn.Upsample(size=4)
 
-        self.afun = T.tanh
+        self.afun = F.selu
 
         self.log_std = T.zeros(1, self.act_dim)
 
@@ -417,7 +417,7 @@ class ConvPolicy8_PG(nn.Module):
         fm_dc2 = self.afun(self.deconv_2(fm_dc1))
         fm_dc3 = self.afun(self.deconv_3(fm_dc2))
         fm_upsampled = F.interpolate(fm_dc3, size=4)
-        fm_dc4 = self.afun(self.deconv_4(T.cat((fm_upsampled, jlrs), 1)))
+        fm_dc4 = self.deconv_4(T.cat((fm_upsampled, jlrs), 1))
 
         acts = fm_dc4.squeeze(2).view((N, -1))
 

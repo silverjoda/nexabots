@@ -162,31 +162,17 @@ class AntTerrainMjc:
         self.reset()
         if self.HF:
             cv2.namedWindow("HF")
+            cv2.namedWindow("cam")
 
-        qpos = [0] * self.q_dim
-        for i in range(3000):
-            #_, _, _, od = self.step(np.random.randn(self.act_dim))
-            od = self.get_obs_dict()
-            qpos[0] = i / 100.
-            qpos[2] = 0.5
-            self.set_state(qpos=qpos)
-            self.sim.forward()
-            self.sim.step()
-
-            self.render()
+        for i in range(1000):
+            _, _, _, od = self.step(np.random.randn(self.act_dim))
 
             if self.HF:
                 hf = od['hf']
                 cv2.imshow("HF", np.flipud(hf))
+                cv2.imshow("cam", od['cam'])
                 cv2.waitKey(1)
                 pass
-
-        # print("R")
-        # cv2.namedWindow("camy")
-        # for i in range(1000):
-        #     cv2.imshow("camy", self.frame_list[i])
-        #     cv2.waitKey(1)
-        #     time.sleep(0.01)
 
 
     def test(self, policy):
@@ -225,7 +211,7 @@ class AntTerrainMjc:
 
 
 if __name__ == "__main__":
-    ant = AntTerrainMjc(animate=True, camera=False)
+    ant = AntTerrainMjc(animate=True, camera=True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

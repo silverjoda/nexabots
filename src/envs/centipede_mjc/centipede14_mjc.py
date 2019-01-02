@@ -4,7 +4,7 @@ import src.my_utils as my_utils
 import time
 import os
 
-class CentipedeMjc:
+class CentipedeMjc14:
     N = 14
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}.xml".format(N))
     def __init__(self, animate=False, sim=None):
@@ -12,7 +12,7 @@ class CentipedeMjc:
             self.sim = sim
             self.model = self.sim.model
         else:
-            self.modelpath = CentipedeMjc.MODELPATH
+            self.modelpath = CentipedeMjc14.MODELPATH
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
@@ -154,7 +154,7 @@ class CentipedeMjc:
 
 
 if __name__ == "__main__":
-    ant = CentipedeMjc(animate=True)
+    ant = CentipedeMjc14(animate=True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

@@ -92,7 +92,8 @@ def train(env, policy, V, params):
             else:
                 update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
-            print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".format(i, params["iters"], None, None, batch_rew / params["batchsize"], T.exp(policy.log_std).detach().numpy()))
+            print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
+                  format(i, params["iters"], None, None, batch_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
 
             # Finally reset all batch lists
             batch_ctr = 0
@@ -207,11 +208,13 @@ if __name__=="__main__":
 
     params = {"iters": 100000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
               "ppo_update_iters": 6, "animate": False}
-    print(params)
 
     # Centipede
-    from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc
-    env = CentipedeMjc()
+    from src.envs.centipede_mjc.centipede14_mjc import CentipedeMjc14
+
+    env = CentipedeMjc14()
+
+    print(params, env.__class__.__name__)
 
     # Ant Reach
     # from src.envs.ant_reach_mjc import ant_reach_mjc
@@ -221,7 +224,7 @@ if __name__=="__main__":
     # from src.envs.ant_terrain_mjc import ant_terrain_mjc
     # env = ant_terrain_mjc.AntTerrainMjc()
 
-    policy = policies.ConvPolicy30_PG(env)
+    policy = policies.ConvPolicy14_PG(env)
 
     train(env, policy, None, params)
     sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),

@@ -608,6 +608,7 @@ class ConvPolicy30_PG(nn.Module):
 
         return log_density.sum(1, keepdim=True)
 
+
 class NN_PG(nn.Module):
     def __init__(self, env):
         super(NN_PG, self).__init__()

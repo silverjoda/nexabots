@@ -30,8 +30,8 @@ class AntTerrainMjc:
             self.hf_m_per_cell = float(self.hf_size[1]) / self.hf_nrow
             self.rob_dim = 0.5
             self.hf_res = int(self.rob_dim / self.hf_m_per_cell)
-            self.hf_offset_x = 0
-            self.hf_offset_y = 0
+            self.hf_offset_x = 4
+            self.hf_offset_y = 3
 
         self.model.opt.timestep = 0.02
 
@@ -57,7 +57,7 @@ class AntTerrainMjc:
 
         self.reset()
 
-        # TODO: Fix heightfield positional offset
+
         # TODO: CONTACT INPUTS
 
 
@@ -102,10 +102,10 @@ class AntTerrainMjc:
 
 
     def get_local_hf(self, x, y):
-        x_coord = int((x - self.hf_offset_x) / 0.1)
-        y_coord = int((y - self.hf_offset_y) / 0.1)
-        return self.hf_grid_aug[x_coord - self.hf_res: x_coord + self.hf_res,
-               y_coord - self.hf_res: y_coord + self.hf_res]
+        x_coord = int((x + self.hf_offset_x) * 5)
+        y_coord = int((y + self.hf_offset_y) * 5)
+        return self.hf_grid_aug[y_coord - self.hf_res: y_coord + self.hf_res,
+               x_coord - self.hf_res: x_coord + self.hf_res]
 
 
     def get_state(self):
@@ -113,7 +113,7 @@ class AntTerrainMjc:
 
 
     def set_state(self, qpos, qvel=None):
-        qvel = np.zeros(self.q_dim) if qvel is None else qvel
+        qvel = np.zeros(self.qvel_dim) if qvel is None else qvel
         old_state = self.sim.get_state()
         new_state = mujoco_py.MjSimState(old_state.time, qpos, qvel,
                                          old_state.act, old_state.udd_state)
@@ -160,9 +160,26 @@ class AntTerrainMjc:
 
     def demo(self):
         self.reset()
-        for i in range(1000):
-            self.step(np.random.randn(self.act_dim))
+        if self.HF:
+            cv2.namedWindow("HF")
+
+        qpos = [0] * self.q_dim
+        for i in range(3000):
+            #_, _, _, od = self.step(np.random.randn(self.act_dim))
+            od = self.get_obs_dict()
+            qpos[0] = i / 100.
+            qpos[2] = 0.5
+            self.set_state(qpos=qpos)
+            self.sim.forward()
+            self.sim.step()
+
             self.render()
+
+            if self.HF:
+                hf = od['hf']
+                cv2.imshow("HF", np.flipud(hf))
+                cv2.waitKey(1)
+                pass
 
         # print("R")
         # cv2.namedWindow("camy")

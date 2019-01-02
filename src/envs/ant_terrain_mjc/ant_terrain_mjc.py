@@ -16,7 +16,7 @@ class AntTerrainMjc:
             self.sim = mujoco_py.MjSim(self.model)
 
         self.camera = camera
-        self.HF = True
+        self.HF = False
         self.HF_div = 5
 
         if self.HF:
@@ -54,6 +54,7 @@ class AntTerrainMjc:
         # Initial methods
         if animate:
             self.setupcam()
+            self.animate = animate
 
         self.reset()
 
@@ -91,12 +92,16 @@ class AntTerrainMjc:
         if self.HF:
             od["hf"] = self.get_local_hf(*od["root_pos"][0:2])
 
+        # On board camera
         if self.camera:
             # On board camera input
             cam_array = self.sim.render(camera_name="frontal", width=128, height=128)
             img = cv2.cvtColor(np.flipud(cam_array), cv2.COLOR_BGR2GRAY)
             #self.frame_list.append(img)
             od['cam'] = img
+
+        # Contacts:
+        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13]])).sum(axis=1), 0, 1)
 
         return od
 
@@ -162,17 +167,32 @@ class AntTerrainMjc:
         self.reset()
         if self.HF:
             cv2.namedWindow("HF")
+
+        if self.camera:
             cv2.namedWindow("cam")
+
+        cv2.namedWindow("con")
 
         for i in range(1000):
             _, _, _, od = self.step(np.random.randn(self.act_dim))
 
+            # LED IDS: 4,7,10,13
+            cv2.imshow("con", np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13]]))
+            cv2.waitKey(1)
+
+            if self.animate:
+                self.render()
+
             if self.HF:
                 hf = od['hf']
                 cv2.imshow("HF", np.flipud(hf))
+                cv2.waitKey(1)
+
+            if self.camera:
                 cv2.imshow("cam", od['cam'])
                 cv2.waitKey(1)
-                pass
+
+            #time.sleep(0.1)
 
 
     def test(self, policy):
@@ -211,7 +231,7 @@ class AntTerrainMjc:
 
 
 if __name__ == "__main__":
-    ant = AntTerrainMjc(animate=True, camera=True)
+    ant = AntTerrainMjc(animate=True, camera=False)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

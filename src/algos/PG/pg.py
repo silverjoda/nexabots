@@ -207,12 +207,12 @@ if __name__=="__main__":
     T.set_num_threads(1)#
 
     params = {"iters": 100000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": False}
+              "ppo_update_iters": 6, "animate": True, "test" : False}
 
     # Centipede
-    from src.envs.centipede_mjc.centipede14_mjc import CentipedeMjc14
+    from src.envs.centipede_mjc.centipede8_mjc import CentipedeMjc8 as centipede
 
-    env = CentipedeMjc14()
+    env = centipede()
 
     print(params, env.__class__.__name__)
 
@@ -224,12 +224,18 @@ if __name__=="__main__":
     # from src.envs.ant_terrain_mjc import ant_terrain_mjc
     # env = ant_terrain_mjc.AntTerrainMjc()
 
-    policy = policies.ConvPolicy14_PG(env)
+    # Test
+    if params["test"]:
+        policy = T.load('agents/CentipedeMjc_pg.p')
+        env.test(policy)
+        exit()
+    else:
+        policy = policies.ConvPolicy8_PG(env)
+        train(env, policy, None, params)
 
-    train(env, policy, None, params)
-    sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                        "agents/pg_{}_{}_selu.p".format(env.__class__.__name__, policy.__class__.__name__))
-    T.save(policy, sdir)
+    #sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+              #          "agents/pg_{}_{}_selu.p".format(env.__class__.__name__, policy.__class__.__name__))
+    #T.save(policy, sdir)
 
     # Test policy
     #policy = T.load(sdir)

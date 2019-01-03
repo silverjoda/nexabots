@@ -175,7 +175,7 @@
                 </body>
                 
                 
-                <body name="torso_6" pos="0.50 0 0">
+                <body name="head" pos="0.50 0 0">
                   <geom name="torsoGeom_6" pos="0 0 0" size="0.25" type="sphere" density="100"/>
                   <joint axis="0 0 1" name="body_6" pos="-0.25 0.0 0.0" range="-20 20" type="hinge"/>
                   <joint axis="0 1 0" name="bodyupdown_6" pos="-0.25 0.0 0.0" range="-10 30" type="hinge"/>

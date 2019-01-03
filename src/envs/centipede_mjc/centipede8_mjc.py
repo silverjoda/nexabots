@@ -64,14 +64,7 @@ class CentipedeMjc8:
             od[j + "_pos"] = self.sim.data.get_joint_qpos(j)
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
 
-        # Add head
-        od["head_pos"] = self.sim.data.body_xpos[self.model._body_name2id["head"]]
-
         return od
-
-
-    def get_head_pos(self):
-        return self.sim.data.body_xpos[self.model._body_name2id["head"]]
 
 
     def get_state(self):
@@ -96,7 +89,7 @@ class CentipedeMjc8:
 
     def step(self, ctrl):
 
-        xp, _, _ = self.get_head_pos()
+        obs_p = self.get_obs()
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -105,13 +98,13 @@ class CentipedeMjc8:
 
         #print(self.sim.data.ncon) # Prints amount of current contacts
         obs_c = self.get_obs()
-        xc,yc,zc= self.get_head_pos()
+        x,y,z = obs_c[0:3]
 
         # Reevaluate termination condition
-        done = self.step_ctr > 200 or zc < 0.1
+        done = self.step_ctr > 200 or z < 0.1
 
         ctrl_effort = np.square(ctrl).mean() * 0.001
-        target_progress = (xc - xp) * 60
+        target_progress = (obs_p[0] - obs_c[0]) * 60
 
         r = target_progress - ctrl_effort + self.sim.data.ncon * 0.1
 

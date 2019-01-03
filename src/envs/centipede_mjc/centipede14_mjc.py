@@ -104,7 +104,7 @@ class CentipedeMjc14:
         done = self.step_ctr > 200 or z < 0.1
 
         ctrl_effort = np.square(ctrl).mean() * 0.001
-        target_progress = (obs_c[0] - obs_p[0]) * 60
+        target_progress = (obs_p[0] - obs_c[0]) * 60
 
         r = target_progress - ctrl_effort + self.sim.data.ncon * 0.1
 

@@ -107,7 +107,7 @@ def train(env, policy, V, params):
 
         if i % 1000 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                "agents/{}_pg.p".format(env.__class__.__name__))
+                                "agents/{}_pg.p".format(policy.__class__.__name__))
             T.save(policy, sdir)
             print("Saved checkpoint")
 
@@ -206,7 +206,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)#
 
-    params = {"iters": 100000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
+    params = {"iters": 300000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "test" : False}
 
     # Centipede
@@ -226,10 +226,12 @@ if __name__=="__main__":
 
     # Test
     if params["test"]:
+        print("Testing")
         policy = T.load('agents/CentipedeMjc_pg.p')
         env.test(policy)
         exit()
     else:
+        print("Training")
         policy = policies.ConvPolicy8_PG(env)
         train(env, policy, None, params)
 

@@ -3,10 +3,13 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
-import cv2
+
 
 class AntTerrainMjc:
     def __init__(self, animate=False, sim=None, camera=False):
+        if camera:
+            import cv2
+
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
@@ -39,7 +42,7 @@ class AntTerrainMjc:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 4 # x,y not present, + 4contacts
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
@@ -57,9 +60,6 @@ class AntTerrainMjc:
             self.animate = animate
 
         self.reset()
-
-
-        # TODO: CONTACT INPUTS
 
 
     def setupcam(self):
@@ -160,7 +160,10 @@ class AntTerrainMjc:
 
         r = target_progress - ctrl_effort
 
-        return obs_c.astype(np.float32), r, done, self.get_obs_dict()
+        obs_dict = self.get_obs_dict()
+        obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"]))
+
+        return obs, r, done, obs_dict
 
 
     def demo(self):
@@ -227,7 +230,10 @@ class AntTerrainMjc:
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        return obs, self.get_obs_dict()
+        obs_dict = self.get_obs_dict()
+        obs = np.concatenate((obs[2:], obs_dict["contacts"]))
+
+        return obs, obs_dict
 
 
 if __name__ == "__main__":

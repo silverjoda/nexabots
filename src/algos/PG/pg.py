@@ -107,7 +107,7 @@ def train(env, policy, V, params):
 
         if i % 1000 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                "agents/{}_pg.p".format(policy.__class__.__name__))
+                                "agents/{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__))
             T.save(policy, sdir)
             print("Saved checkpoint")
 
@@ -207,38 +207,30 @@ if __name__=="__main__":
     T.set_num_threads(1)#
 
     params = {"iters": 300000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "test" : False}
+              "ppo_update_iters": 6, "animate": True, "train" : True}
 
     # Centipede
     from src.envs.centipede_mjc.centipede8_mjc import CentipedeMjc8 as centipede
-
     env = centipede()
+
+    # Ant Reach
+    #from src.envs.ant_reach_mjc import ant_reach_mjc
+    #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
+
+    # Ant terrain
+    #from src.envs.ant_terrain_mjc import ant_terrain_mjc
+    #env = ant_terrain_mjc.AntTerrainMjc()
 
     print(params, env.__class__.__name__)
 
-    # Ant Reach
-    # from src.envs.ant_reach_mjc import ant_reach_mjc
-    # env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
-
-    # Ant terrain
-    # from src.envs.ant_terrain_mjc import ant_terrain_mjc
-    # env = ant_terrain_mjc.AntTerrainMjc()
-
     # Test
-    if params["test"]:
-        print("Testing")
-        policy = T.load('agents/CentipedeMjc_pg.p')
-        env.test(policy)
-        exit()
-    else:
+    if params["train"]:
         print("Training")
         policy = policies.ConvPolicy8_PG(env)
         train(env, policy, None, params)
+    else:
+        print("Testing")
+        policy = T.load('agents/CentipedeMjc_pg.p')
+        env.test(policy)
 
-    #sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-              #          "agents/pg_{}_{}_selu.p".format(env.__class__.__name__, policy.__class__.__name__))
-    #T.save(policy, sdir)
 
-    # Test policy
-    #policy = T.load(sdir)
-    #env.test(policy)

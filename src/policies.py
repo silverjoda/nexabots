@@ -629,7 +629,6 @@ class NN_PG(nn.Module):
         x = F.selu(self.fc1(x))
         x = F.selu(self.fc2(x))
         x = self.fc3(x)
-
         return x
 
     def sample_action(self, s):

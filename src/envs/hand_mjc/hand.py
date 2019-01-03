@@ -4,19 +4,22 @@ import src.my_utils as my_utils
 import time
 import os
 
-class CentipedeMjc8:
-    N = 8
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}.xml".format(N))
+class Hand:
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "hand/reach.xml")
     def __init__(self, animate=False, sim=None):
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
         else:
-            self.modelpath = CentipedeMjc8.MODELPATH
+            self.modelpath = Hand.MODELPATH
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
         self.model.opt.timestep = 0.02
+
+        print(self.model._actuator_id2name)
+        print(self.model._joint_id2name)
+
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -42,11 +45,12 @@ class CentipedeMjc8:
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = self.model.stat.extent * 1.3
+        self.viewer.cam.distance = self.model.stat.extent * 0.1
         self.viewer.cam.lookat[0] = -0.1
         self.viewer.cam.lookat[1] = 0
         self.viewer.cam.lookat[2] = 0.5
-        self.viewer.cam.elevation = -20
+        self.viewer.cam.elevation = -15
+        self.viewer.cam.azimuth = 40
 
 
     def get_obs(self):
@@ -153,7 +157,7 @@ class CentipedeMjc8:
 
 
 if __name__ == "__main__":
-    ant = CentipedeMjc8(animate=True)
+    ant = Hand(animate=True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

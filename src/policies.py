@@ -651,25 +651,39 @@ class NN_PG(nn.Module):
 class CNN_PG(nn.Module):
     def __init__(self, env):
         super(CNN_PG, self).__init__()
-        self.obs_dim = env.obs_dim
+        self.obs_dim = env.obs_dim - (24**2 * 2)
         self.act_dim = env.act_dim
 
-        self.fc1 = nn.Linear(self.obs_dim, 64)
-        #self.bn1 = nn.BatchNorm1d(64)
-        self.fc2 = nn.Linear(64, 64)
-        #self.bn2 = nn.BatchNorm2d(64)
-        self.fc3 = nn.Linear(64, self.act_dim)
+        self.conv1 = nn.Conv2d(2, 8, 5, 1, 2)
+        self.conv2 = nn.Conv2d(8, 8, 5, 1, 2)
+        self.conv3 = nn.Conv2d(8, 8, 3, 1, 1)
+
+        self.fcc = nn.Linear(6 * 6 * 8, 32)
+        self.fcj = nn.Bilinear(32, self.obs_dim, 48)
+
+        self.fc1 = nn.Linear(48, 48)
+        self.fc2 = nn.Linear(48, self.act_dim)
 
         #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
         self.log_std = T.zeros(1, self.act_dim)
 
 
     def forward(self, x):
-        x = F.selu(self.fc1(x))
-        x = F.selu(self.fc2(x))
-        x = self.fc3(x)
+        x_obs = x[:, :self.obs_dim]
+        x_img = x[:, self.obs_dim:].view(x.shape[0], 2, 24, 24)
 
+        c = F.avg_pool2d(F.selu(self.conv1(x_img)), 2)
+        c = F.avg_pool2d(F.selu(self.conv2(c)), 2)
+        c = F.selu(self.conv3(c))
+        c = c.view(x.shape[0], 6 * 6 * 8)
+        c = F.selu(self.fcc(c))
+
+        x = self.fcj(c, x_obs)
+
+        x = F.selu(self.fc1(x))
+        x = self.fc2(x)
         return x
+
 
     def sample_action(self, s):
         return T.normal(self.forward(s), T.exp(self.log_std))

@@ -3,12 +3,13 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
-
+import cv2
 
 class AntTerrainMjc:
     def __init__(self, animate=False, sim=None, camera=False):
         if camera:
             import cv2
+            self.prev_img = np.zeros((24,24))
 
         if sim is not None:
             self.sim = sim
@@ -19,6 +20,7 @@ class AntTerrainMjc:
             self.sim = mujoco_py.MjSim(self.model)
 
         self.camera = camera
+        self.animate = animate
         self.HF = False
         self.HF_div = 5
 
@@ -42,7 +44,7 @@ class AntTerrainMjc:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 4 # x,y not present, + 4contacts
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 4 + (24**2) * 2# x,y not present, + 4contacts
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
@@ -57,7 +59,6 @@ class AntTerrainMjc:
         # Initial methods
         if animate:
             self.setupcam()
-            self.animate = animate
 
         self.reset()
 
@@ -95,7 +96,7 @@ class AntTerrainMjc:
         # On board camera
         if self.camera:
             # On board camera input
-            cam_array = self.sim.render(camera_name="frontal", width=128, height=128)
+            cam_array = self.sim.render(camera_name="frontal", width=24, height=24)
             img = cv2.cvtColor(np.flipud(cam_array), cv2.COLOR_BGR2GRAY)
             #self.frame_list.append(img)
             od['cam'] = img
@@ -163,10 +164,15 @@ class AntTerrainMjc:
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"]))
 
+        if self.camera:
+            obs = np.concatenate((obs, obs_dict["cam"].flatten(), self.prev_img.flatten()))
+            self.prev_img = obs_dict["cam"]
+
         return obs, r, done, obs_dict
 
 
     def demo(self):
+        import cv2
         self.reset()
         if self.HF:
             cv2.namedWindow("HF")
@@ -192,7 +198,7 @@ class AntTerrainMjc:
                 cv2.waitKey(1)
 
             if self.camera:
-                cv2.imshow("cam", od['cam'])
+                cv2.imshow("cam", cv2.resize(od['cam'], (24,24)))
                 cv2.waitKey(1)
 
             #time.sleep(0.1)
@@ -233,11 +239,15 @@ class AntTerrainMjc:
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((obs[2:], obs_dict["contacts"]))
 
+        if self.camera:
+            obs = np.concatenate((obs, obs_dict["cam"].flatten(), self.prev_img.flatten()))
+            self.prev_img = obs_dict["cam"]
+
         return obs, obs_dict
 
 
 if __name__ == "__main__":
-    ant = AntTerrainMjc(animate=True, camera=False)
+    ant = AntTerrainMjc(animate=False, camera=True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

@@ -3,6 +3,7 @@ import os
 import numpy as np
 import mujoco_py
 from collections import deque
+import src.my_utils as my_utils
 
 class AntReachMjc:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ant_reach.xml")
@@ -159,6 +160,21 @@ class AntReachMjc:
         for i in range(1000):
             self.step(np.random.randn(self.act_dim))
             self.render()
+
+
+    def test(self, policy):
+        self.reset()
+        for i in range(100):
+            done = False
+            obs, _ = self.reset()
+            cr = 0
+            while not done:
+                action = policy(my_utils.to_tensor(obs, True)).detach()
+                obs, r, done, od, = self.step(action[0])
+                cr += r
+                time.sleep(0.001)
+                self.render()
+            print("Total episode reward: {}".format(cr))
 
 
     def reset(self):

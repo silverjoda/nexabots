@@ -204,33 +204,33 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 
 
 if __name__=="__main__":
-    T.set_num_threads(1)#
+    T.set_num_threads(1) #
 
-    params = {"iters": 300000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
+    params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
               "ppo_update_iters": 6, "animate": False, "train" : True}
 
     # Centipede
-    #from src.envs.centipede_mjc.centipede8_mjc import CentipedeMjc8 as centipede
-    #env = centipede()
+    from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
+    env = centipede()
 
     # Ant Reach
     #from src.envs.ant_reach_mjc import ant_reach_mjc
     #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
 
     # Ant terrain
-    from src.envs.ant_terrain_mjc import ant_terrain_mjc
-    env = ant_terrain_mjc.AntTerrainMjc(camera=True)
+    #from src.envs.ant_terrain_mjc import ant_terrain_mjc
+    #env = ant_terrain_mjc.AntTerrainMjc(camera=False)
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.CNN_PG(env)
+        policy = policies.ConvPolicy30X_PG(env)
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc_pg.p')
+        policy = T.load('agents/NN_PG_pg.p')
         env.test(policy)
 
 

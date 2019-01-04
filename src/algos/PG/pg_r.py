@@ -210,8 +210,8 @@ if __name__=="__main__":
               "ppo_update_iters": 6, "animate": False, "train" : True}
 
     # Centipede
-    from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
+    #env = centipede()
 
     # Ant Reach
     #from src.envs.ant_reach_mjc import ant_reach_mjc
@@ -221,12 +221,16 @@ if __name__=="__main__":
     #from src.envs.ant_terrain_mjc import ant_terrain_mjc
     #env = ant_terrain_mjc.AntTerrainMjc(camera=False)
 
+    # Ant feelers
+    from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    env = ant_feelers_mjc.AntFeelersMjc()
+
+    print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.ConvPolicy30_iter_PG(env)
-        print(params, env.__class__.__name__, policy.__class__.__name__)
+        policy = policies.RNN_PG(env)
         train(env, policy, None, params)
     else:
         print("Testing")

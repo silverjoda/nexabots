@@ -3,40 +3,17 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
-import cv2
 
 class AntFeelersMjc:
-    def __init__(self, animate=False, sim=None, camera=False):
-        if camera:
-            import cv2
-            self.prev_img = np.zeros((24,24))
-
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ant_feelers.xml")
+    def __init__(self, animate=False, sim=None):
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
         else:
-            self.modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/ant_terrain_mjc.xml")
+            self.modelpath = AntFeelersMjc.MODELPATH
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
-
-        self.camera = camera
-        self.animate = animate
-        self.HF = False
-        self.HF_div = 5
-
-        if self.HF:
-            self.hf_data = self.model.hfield_data
-            self.hf_ncol = self.model.hfield_ncol[0]
-            self.hf_nrow = self.model.hfield_nrow[0]
-            self.hf_size = self.model.hfield_size[0]
-            self.hf_grid = self.hf_data.reshape((self.hf_nrow, self.hf_ncol))
-            self.hf_grid_aug = np.zeros((self.hf_nrow * 2, self.hf_ncol * 2))
-            self.hf_grid_aug[:self.hf_nrow, :self.hf_ncol] = self.hf_grid
-            self.hf_m_per_cell = float(self.hf_size[1]) / self.hf_nrow
-            self.rob_dim = 0.5
-            self.hf_res = int(self.rob_dim / self.hf_m_per_cell)
-            self.hf_offset_x = 4
-            self.hf_offset_y = 3
 
         self.model.opt.timestep = 0.02
 
@@ -44,23 +21,20 @@ class AntFeelersMjc:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 4 + (24**2) * 2# x,y not present, + 4contacts
+        self.obs_dim = self.q_dim + self.qvel_dim
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
 
-        if camera:
-            self.cam_viewer = mujoco_py.MjRenderContextOffscreen(self.sim, 0)
-
-        self.frame_list = []
-
         # Initial methods
         if animate:
             self.setupcam()
 
         self.reset()
+
+        # TODO: CONTACT INPUTS
 
 
     def setupcam(self):
@@ -83,35 +57,12 @@ class AntFeelersMjc:
 
     def get_obs_dict(self):
         od = {}
-
         # Intrinsic parameters
         for j in self.sim.model.joint_names:
             od[j + "_pos"] = self.sim.data.get_joint_qpos(j)
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
 
-        # Height field
-        if self.HF:
-            od["hf"] = self.get_local_hf(*od["root_pos"][0:2])
-
-        # On board camera
-        if self.camera:
-            # On board camera input
-            cam_array = self.sim.render(camera_name="frontal", width=24, height=24)
-            img = cv2.cvtColor(np.flipud(cam_array), cv2.COLOR_BGR2GRAY)
-            #self.frame_list.append(img)
-            od['cam'] = img
-
-        # Contacts:
-        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13]])).sum(axis=1), 0, 1)
-
         return od
-
-
-    def get_local_hf(self, x, y):
-        x_coord = int((x + self.hf_offset_x) * 5)
-        y_coord = int((y + self.hf_offset_y) * 5)
-        return self.hf_grid_aug[y_coord - self.hf_res: y_coord + self.hf_res,
-               x_coord - self.hf_res: x_coord + self.hf_res]
 
 
     def get_state(self):
@@ -119,7 +70,7 @@ class AntFeelersMjc:
 
 
     def set_state(self, qpos, qvel=None):
-        qvel = np.zeros(self.qvel_dim) if qvel is None else qvel
+        qvel = np.zeros(self.q_dim) if qvel is None else qvel
         old_state = self.sim.get_state()
         new_state = mujoco_py.MjSimState(old_state.time, qpos, qvel,
                                          old_state.act, old_state.udd_state)
@@ -127,15 +78,9 @@ class AntFeelersMjc:
         self.sim.forward()
 
 
-    def render(self, human=True):
+    def render(self):
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
-        if not human:
-            return self.sim.render(camera_name=None,
-                                   width=224,
-                                   height=224,
-                                   depth=False)
-            #return viewer.read_pixels(width, height, depth=False)
 
         self.viewer.render()
 
@@ -154,54 +99,21 @@ class AntFeelersMjc:
         x,y,z = obs_c[0:3]
 
         # Reevaluate termination condition
-        done = self.step_ctr > 400 or z < 0.1
+        done = self.step_ctr > 200 or z < 0.1
 
-        ctrl_effort = np.square(ctrl).sum() * 0.03
-        target_progress = (obs_c[0] - obs_p[0]) * 70
+        ctrl_effort = np.square(ctrl).mean() * 0.001
+        target_progress = (obs_p[0] - obs_c[0]) * 60
 
-        r = target_progress - ctrl_effort
+        r = target_progress - ctrl_effort + self.sim.data.ncon * 0.1
 
-        obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"]))
-
-        if self.camera:
-            obs = np.concatenate((obs, obs_dict["cam"].flatten(), self.prev_img.flatten()))
-            self.prev_img = obs_dict["cam"]
-
-        return obs, r, done, obs_dict
+        return obs_c.astype(np.float32), r, done, self.get_obs_dict()
 
 
     def demo(self):
-        import cv2
         self.reset()
-        if self.HF:
-            cv2.namedWindow("HF")
-
-        if self.camera:
-            cv2.namedWindow("cam")
-
-        cv2.namedWindow("con")
-
         for i in range(1000):
-            _, _, _, od = self.step(np.random.randn(self.act_dim))
-
-            # LED IDS: 4,7,10,13
-            cv2.imshow("con", np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13]]))
-            cv2.waitKey(1)
-
-            if self.animate:
-                self.render()
-
-            if self.HF:
-                hf = od['hf']
-                cv2.imshow("HF", np.flipud(hf))
-                cv2.waitKey(1)
-
-            if self.camera:
-                cv2.imshow("cam", cv2.resize(od['cam'], (24,24)))
-                cv2.waitKey(1)
-
-            #time.sleep(0.1)
+            self.step(np.random.randn(self.act_dim))
+            self.render()
 
 
     def test(self, policy):
@@ -231,19 +143,15 @@ class AntFeelersMjc:
         init_q[2] = 0.80 + np.random.rand() * 0.1
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
+        for i in range(5):
+            init_q[15 + i * 7 :15 + i * 7 + 3] = [i + 1, np.random.randn() * 2, 0.3]
+
         obs = np.concatenate((init_q, init_qvel)).astype(np.float32)
 
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs[2:], obs_dict["contacts"]))
-
-        if self.camera:
-            obs = np.concatenate((obs, obs_dict["cam"].flatten(), self.prev_img.flatten()))
-            self.prev_img = obs_dict["cam"]
-
-        return obs, obs_dict
+        return obs, self.get_obs_dict()
 
 
 if __name__ == "__main__":

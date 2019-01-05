@@ -209,18 +209,6 @@ if __name__=="__main__":
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
               "ppo_update_iters": 6, "animate": False, "train" : True}
 
-    # Centipede
-    #from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
-    #env = centipede()
-
-    # Ant Reach
-    #from src.envs.ant_reach_mjc import ant_reach_mjc
-    #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
-
-    # Ant terrain
-    #from src.envs.ant_terrain_mjc import ant_terrain_mjc
-    #env = ant_terrain_mjc.AntTerrainMjc(camera=False)
-
     # Ant feelers
     from src.envs.ant_feelers_mjc import ant_feelers_mjc
     env = ant_feelers_mjc.AntFeelersMjc()

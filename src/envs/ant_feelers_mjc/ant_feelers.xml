@@ -69,41 +69,56 @@
           </body>
         </body>
       </body>
+
+      <body name="left_feeler" pos="0 0 0">
+        <joint axis="0 0 1" name="lf1" pos="0.0 0.0 0.0" range="5 20" type="hinge"/>
+        <geom fromto="0.2 0.0 0.0 0.6 0.0 0.0" name="lf1_geom" size="0.03" density="1" type="capsule" rgba="0 1 1 1"/>
+        <body pos="0.6 0.0 0">
+          <joint axis="0 1 0" name="lf2" pos="0.0 0.0 0.0" range="-50 20" type="hinge"/>
+          <geom fromto="0.0 0.0 0.0 0.6 0.0 0.0" name="lf2_geom" size="0.03" density="1" type="capsule" rgba="0 1 1 1"/>
+        </body>
+      </body>
+
+
+      <body name="right_feeler" pos="0 0 0">
+        <joint axis="0 0 1" name="rf1" pos="0.0 0.0 0.0" range="-20 -5" type="hinge"/>
+        <geom fromto="0.2 0.0 0.0 0.6 0.0 0.0" name="rf1_geom" size="0.03" density="1" type="capsule" rgba="0 1 1 1"/>
+        <body pos="0.6 0.0 0">
+          <joint axis="0 1 0" name="rf2" pos="0.0 0.0 0.0" range="-50 20" type="hinge"/>
+          <geom fromto="0.0 0.0 0.0 0.6 0.0 0.0" name="rf2_geom" size="0.03" density="1" type="capsule" rgba="0 1 1 1"/>
+        </body>
+      </body>
+
     </body>
 
     <body>
         <freejoint name="cube_0"/>
-        <geom conaffinity="1" condim="3" name="cube0_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
+        <geom conaffinity="1" condim="3" name="cube0_geom" pos="0 0 0" size="0.3 0.3 0.3" mass="70" type="box"/>
     </body>
 
     <body>
         <freejoint name="cube_1"/>
-        <geom conaffinity="1" condim="3" name="cube1_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
+        <geom conaffinity="1" condim="3" name="cube1_geom" pos="0 0 0" size="0.3 0.3 0.3" mass="70" type="box"/>
     </body>
 
     <body>
         <freejoint name="cube_2"/>
-        <geom conaffinity="1" condim="3" name="cube2_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
+        <geom conaffinity="1" condim="3" name="cube2_geom" pos="0 0 0" size="0.3 0.3 0.3" mass="70" type="box"/>
     </body>
 
     <body>
         <freejoint name="cube_3"/>
-        <geom conaffinity="1" condim="3" name="cube3_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
+        <geom conaffinity="1" condim="3" name="cube3_geom" pos="0 0 0" size="0.3 0.3 0.3" mass="70" type="box"/>
     </body>
 
     <body>
         <freejoint name="cube_4"/>
-        <geom conaffinity="1" condim="3" name="cube4_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
+        <geom conaffinity="1" condim="3" name="cube4_geom" pos="0 0 0" size="0.3 0.3 0.3" mass="70" type="box"/>
     </body>
 
 
 
   </worldbody>
-
-  <!--body name="cube1" pos="0 0 0">
-      <geom name="cube1_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
-      <joint armature="0" damping="0" limited="false" margin="0.01" name="cube1_joint" pos="0 0 0" type="free"/>
-  </body-->
 
   <actuator>
     <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_4" gear="90"/>
@@ -114,5 +129,9 @@
     <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_2" gear="90"/>
     <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_3" gear="90"/>
     <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_3" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="lf1" gear="30"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="lf2" gear="30"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="rf1" gear="30"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="rf2" gear="30"/>
   </actuator>
 </mujoco>

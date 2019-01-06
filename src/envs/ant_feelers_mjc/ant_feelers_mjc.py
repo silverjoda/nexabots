@@ -118,7 +118,9 @@ class AntFeelersMjc:
     def demo(self):
         self.reset()
         for i in range(1000):
-            self.step(np.random.randn(self.act_dim))
+            act = np.random.randn(self.act_dim)
+            #act[0:-4] = 0
+            self.step(act)
             self.render()
 
 
@@ -149,8 +151,9 @@ class AntFeelersMjc:
         init_q[2] = 0.80 + np.random.rand() * 0.1
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
-        for i in range(5):
-            init_q[15 + i * 7 :15 + i * 7 + 3] = [i + 1, np.random.randn() * 2, 0.3]
+        r = self.q_dim - self.N_boxes * 7
+        for i in range(self.N_boxes):
+            init_q[r + i * 7 :r + i * 7 + 3] = [i + 1, np.random.randn() * 2, 0.3]
 
         # Set environment state
         self.set_state(init_q, init_qvel)

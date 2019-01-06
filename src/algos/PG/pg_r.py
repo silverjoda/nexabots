@@ -11,25 +11,7 @@ import src.policies as policies
 
 
 
-class Valuefun(nn.Module):
-    def __init__(self, env):
-        super(Valuefun, self).__init__()
-
-        self.obs_dim = env.obs_dim
-
-        self.fc1 = nn.Linear(self.obs_dim, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.fc3 = nn.Linear(32, 1)
-
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = F.relu(self.fc2(x))
-        x = self.fc3(x)
-        return x
-
-
-def train(env, policy, V, params):
+def train(env, policy, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"])
 
@@ -41,6 +23,8 @@ def train(env, policy, V, params):
 
     batch_ctr = 0
     batch_rew = 0
+
+    # TODO: , ADAPT!@
 
     for i in range(params["iters"]):
         s_0, _ = env.reset()
@@ -82,7 +66,6 @@ def train(env, policy, V, params):
             batch_states = T.cat(batch_states)
             batch_actions = T.cat(batch_actions)
             batch_rewards = T.cat(batch_rewards)
-            batch_new_states = T.cat(batch_new_states)
 
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
@@ -126,35 +109,6 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         policy_optim.step()
 
 
-def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
-    assert len(batch_states) == len(batch_rewards) == len(batch_terminals)
-    N = len(batch_states)
-
-    # Predicted values
-    Vs = V(batch_states)
-
-    # Monte carlo estimate of targets
-    targets = []
-    for i in range(N):
-        cumrew = T.tensor(0.)
-        for j in range(i, N):
-            cumrew += (gamma ** (j-i)) * batch_rewards[j]
-            if batch_terminals[j]:
-                break
-        targets.append(cumrew.view(1, 1))
-
-    targets = T.cat(targets)
-
-    # MSE loss#
-    V_optim.zero_grad()
-
-    loss = (targets - Vs).pow(2).mean()
-    loss.backward()
-    V_optim.step()
-
-    return loss.data
-
-
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
 
     # Get action log probabilities
@@ -171,19 +125,6 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     policy_optim.step()
 
     return loss.data
-
-
-def calc_advantages(V, gamma, batch_states, batch_rewards, batch_next_states, batch_terminals):
-    Vs = V(batch_states)
-    Vs_ = V(batch_next_states)
-    targets = []
-    for s, r, s_, t, vs_ in zip(batch_states, batch_rewards, batch_next_states, batch_terminals, Vs_):
-        if t:
-            targets.append(r.unsqueeze(0))
-        else:
-            targets.append(r + gamma * vs_)
-
-    return T.cat(targets) - Vs
 
 
 def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
@@ -219,7 +160,7 @@ if __name__=="__main__":
     if params["train"]:
         print("Training")
         policy = policies.RNN_PG(env)
-        train(env, policy, None, params)
+        train(env, policy, params)
     else:
         print("Testing")
         policy = T.load('agents/NN_PG_pg.p')

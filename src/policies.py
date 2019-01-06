@@ -878,11 +878,9 @@ class RNN_PG(nn.Module):
         return T.normal(x, T.exp(self.log_std)), h_
 
 
-    def log_probs(self, batch_states, batch_actions):
-        # TODO: Fix this shit here to accept rollouts
-
+    def log_probs(self, batch_states, batch_hiddens, batch_actions):
         # Get action means from policy
-        action_means = self.forward(batch_states)
+        action_means, _ = self.forward(batch_states, batch_hiddens)
 
         # Calculate probabilities
         log_std_batch = self.log_std.expand_as(action_means)

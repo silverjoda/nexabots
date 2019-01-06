@@ -72,27 +72,27 @@
     </body>
 
     <body>
-        <freejoint/>
+        <freejoint name="cube_0"/>
         <geom conaffinity="1" condim="3" name="cube0_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
     </body>
 
     <body>
-        <freejoint/>
+        <freejoint name="cube_1"/>
         <geom conaffinity="1" condim="3" name="cube1_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
     </body>
 
     <body>
-        <freejoint/>
+        <freejoint name="cube_2"/>
         <geom conaffinity="1" condim="3" name="cube2_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
     </body>
 
     <body>
-        <freejoint/>
+        <freejoint name="cube_3"/>
         <geom conaffinity="1" condim="3" name="cube3_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
     </body>
 
     <body>
-        <freejoint/>
+        <freejoint name="cube_4"/>
         <geom conaffinity="1" condim="3" name="cube4_geom" pos="0 0 0" size="0.3 0.3 0.3" type="box"/>
     </body>
 

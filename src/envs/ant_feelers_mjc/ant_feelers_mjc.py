@@ -16,6 +16,7 @@ class AntFeelersMjc:
             self.sim = mujoco_py.MjSim(self.model)
 
         self.model.opt.timestep = 0.02
+        self.N_boxes = 5
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -34,8 +35,6 @@ class AntFeelersMjc:
 
         self.reset()
 
-        # TODO: CONTACT INPUTS
-
 
     def setupcam(self):
         if self.viewer is None:
@@ -51,6 +50,13 @@ class AntFeelersMjc:
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
+        a = qpos + qvel
+        return np.asarray(a, dtype=np.float32)
+
+
+    def get_robot_obs(self):
+        qpos = self.sim.get_state().qpos.tolist()[: - 7 * self.N_boxes]
+        qvel = self.sim.get_state().qvel.tolist()[: - 6 * self.N_boxes]
         a = qpos + qvel
         return np.asarray(a, dtype=np.float32)
 
@@ -87,7 +93,7 @@ class AntFeelersMjc:
 
     def step(self, ctrl):
 
-        obs_p = self.get_obs()
+        obs_p = self.get_robot_obs()
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -95,7 +101,7 @@ class AntFeelersMjc:
         self.step_ctr += 1
 
         #print(self.sim.data.ncon) # Prints amount of current contacts
-        obs_c = self.get_obs()
+        obs_c = self.get_robot_obs()
         x,y,z = obs_c[0:3]
 
         # Reevaluate termination condition
@@ -146,10 +152,9 @@ class AntFeelersMjc:
         for i in range(5):
             init_q[15 + i * 7 :15 + i * 7 + 3] = [i + 1, np.random.randn() * 2, 0.3]
 
-        obs = np.concatenate((init_q, init_qvel)).astype(np.float32)
-
         # Set environment state
         self.set_state(init_q, init_qvel)
+        obs = np.concatenate((init_q[: - 7 * self.N_boxes], init_qvel[: - 6 * self.N_boxes])).astype(np.float32)
 
         return obs, self.get_obs_dict()
 

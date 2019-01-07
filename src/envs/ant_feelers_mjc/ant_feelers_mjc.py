@@ -18,6 +18,8 @@ class AntFeelersMjc:
         self.model.opt.timestep = 0.02
         self.N_boxes = 5
 
+        self.max_steps = 300
+
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
@@ -105,7 +107,7 @@ class AntFeelersMjc:
         x,y,z = obs_c[0:3]
 
         # Reevaluate termination condition
-        done = self.step_ctr > 200 or z < 0.1
+        done = self.step_ctr > self.max_steps
 
         ctrl_effort = np.square(ctrl).mean() * 0.001
         target_progress = (obs_p[0] - obs_c[0]) * 60

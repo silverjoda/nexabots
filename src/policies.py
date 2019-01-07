@@ -852,17 +852,25 @@ class CNN_PG(nn.Module):
 class RNN_PG(nn.Module):
     def __init__(self, env):
         super(RNN_PG, self).__init__()
-        self.obs_dim = env.obs_dim
+        self.obs_dim = env.obs_dim - 7 * 5 - 6 * 5
         self.act_dim = env.act_dim
         self.hid_dim = 64
 
         self.rnn = nn.GRUCell(self.obs_dim, self.hid_dim)
+        self.batch_rnn = nn.GRU(input_size=self.obs_dim,
+                                hidden_size=self.hid_dim,
+                                batch_first=True)
+
 
         self.fc1 = nn.Linear(self.hid_dim, 64)
         self.fc2 = nn.Linear(64, self.act_dim)
 
         #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
         self.log_std = T.zeros(1, self.act_dim)
+
+
+    def clone_params(self):
+        self.rnn.parameters = self.batch_rnn.parameters
 
 
     def forward(self, input):
@@ -873,9 +881,13 @@ class RNN_PG(nn.Module):
         return x, h_
 
 
+    def forward_batch(self, batch_states):
+        return self.batch_rnn(batch_states)
+
+
     def sample_action(self, s):
-        x, h_ = self.forward(s)
-        return T.normal(x, T.exp(self.log_std)), h_
+        x, h = self.forward(s)
+        return T.normal(x, T.exp(self.log_std)), h
 
 
     def log_probs(self, batch_states, batch_hiddens, batch_actions):

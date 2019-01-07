@@ -16,6 +16,7 @@ def train(env, policy, params):
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"])
 
     batch_states = []
+    batch_hiddens = []
     batch_actions = []
     batch_rewards = []
     batch_new_states = []
@@ -28,20 +29,29 @@ def train(env, policy, params):
 
     for i in range(params["iters"]):
         s_0, _ = env.reset()
+        h_0 = T.zeros(1, policy.hid_dim)
         done = False
-
         step_ctr = 0
 
+        # Episode lists
+        episode_states = []
+        episode_hiddens = []
+        episode_actions = []
+        episode_rewards = []
+        episode_new_states = []
+
+        # Set sampling parameters to currently trained ones
+        policy.clone_params()
+
         while not done:
-            # Sample action from policy
-            action = policy.sample_action(my_utils.to_tensor(s_0, True)).detach()
+            with T.no_grad():
+                # Sample action from policy
+                action, h_1 = policy.sample_action((my_utils.to_tensor(s_0, True), h_0))
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
             assert r < 20, print("Large rew {}, step: {}".format(r, step_ctr))
             step_ctr += 1
-            if step_ctr > 400:
-                done = True
 
             batch_rew += r
 
@@ -49,23 +59,27 @@ def train(env, policy, params):
                 env.render()
 
             # Record transition
-            batch_states.append(my_utils.to_tensor(s_0, True))
-            batch_actions.append(action)
+            episode_states.append(my_utils.to_tensor(s_0, True))
+            episode_actions.append(action)
+            episode_hiddens.append(h_0)
             batch_rewards.append(my_utils.to_tensor(np.asarray(r, dtype=np.float32), True))
-            batch_new_states.append(my_utils.to_tensor(s_1, True))
             batch_terminals.append(done)
 
             s_0 = s_1
+            h_0 = h_1
 
         # Just completed an episode
         batch_ctr += 1
 
+        batch_states.append(T.cat(episode_states))
+        batch_actions.append(T.cat(episode_actions))
+        batch_hiddens.append(T.cat(episode_hiddens))
+
         # If enough data gathered, then perform update
         if batch_ctr == params["batchsize"]:
-
-            batch_states = T.cat(batch_states)
-            batch_actions = T.cat(batch_actions)
-            batch_rewards = T.cat(batch_rewards)
+            batch_states = T.stack(batch_states)
+            batch_hiddens = T.stack(batch_hiddens)
+            batch_actions = T.stack(batch_actions)
 
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
@@ -85,7 +99,7 @@ def train(env, policy, params):
             batch_states = []
             batch_actions = []
             batch_rewards = []
-            batch_new_states = []
+            batch_hiddens = []
             batch_terminals = []
 
         if i % 1000 == 0 and i > 0:
@@ -101,7 +115,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
 
     # Do ppo_update
     for k in range(update_iters):
-        log_probs_new = policy.log_probs(batch_states, batch_actions)
+        log_probs_new = policy.batch_log_probs(batch_states, batch_actions)
         r = T.exp(log_probs_new - log_probs_old)
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()

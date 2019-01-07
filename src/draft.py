@@ -1,22 +1,16 @@
-import pybullet as p
-import time
-import pybullet_data
+import numpy as np
+import torch as T
 
-datapath = pybullet_data.getDataPath()
-print(datapath)
-exit()
+x1 = T.tensor(2., requires_grad=True)
+x2 = T.tensor(1., requires_grad=True)
+w1 = T.tensor(np.pi/2., requires_grad=True)
+w2 = T.tensor(np.pi, requires_grad=True)
+b = T.tensor(0.)
+l = T.tensor(2.)
 
-
-physicsClient = p.connect(p.GUI)#or p.DIRECT for non-graphical version
-p.setAdditionalSearchPath(pybullet_data.getDataPath()) #optionally
-p.setGravity(0,0,-10)
-planeId = p.loadURDF("plane.urdf")
-cubeStartPos = [0,0,1]
-cubeStartOrientation = p.getQuaternionFromEuler([0,0,0])
-boxId = p.loadURDF("r2d2.urdf",cubeStartPos, cubeStartOrientation)
-for i in range (10000):
-    p.stepSimulation()
-    time.sleep(1./240.)
-cubePos, cubeOrn = p.getBasePositionAndOrientation(boxId)
-print(cubePos,cubeOrn)
-p.disconnect()
+y = T.sin(x1*w1 + x2*w2) + b
+L = (y-l).pow(2)
+L.backward()
+print(y)
+print(L)
+print(w1.grad, x1.grad)

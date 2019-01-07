@@ -207,10 +207,10 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True}
+              "ppo_update_iters": 6, "animate": True, "train" : False}
 
     # Centipede
-    from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
+    from src.envs.centipede_mjc.centipede14_mjc import CentipedeMjc14 as centipede
     env = centipede()
 
     # Ant Reach
@@ -225,12 +225,12 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.ConvPolicy30_iter_PG(env)
+        policy = policies.NN_PG(env)
         print(params, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/NN_PG_pg.p')
+        policy = T.load('agents/ConvPolicy14_PG_pg.p')
         env.test(policy)
 
 

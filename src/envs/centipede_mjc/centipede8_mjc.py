@@ -8,6 +8,9 @@ class CentipedeMjc8:
     N = 8
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}.xml".format(N))
     def __init__(self, animate=False, sim=None):
+
+        self.N_links = 4
+
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model

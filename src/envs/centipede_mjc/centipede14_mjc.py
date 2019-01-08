@@ -8,6 +8,8 @@ class CentipedeMjc14:
     N = 14
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}.xml".format(N))
     def __init__(self, animate=False, sim=None):
+        self.N_links = 7
+
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
@@ -16,7 +18,7 @@ class CentipedeMjc14:
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
-        self.model.opt.timestep = 0.003
+        self.model.opt.timestep = 0.02
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]

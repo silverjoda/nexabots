@@ -159,7 +159,7 @@ class AntFeelersMjc:
 
         r = self.q_dim - self.N_boxes * 7
         for i in range(self.N_boxes):
-            init_q[r + i * 7 :r + i * 7 + 3] = [i + 1.5, np.random.rand() * 6 - 3 , 0.3]
+            init_q[r + i * 7 :r + i * 7 + 3] = [i + 1.5, np.random.rand() * 6 - 3, 0.3]
 
         # Set environment state
         self.set_state(init_q, init_qvel)

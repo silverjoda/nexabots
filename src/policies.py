@@ -2,6 +2,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch as T
 import numpy as np
+from copy import deepcopy
 
 class Baseline(nn.Module):
     def __init__(self, N):
@@ -357,6 +358,65 @@ class PhasePolicy(nn.Module):
         return acts[:, 2:]
 
 
+class ConvPolicy_Iter_PG(nn.Module):
+    def __init__(self, env):
+        super(ConvPolicy_Iter_PG, self).__init__()
+        self.N_links = env.N_links
+        self.act_dim = self.N_links * 6 - 2
+
+        # rep conv
+        self.conv_1 = nn.Conv1d(17, 6, kernel_size=3, stride=1, padding=1)
+        self.conv_2 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
+        self.conv_3 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
+
+        self.afun = F.selu
+        self.log_std = T.zeros(1, self.act_dim)
+
+    def forward(self, x):
+        M = x.shape[0]
+        obs = x[:, :7]
+        obsd = x[:, 7 + self.N_links * 6 - 2: 7 + self.N_links * 6 - 2 + 6]
+
+        # (psi, psid)
+        ext_obs = T.cat((obs[:, 3:7], obsd[:, -1:]), 1).unsqueeze(2)
+        ext_obs_rep = ext_obs.repeat((1, 1, self.N_links))
+
+        # Joints angles
+        jl = T.cat((T.zeros(M, 2), x[:, 7:7 + self.N_links * 6 - 2]), 1)
+        jlrs = jl.view((M, 6, -1))
+
+        # Joint angle velocities
+        jdl = T.cat((T.zeros(M, 2), x[:, 7 + self.N_links * 6 - 2 + 6:]), 1)
+        jdlrs = jdl.view((M, 6, -1))
+
+        ocat = T.cat((jlrs, jdlrs, ext_obs_rep), 1)  # Concatenate j and jd so that they are 2 parallel channels
+
+        fm_c1 = self.afun(self.conv_1(ocat))
+        fm_c2 = self.afun(self.conv_2(fm_c1))
+        fm_c3 = self.conv_3(fm_c2)
+
+        acts = fm_c3.squeeze(2).view((M, -1))
+
+        return acts[:, 2:]
+
+
+    def sample_action(self, s):
+        return T.normal(self.forward(s), T.exp(self.log_std))
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+
 class ConvPolicy8_PG(nn.Module):
     def __init__(self, env):
         super(ConvPolicy8_PG, self).__init__()
@@ -696,66 +756,6 @@ class ConvPolicy30X_PG(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
-class ConvPolicy30_iter_PG(nn.Module):
-    def __init__(self, env):
-        super(ConvPolicy30_iter_PG, self).__init__()
-        self.N_links = 15
-        self.act_dim = self.N_links * 6 - 2
-
-        # rep conv
-        self.conv_1 = nn.Conv1d(17, 6, kernel_size=3, stride=1, padding=1)
-        self.conv_2 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
-        self.conv_3 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
-
-        self.afun = F.selu
-        self.log_std = T.zeros(1, self.act_dim)
-
-
-    def forward(self, x):
-        M = x.shape[0]
-        obs = x[:, :7]
-        obsd = x[:, 7 + self.N_links * 6 - 2: 7 + self.N_links * 6 - 2 + 6]
-
-        # (psi, psid)
-        ext_obs = T.cat((obs[:, 3:7], obsd[:, -1:]), 1).unsqueeze(2)
-        ext_obs_rep = ext_obs.repeat((1,1,15))
-
-        # Joints angles
-        jl = T.cat((T.zeros(M, 2), x[:, 7:7 + self.N_links * 6 - 2]), 1)
-        jlrs = jl.view((M, 6, -1))
-
-        # Joint angle velocities
-        jdl = T.cat((T.zeros(M, 2), x[:, 7 + self.N_links * 6 - 2 + 6:]), 1)
-        jdlrs = jdl.view((M, 6, -1))
-
-        ocat = T.cat((jlrs, jdlrs, ext_obs_rep), 1) # Concatenate j and jd so that they are 2 parallel channels
-
-        fm_c1 = self.afun(self.conv_1(ocat))
-        fm_c2 = self.afun(self.conv_2(fm_c1))
-        fm_c3 = self.afun(self.conv_3(fm_c2))
-
-        acts = fm_c3.squeeze(2).view((M, -1))
-
-        return acts[:, 2:]
-
-
-    def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
-
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
-
-
 class NN_PG(nn.Module):
     def __init__(self, env):
         super(NN_PG, self).__init__()
@@ -910,7 +910,10 @@ class RNN_PG(nn.Module):
 
 
     def clone_params(self):
-        self.rnn.parameters = self.batch_rnn.parameters
+        self.rnn.bias_hh.data = deepcopy(self.batch_rnn.bias_hh_l0.data)
+        self.rnn.bias_ih.data = deepcopy(self.batch_rnn.bias_ih_l0.data)
+        self.rnn.weight_hh.data = deepcopy(self.batch_rnn.weight_hh_l0.data)
+        self.rnn.weight_ih.data = deepcopy(self.batch_rnn.weight_ih_l0.data)
 
 
     def forward(self, input):
@@ -922,7 +925,7 @@ class RNN_PG(nn.Module):
 
 
     def forward_batch(self, batch_states):
-        h, _ = self.batch_rnn(batch_states, T.zeros(1, batch_states.shape[0], self.hid_dim))
+        h, _ = self.batch_rnn(batch_states)
         x = F.selu(self.fc1(h))
         x = self.fc2(x)
         return x

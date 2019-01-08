@@ -2,7 +2,7 @@
 <mujoco model="centipede">
   <compiler angle="degree" coordinate="local" inertiafromgeom="true"/>
 
-  <option integrator="RK4" timestep="0.005"/>
+  <option integrator="RK4" timestep="0.02"/>
   <size nconmax="300"/>
 
   <default>

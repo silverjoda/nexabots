@@ -16,7 +16,7 @@ class CentipedeMjc14:
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
-        self.model.opt.timestep = 0.02
+        self.model.opt.timestep = 0.003
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -124,7 +124,7 @@ class CentipedeMjc14:
             done = False
             obs, _ = self.reset()
             cr = 0
-            while not done:
+            for _ in range(1000):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r

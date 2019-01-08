@@ -882,9 +882,10 @@ class RNN_PG(nn.Module):
 
 
     def forward_batch(self, batch_states):
-        return self.batch_rnn(batch_states)
-
-    # TODO: CONTINUE HERE
+        h, _ = self.batch_rnn(batch_states)
+        x = F.selu(self.fc1(h))
+        x = self.fc2(x)
+        return x
 
 
     def sample_action(self, s):
@@ -903,3 +904,16 @@ class RNN_PG(nn.Module):
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
         return log_density.sum(1, keepdim=True)
+
+
+    def log_probs_batch(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward_batch(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(2, keepdim=True)

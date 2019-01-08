@@ -10,7 +10,6 @@ import src.my_utils as my_utils
 import src.policies as policies
 
 
-
 def train(env, policy, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"])
@@ -19,13 +18,10 @@ def train(env, policy, params):
     batch_hiddens = []
     batch_actions = []
     batch_rewards = []
-    batch_new_states = []
     batch_terminals = []
 
     batch_ctr = 0
     batch_rew = 0
-
-    # TODO: , ADAPT!@
 
     for i in range(params["iters"]):
         s_0, _ = env.reset()
@@ -37,8 +33,6 @@ def train(env, policy, params):
         episode_states = []
         episode_hiddens = []
         episode_actions = []
-        episode_rewards = []
-        episode_new_states = []
 
         # Set sampling parameters to currently trained ones
         policy.clone_params()
@@ -80,6 +74,7 @@ def train(env, policy, params):
             batch_states = T.stack(batch_states)
             batch_hiddens = T.stack(batch_hiddens)
             batch_actions = T.stack(batch_actions)
+            batch_rewards = T.cat(batch_rewards)
 
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
@@ -110,13 +105,13 @@ def train(env, policy, params):
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
-    log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
+    log_probs_old = policy.log_probs_batch(batch_states, batch_actions).detach()
     c_eps = 0.2
 
     # Do ppo_update
     for k in range(update_iters):
-        log_probs_new = policy.batch_log_probs(batch_states, batch_actions)
-        r = T.exp(log_probs_new - log_probs_old)
+        log_probs_new = policy.log_probs_batch(batch_states, batch_actions)
+        r = T.exp(log_probs_new - log_probs_old).view((-1, 1))
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
         loss.backward()
@@ -162,7 +157,7 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True}
+              "ppo_update_iters": 6, "animate": True, "train" : True}
 
     # Ant feelers
     from src.envs.ant_feelers_mjc import ant_feelers_mjc

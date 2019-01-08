@@ -104,15 +104,14 @@ class AntFeelersMjc:
 
         #print(self.sim.data.ncon) # Prints amount of current contacts
         obs_c = self.get_robot_obs()
-        x,y,z = obs_c[0:3]
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
 
-        ctrl_effort = np.square(ctrl).mean() * 0.001
+        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.01
         target_progress = (obs_p[0] - obs_c[0]) * 60
 
-        r = target_progress - ctrl_effort + self.sim.data.ncon * 0.1
+        r = target_progress - ctrl_effort # + self.sim.data.ncon * 0.1
 
         return obs_c.astype(np.float32), r, done, self.get_obs_dict()
 
@@ -155,7 +154,7 @@ class AntFeelersMjc:
 
         r = self.q_dim - self.N_boxes * 7
         for i in range(self.N_boxes):
-            init_q[r + i * 7 :r + i * 7 + 3] = [i + 1, np.random.randn() * 2, 0.3]
+            init_q[r + i * 7 :r + i * 7 + 3] = [i + 1.5, np.random.rand() * 6 - 3 , 0.3]
 
         # Set environment state
         self.set_state(init_q, init_qvel)

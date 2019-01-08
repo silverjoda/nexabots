@@ -24,8 +24,6 @@ class AntTerrainMjc:
         self.HF = False
         self.HF_div = 5
 
-        # TODO: Remove x,y coordinates from observation
-
         if self.HF:
             self.hf_data = self.model.hfield_data
             self.hf_ncol = self.model.hfield_ncol[0]

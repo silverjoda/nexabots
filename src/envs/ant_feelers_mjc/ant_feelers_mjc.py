@@ -70,6 +70,9 @@ class AntFeelersMjc:
             od[j + "_pos"] = self.sim.data.get_joint_qpos(j)
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
 
+        # Contacts:
+        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 15, 17]])).sum(axis=1), 0, 1)
+
         return od
 
 
@@ -94,7 +97,6 @@ class AntFeelersMjc:
 
 
     def step(self, ctrl):
-
         obs_p = self.get_robot_obs()
 
         self.sim.data.ctrl[:] = ctrl
@@ -113,7 +115,10 @@ class AntFeelersMjc:
 
         r = target_progress - ctrl_effort # + self.sim.data.ncon * 0.1
 
-        return obs_c.astype(np.float32), r, done, self.get_obs_dict()
+        obs_dict = self.get_obs_dict()
+        obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"]))
+
+        return obs, r, done, obs_dict
 
 
     def demo(self):
@@ -159,6 +164,9 @@ class AntFeelersMjc:
         # Set environment state
         self.set_state(init_q, init_qvel)
         obs = np.concatenate((init_q[: - 7 * self.N_boxes], init_qvel[: - 6 * self.N_boxes])).astype(np.float32)
+
+        obs_dict = self.get_obs_dict()
+        obs = np.concatenate((obs[2:], obs_dict["contacts"]))
 
         return obs, self.get_obs_dict()
 

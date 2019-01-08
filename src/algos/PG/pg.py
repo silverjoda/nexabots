@@ -210,7 +210,7 @@ if __name__=="__main__":
               "ppo_update_iters": 6, "animate": False, "train" : True}
 
     # Centipede
-    from src.envs.centipede_mjc.centipede14_mjc import CentipedeMjc14 as centipede
+    from src.envs.centipede_mjc.centipede30X_mjc import CentipedeMjc30X as centipede
     env = centipede()
 
     # Ant Reach
@@ -228,7 +228,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.ConvPolicy_Iter_PG(env)
+        policy = policies.ConvPolicy30X_PG(env)
         print(params, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, None, params)
     else:

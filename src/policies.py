@@ -675,7 +675,7 @@ class ConvPolicy30X_PG(nn.Module):
         self.act_dim = self.N_links * 6 - 2
 
         # rep conv
-        self.conv_1 = nn.Conv1d(12, 6, kernel_size=3, stride=1)
+        self.conv_1 = nn.Conv1d(18, 6, kernel_size=3, stride=1)
         self.conv_2 = nn.Conv1d(6, 8, kernel_size=3, stride=1)
         self.conv_3 = nn.Conv1d(8, 8, kernel_size=3, stride=1)
         self.conv_4 = nn.Conv1d(8, 8, kernel_size=3, stride=1)

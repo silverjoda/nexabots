@@ -109,7 +109,7 @@ def train(env, policy, V, params):
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "agents/{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__))
             T.save(policy, sdir)
-            print("Saved checkpoint")
+            print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -207,10 +207,11 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True}
+              "ppo_update_iters": 6, "animate": False, "train" : True,
+              "note" : "Added jlrs to last layer"}
 
     # Centipede
-    from src.envs.centipede_mjc.centipede30X_mjc import CentipedeMjc30X as centipede
+    from src.envs.centipede_mjc.centipede8_mjc import CentipedeMjc8 as centipede
     env = centipede()
 
     # Ant Reach
@@ -218,8 +219,8 @@ if __name__=="__main__":
     #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
 
     # Ant terrain
-    #f#rom src.envs.ant_terrain_mjc import ant_terrain_mjc
-    #env = ant_terrain_mjc.AntTerrainMjc(camera=True)
+    #from src.envs.ant_terrain_mjc import ant_terrain_mjc
+    #env = ant_terrain_mjc.AntTerrainMjc(camera=True, heightfield=True)
 
     # Ant feelers
     #from src.envs.ant_feelers_mjc import ant_feelers_mjc
@@ -228,12 +229,12 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.ConvPolicy30X_PG(env)
+        policy = policies.ConvPolicy8_PG(env)
         print(params, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc14_ConvPolicy14_PG_pg.p')
+        policy = T.load('agents/CentipedeMjc8_ConvPolicy_Iter_PG_pg.p')
         env.test(policy)
 
 

@@ -368,6 +368,8 @@ class ConvPolicy_Iter_PG(nn.Module):
         self.conv_1 = nn.Conv1d(17, 6, kernel_size=3, stride=1, padding=1)
         self.conv_2 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
         self.conv_3 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
+        self.conv_4 = nn.Conv1d(12, 6, kernel_size=3, stride=1, padding=1)
+        #self.conv_5 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
 
         self.afun = F.selu
         self.log_std = T.zeros(1, self.act_dim)
@@ -393,9 +395,10 @@ class ConvPolicy_Iter_PG(nn.Module):
 
         fm_c1 = self.afun(self.conv_1(ocat))
         fm_c2 = self.afun(self.conv_2(fm_c1))
-        fm_c3 = self.conv_3(fm_c2)
+        fm_c3 = self.afun(self.conv_3(fm_c2))
+        fm_c4 = self.conv_4(T.cat((fm_c3, jlrs), 1))
 
-        acts = fm_c3.squeeze(2).view((M, -1))
+        acts = fm_c4.squeeze(2).view((M, -1))
 
         return acts[:, 2:]
 
@@ -908,6 +911,9 @@ class RNN_PG(nn.Module):
         #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
         self.log_std = T.zeros(1, self.act_dim)
 
+
+    def init_hidden(self):
+        return T.zeros((1, self.hid_dim))
 
     def clone_params(self):
         self.rnn.bias_hh.data = deepcopy(self.batch_rnn.bias_hh_l0.data)

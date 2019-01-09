@@ -6,7 +6,7 @@ import os
 import cv2
 
 class AntTerrainMjc:
-    def __init__(self, animate=False, sim=None, camera=False):
+    def __init__(self, animate=False, sim=None, camera=False, heightfield=True):
         if camera:
             import cv2
             self.prev_img = np.zeros((24,24))
@@ -21,7 +21,7 @@ class AntTerrainMjc:
 
         self.camera = camera
         self.animate = animate
-        self.HF = False
+        self.HF = heightfield
         self.HF_div = 5
 
         if self.HF:

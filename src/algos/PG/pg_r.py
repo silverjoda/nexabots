@@ -157,7 +157,7 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True}
+              "ppo_update_iters": 6, "animate": True, "train" : False}
 
     # Ant feelers
     from src.envs.ant_feelers_mjc import ant_feelers_mjc
@@ -172,7 +172,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/NN_PG_pg.p')
-        env.test(policy)
+        policy = T.load('agents/AntFeelersMjc_RNN_PG_pg.p')
+        env.test_recurrent(policy)
 
 

@@ -8,7 +8,8 @@ import torch.nn.functional as F
 import time
 import src.my_utils as my_utils
 import src.policies as policies
-
+import random
+import string
 
 def train(env, policy, params):
 
@@ -99,9 +100,9 @@ def train(env, policy, params):
 
         if i % 1000 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                "agents/{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__))
+                                "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
             T.save(policy, sdir)
-            print("Saved checkpoint")
+            print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -157,7 +158,8 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False}
+              "ppo_update_iters": 6, "animate": True, "train" : False,
+              "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
     from src.envs.ant_feelers_mjc import ant_feelers_mjc
@@ -172,7 +174,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AntFeelersMjc_RNN_PG_pg.p')
+        policy = T.load('agents/AntFeelersMjc_RNN_PG_143_pg.p')
         env.test_recurrent(policy)
 
 

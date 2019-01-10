@@ -136,7 +136,7 @@ class AntReachMjc:
         reached_goal = self.reached_goal(pose, self.goal)
 
         # Reevaluate termination condition
-        done = reached_goal or self.step_ctr > 400
+        done = reached_goal or self.step_ctr > 300
 
         #if reached_goal:
         #    print("SUCCESS")
@@ -145,7 +145,7 @@ class AntReachMjc:
         if done:
             self._update_stats(reached_goal)
 
-        ctrl_effort = np.square(ctrl).sum() * 0.03
+        ctrl_effort = np.square(ctrl).sum() * 0.05
         target_progress = (prev_dist - current_dist) * 70
 
         r = target_progress - ctrl_effort

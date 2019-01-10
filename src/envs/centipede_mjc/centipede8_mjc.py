@@ -105,10 +105,10 @@ class CentipedeMjc8:
         # Reevaluate termination condition
         done = self.step_ctr > 200 or z < 0.1
 
-        ctrl_effort = np.square(ctrl).mean() * 0.001
-        target_progress = (obs_p[0] - obs_c[0]) * 60
+        ctrl_effort = np.square(ctrl).mean() * 0.01
+        target_progress = (obs_p[0] - obs_c[0]) * 50
 
-        r = target_progress - ctrl_effort + self.sim.data.ncon * 0.1
+        r = target_progress - ctrl_effort + (self.sim.data.ncon / self.N_links) * 0.25
 
         return obs_c.astype(np.float32), r, done, self.get_obs_dict()
 

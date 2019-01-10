@@ -74,7 +74,7 @@
         <joint axis="0 0 1" name="lf1" pos="0.0 0.0 0.0" range="5 20" type="hinge"/>
         <geom fromto="0.2 0.0 0.0 0.6 0.0 0.0" name="lf1_geom" size="0.03" density="1" type="capsule" rgba="0 1 1 1"/>
         <body pos="0.6 0.0 0">
-          <joint axis="0 1 0" name="lf2" pos="0.0 0.0 0.0" range="-50 20" type="hinge"/>
+          <joint axis="0 1 0" name="lf2" pos="0.0 0.0 0.0" range="-40 20" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.6 0.0 0.0" name="lf2_geom" size="0.03" density="1" type="capsule" rgba="0 1 1 1"/>
         </body>
       </body>
@@ -84,7 +84,7 @@
         <joint axis="0 0 1" name="rf1" pos="0.0 0.0 0.0" range="-20 -5" type="hinge"/>
         <geom fromto="0.2 0.0 0.0 0.6 0.0 0.0" name="rf1_geom" size="0.03" density="1" type="capsule" rgba="0 1 1 1"/>
         <body pos="0.6 0.0 0">
-          <joint axis="0 1 0" name="rf2" pos="0.0 0.0 0.0" range="-50 20" type="hinge"/>
+          <joint axis="0 1 0" name="rf2" pos="0.0 0.0 0.0" range="-40 20" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.6 0.0 0.0" name="rf2_geom" size="0.03" density="1" type="capsule" rgba="0 1 1 1"/>
         </body>
       </body>

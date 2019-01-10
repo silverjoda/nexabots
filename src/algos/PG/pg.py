@@ -8,8 +8,8 @@ import torch.nn.functional as F
 import time
 import src.my_utils as my_utils
 import src.policies as policies
-
-
+import random
+import string
 
 class Valuefun(nn.Module):
     def __init__(self, env):
@@ -107,7 +107,7 @@ def train(env, policy, V, params):
 
         if i % 1000 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                "agents/{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__))
+                                "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
@@ -207,12 +207,12 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True,
-              "note" : "Added jlrs to last layer"}
+              "ppo_update_iters": 6, "animate": True, "train" : False,
+              "note" : "Added jlrs to last layer", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede
-    from src.envs.centipede_mjc.centipede8_mjc import CentipedeMjc8 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
+    #env = centipede()
 
     # Ant Reach
     #from src.envs.ant_reach_mjc import ant_reach_mjc
@@ -223,18 +223,18 @@ if __name__=="__main__":
     #env = ant_terrain_mjc.AntTerrainMjc(camera=True, heightfield=True)
 
     # Ant feelers
-    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    #env = ant_feelers_mjc.AntFeelersMjc()
+    from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    env = ant_feelers_mjc.AntFeelersMjc()
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.ConvPolicy8_PG(env)
+        policy = policies.NN_PG(env)
         print(params, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc8_ConvPolicy_Iter_PG_pg.p')
+        policy = T.load('agents/AntFeelersMjc_NN_PG_F_WQT_pg.p')
         env.test(policy)
 
 

@@ -6,7 +6,7 @@ import os
 
 class Hexapod:
     N = 8
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}.xml".format(N))
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml".format(N))
     def __init__(self, animate=False, sim=None):
 
         self.N_links = 4
@@ -25,12 +25,13 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim
+        self.obs_dim = self.q_dim + self.qvel_dim - 2
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
+        self.max_steps = 300
 
         # Initial methods
         if animate:
@@ -38,7 +39,6 @@ class Hexapod:
 
         self.reset()
 
-        # TODO: CONTACT INPUTS
 
 
     def setupcam(self):
@@ -55,7 +55,7 @@ class Hexapod:
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        a = qpos + qvel
+        a = qpos[2:] + qvel
         return np.asarray(a, dtype=np.float32)
 
 
@@ -65,6 +65,13 @@ class Hexapod:
         for j in self.sim.model.joint_names:
             od[j + "_pos"] = self.sim.data.get_joint_qpos(j)
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
+
+        # # Contacts:
+        # ctct_idces = []
+        # for i in range(self.N_links * 2):
+        #     ctct_idces.append(self.model._body_name2id["frontFoot_{}".format(i)])
+        # od['contacts'] = np.clip(np.square(np.array(
+        #     self.sim.data.cfrc_ext[ctct_idces])).sum(axis=1), 0, 1)
 
         return od
 
@@ -100,15 +107,15 @@ class Hexapod:
 
         #print(self.sim.data.ncon) # Prints amount of current contacts
         obs_c = self.get_obs()
-        x,y,z = obs_c[0:3]
 
         # Reevaluate termination condition
-        done = self.step_ctr > 200 or z < 0.1
+        done = self.step_ctr > self.max_steps
 
+        # Reward conditions
         ctrl_effort = np.square(ctrl).mean() * 0.01
         target_progress = (obs_p[0] - obs_c[0]) * 50
 
-        r = target_progress - ctrl_effort + (self.sim.data.ncon / self.N_links) * 0.25
+        r = target_progress - ctrl_effort
 
         return obs_c.astype(np.float32), r, done, self.get_obs_dict()
 
@@ -147,7 +154,7 @@ class Hexapod:
         init_q[2] = 0.80 + np.random.rand() * 0.1
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
-        obs = np.concatenate((init_q, init_qvel)).astype(np.float32)
+        obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
 
         # Set environment state
         self.set_state(init_q, init_qvel)
@@ -156,7 +163,7 @@ class Hexapod:
 
 
 if __name__ == "__main__":
-    ant = CentipedeMjc8(animate=True)
+    ant = Hexapod(animate=True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

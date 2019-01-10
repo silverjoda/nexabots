@@ -211,8 +211,8 @@ if __name__=="__main__":
               "note" : "Added jlrs to last layer", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede
-    #from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
-    #env = centipede()
+    from src.envs.centipede_mjc.centipede14_mjc import CentipedeMjc14 as centipede
+    env = centipede()
 
     # Ant Reach
     #from src.envs.ant_reach_mjc import ant_reach_mjc
@@ -223,8 +223,8 @@ if __name__=="__main__":
     #env = ant_terrain_mjc.AntTerrainMjc(camera=True, heightfield=True)
 
     # Ant feelers
-    from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    env = ant_feelers_mjc.AntFeelersMjc()
+    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    #env = ant_feelers_mjc.AntFeelersMjc()
 
     # Test
     if params["train"]:
@@ -234,7 +234,7 @@ if __name__=="__main__":
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/AntFeelersMjc_NN_PG_F_WQT_pg.p')
+        policy = T.load('agents/CentipedeMjc14_ConvPolicy14_PG_C6L_pg.p')
         env.test(policy)
 
 

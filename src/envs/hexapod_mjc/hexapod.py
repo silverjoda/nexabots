@@ -114,8 +114,11 @@ class Hexapod:
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
 
+        # Angle deviation
+        quat = obs_c[1:5]
+
         # Reward conditions
-        ctrl_effort = np.square(ctrl).mean() * 0.01
+        ctrl_effort = np.square(ctrl).mean() * 0.03
         target_progress = (obs_p[0] - obs_c[0]) * 50
 
         r = target_progress - ctrl_effort

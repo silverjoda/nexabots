@@ -895,7 +895,7 @@ class CNN_PG(nn.Module):
 class RNN_PG(nn.Module):
     def __init__(self, env):
         super(RNN_PG, self).__init__()
-        self.obs_dim = env.obs_dim - 7 * 5 - 6 * 5 + 6 - 2
+        self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
         self.hid_dim = 64
 

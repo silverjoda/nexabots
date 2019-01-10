@@ -24,7 +24,7 @@ class AntFeelersMjc:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim
+        self.obs_dim = self.q_dim + self.qvel_dim - 7 * 5 - 6 * 5 + 6 - 2
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters

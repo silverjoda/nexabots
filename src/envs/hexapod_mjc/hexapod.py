@@ -3,7 +3,7 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
-from math import sqrt
+from math import sqrt, acos, fabs
 
 class Hexapod:
     N = 8
@@ -115,13 +115,15 @@ class Hexapod:
         done = self.step_ctr > self.max_steps
 
         # Angle deviation
-        quat = obs_c[1:5]
+        qw, qx, qy, qz  = obs_c[1:5]
+        angle = 2 * acos(qw)
+        #print([qw, qx, qy, qz], angle)
 
         # Reward conditions
         ctrl_effort = np.square(ctrl).mean() * 0.03
-        target_progress = (obs_p[0] - obs_c[0]) * 50
+        target_progress = (obs_p[0] - obs_c[0]) * 60
 
-        r = target_progress - ctrl_effort
+        r = target_progress - ctrl_effort - abs(angle)
 
         return obs_c.astype(np.float32), r, done, self.get_obs_dict()
 

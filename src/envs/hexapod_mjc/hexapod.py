@@ -3,11 +3,14 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
+from math import sqrt
 
 class Hexapod:
     N = 8
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml".format(N))
     def __init__(self, animate=False, sim=None):
+
+        print([sqrt(l**2 + l**2) for l in [0.1, 0.2, 0.5]])
 
         self.N_links = 4
 
@@ -124,6 +127,7 @@ class Hexapod:
         self.reset()
         for i in range(1000):
             self.step(np.random.randn(self.act_dim))
+            #self.step(np.zeros((self.act_dim)))
             self.render()
 
 

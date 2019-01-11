@@ -207,16 +207,20 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False,
+              "ppo_update_iters": 6, "animate": False, "train" : True,
               "note" : "Added jlrs to last layer", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede
     #from src.envs.centipede_mjc.centipede14_mjc import CentipedeMjc14 as centipede
     #env = centipede()
 
+    # Centipede new
+    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    env = centipede()
+
     # Ant Reach
-    from src.envs.ant_reach_mjc import ant_reach_mjc
-    env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
+    #from src.envs.ant_reach_mjc import ant_reach_mjc
+    #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
 
     # Ant terrain
     #from src.envs.ant_terrain_mjc import ant_terrain_mjc
@@ -229,7 +233,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env)
+        policy = policies.ConvPolicy_Iter_PG_new(env)
         print(params, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, None, params)
     else:

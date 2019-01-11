@@ -152,7 +152,7 @@ class CentipedeMjc8:
         init_q[2] = 0.80 + np.random.rand() * 0.1
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
-        obs = np.concatenate((init_q, init_qvel)).astype(np.float32)
+        obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((obs, obs_dict["contacts"]))

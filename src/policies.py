@@ -422,7 +422,7 @@ class ConvPolicy_Iter_PG(nn.Module):
 
 class ConvPolicy_Iter_PG_new(nn.Module):
     def __init__(self, env):
-        super(ConvPolicy_Iter_PG, self).__init__()
+        super(ConvPolicy_Iter_PG_new, self).__init__()
         self.N_links = env.N_links
         self.act_dim = self.N_links * 6 - 2
 
@@ -454,11 +454,11 @@ class ConvPolicy_Iter_PG_new(nn.Module):
         jlrs = jl.view((M, 6, -1))
 
         # Joint angle velocities
-        jdl = T.cat((T.zeros(M, 2), x[:, 5 + self.N_links * 6 - 2 + 6:5 + self.N_links * 6 - 2 + 6 + self.N_links * 2]), 1)
+        jdl = T.cat((T.zeros(M, 2), x[:, 5 + self.N_links * 6 - 2 + 6:5 + self.N_links * 6 - 2 + 6 + self.N_links * 6 - 2]), 1)
         jdlrs = jdl.view((M, 6, -1))
 
         # Contacts
-        jcl = T.cat((T.zeros(M, 2), x[:, 5 + self.N_links * 6 - 2 + 6 + self.N_links * 2:]), 1)
+        jcl = x[:, 5 + self.N_links * 6 - 2 + 6 + self.N_links * 6 - 2:]
         jclrs = jcl.view((M, 2, -1))
 
         ocat = T.cat((jlrs, jdlrs, ext_obs_rep, jclrs), 1)  # Concatenate j and jd so that they are 2 parallel channels

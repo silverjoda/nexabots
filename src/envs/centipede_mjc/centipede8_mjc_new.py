@@ -11,6 +11,7 @@ class CentipedeMjc8:
 
         self.N_links = 4
 
+        #
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
@@ -25,7 +26,8 @@ class CentipedeMjc8:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.N_links * 6 + 7 + self.N_links * 2 + self.qvel_dim + self.N_links * 6 + 6
+        # q -2 + 5 + q_ -2 + 6 + contacts
+        self.obs_dim = self.N_links * 6 - 2 + 5 + self.N_links * 6 - 2 + 6 + self.N_links * 2
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
@@ -35,14 +37,12 @@ class CentipedeMjc8:
 
         # Initial methods
         if animate:
-            self.setupcam()
+            self._setupcam()
 
         self.reset()
 
-        # TODO: CONTACT INPUTS
 
-
-    def setupcam(self):
+    def _setupcam(self):
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.cam.trackbodyid = -1
@@ -53,10 +53,10 @@ class CentipedeMjc8:
         self.viewer.cam.elevation = -20
 
 
-    def get_obs(self):
+    def _get_jointvals(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        a = qpos + qvel
+        a = qpos[2:] + qvel
         return np.asarray(a, dtype=np.float32)
 
 
@@ -77,11 +77,7 @@ class CentipedeMjc8:
         return od
 
 
-    def get_state(self):
-        return self.sim.get_state()
-
-
-    def set_state(self, qpos, qvel=None):
+    def _set_state(self, qpos, qvel=None):
         qvel = np.zeros(self.q_dim) if qvel is None else qvel
         old_state = self.sim.get_state()
         new_state = mujoco_py.MjSimState(old_state.time, qpos, qvel,
@@ -99,19 +95,17 @@ class CentipedeMjc8:
 
     def step(self, ctrl):
 
-        obs_p = self.get_obs()
+        obs_p = self._get_jointvals()
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
         self.sim.step()
         self.step_ctr += 1
 
-        #print(self.sim.data.ncon) # Prints amount of current contacts
-        obs_c = self.get_obs()
-        x,y,z = obs_c[0:3]
+        obs_c = self._get_jointvals()
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or z < 0.1
+        done = self.step_ctr >= self.max_steps
 
         ctrl_effort = np.square(ctrl).mean() * 0.001
         target_progress = (obs_p[0] - obs_c[0]) * 60
@@ -164,7 +158,7 @@ class CentipedeMjc8:
         obs = np.concatenate((obs, obs_dict["contacts"]))
 
         # Set environment state
-        self.set_state(init_q, init_qvel)
+        self._set_state(init_q, init_qvel)
 
         return obs, obs_dict
 

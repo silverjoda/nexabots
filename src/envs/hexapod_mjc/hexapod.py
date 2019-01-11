@@ -117,10 +117,11 @@ class Hexapod:
         #print([qw, qx, qy, qz], angle)
 
         # Reward conditions
-        ctrl_effort = np.square(ctrl).mean() * 0.01
+        ctrl_effort = np.square(ctrl).mean() * 0.001
         target_progress = (obs_p[0] - obs_c[0]) * 40
 
         r = target_progress - ctrl_effort - abs(angle) * 0.1
+        #print(target_progress, ctrl_effort, abs(angle) * 0.1, ctrl)
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps or angle > 0.8

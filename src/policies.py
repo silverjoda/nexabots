@@ -420,6 +420,76 @@ class ConvPolicy_Iter_PG(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
+class ConvPolicy_Iter_PG_new(nn.Module):
+    def __init__(self, env):
+        super(ConvPolicy_Iter_PG, self).__init__()
+        self.N_links = env.N_links
+        self.act_dim = self.N_links * 6 - 2
+
+        # rep conv
+        self.conv_1 = nn.Conv1d(20, 6, kernel_size=3, stride=1, padding=1)
+        self.conv_2 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
+        self.conv_3 = nn.Conv1d(6, 6, kernel_size=3, stride=1, padding=1)
+        self.conv_4 = nn.Conv1d(14, 6, kernel_size=3, stride=1, padding=1)
+
+        self.afun = F.selu
+        self.log_std = T.zeros(1, self.act_dim)
+
+    def forward(self, x):
+        # Batch dimension
+        M = x.shape[0]
+
+        # z, qw, qx, qy, qz [b,5]
+        obs = x[:, :5]
+
+        # xd, yd, xz, xangd, yangd, zangd [b, 6]
+        obsd = x[:, 5 + self.N_links * 6 - 2: 5 + self.N_links * 6 - 2 + 6]
+
+        # qw, qx, qy, qz, xd, yd [b, 6]
+        ext_obs = T.cat((obs[:, 1:5], obsd[:, 0:2]), 1).unsqueeze(2)
+        ext_obs_rep = ext_obs.repeat((1, 1, self.N_links))
+
+        # Joints angles
+        jl = T.cat((T.zeros(M, 2), x[:, 5:5 + self.N_links * 6 - 2]), 1)
+        jlrs = jl.view((M, 6, -1))
+
+        # Joint angle velocities
+        jdl = T.cat((T.zeros(M, 2), x[:, 5 + self.N_links * 6 - 2 + 6:5 + self.N_links * 6 - 2 + 6 + self.N_links * 2]), 1)
+        jdlrs = jdl.view((M, 6, -1))
+
+        # Contacts
+        jcl = T.cat((T.zeros(M, 2), x[:, 5 + self.N_links * 6 - 2 + 6 + self.N_links * 2:]), 1)
+        jclrs = jcl.view((M, 2, -1))
+
+        ocat = T.cat((jlrs, jdlrs, ext_obs_rep, jclrs), 1)  # Concatenate j and jd so that they are 2 parallel channels
+
+        fm_c1 = self.afun(self.conv_1(ocat))
+        fm_c2 = self.afun(self.conv_2(fm_c1))
+        fm_c3 = self.afun(self.conv_3(fm_c2))
+        fm_c4 = self.conv_4(T.cat((fm_c3, jlrs, jclrs), 1))
+
+        acts = fm_c4.squeeze(2).view((M, -1))
+
+        return acts[:, 2:]
+
+
+    def sample_action(self, s):
+        return T.normal(self.forward(s), T.exp(self.log_std))
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+
 class ConvPolicy8_PG(nn.Module):
     def __init__(self, env):
         super(ConvPolicy8_PG, self).__init__()
@@ -974,11 +1044,11 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = 64
+        self.hid_dim = 42
 
         self.rnn = nn.RNNCell(self.obs_dim, self.hid_dim)
-        self.fc1 = nn.Linear(self.hid_dim, 64)
-        self.fc2 = nn.Linear(64, self.act_dim)
+        self.fc1 = nn.Linear(self.hid_dim, 32)
+        self.fc2 = nn.Linear(32, self.act_dim)
 
 
     def init_hidden(self):
@@ -988,7 +1058,7 @@ class RNN(nn.Module):
     def forward(self, input):
         x, h = input
         h_ = self.rnn(x, h)
-        x = F.selu(self.fc1(h_))
-        x = self.fc2(x)
+        x = T.tanh(self.fc1(h_))
+        x = T.tanh(self.fc2(x))
         return x, h_
 

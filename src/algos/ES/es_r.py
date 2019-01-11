@@ -22,7 +22,6 @@ import string
 
 T.set_num_threads(1)
 
-
 def f_wrapper(env, policy, animate):
     def f(w):
         reward = 0
@@ -61,8 +60,10 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format(env.__class__.__name__, act_dim,
-                                                                                                obs_dim, len(w)))
+    print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
+          " N_params: {}, comments: ...".format(
+        env.__class__.__name__, policy.__class__.__name__, act_dim, obs_dim, len(w)))
+
     it = 0
     try:
         while not es.stop():
@@ -85,8 +86,11 @@ def train(params):
     return es.result.fbest
 
 
-from src.envs.hexapod_mjc import hexapod
-env = hexapod.Hexapod()
+#from src.envs.hexapod_mjc import hexapod
+#env = hexapod.Hexapod()
+
+from src.envs.ant_feelers_mjc import ant_feelers_mjc
+env = ant_feelers_mjc.AntFeelersMjc()
 
 policy = policies.RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
@@ -95,7 +99,7 @@ TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, True, ID))
+    train((env, policy, 100000, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:

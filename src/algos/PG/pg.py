@@ -215,7 +215,7 @@ if __name__=="__main__":
     #env = centipede()
 
     # Centipede new
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    from src.envs.centipede_mjc.centipede30_mjc_new import CentipedeMjc30 as centipede
     env = centipede()
 
     # Ant Reach

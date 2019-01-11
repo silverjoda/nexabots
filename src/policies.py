@@ -967,3 +967,28 @@ class RNN_PG(nn.Module):
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
         return log_density.sum(2, keepdim=True)
+
+
+class RNN(nn.Module):
+    def __init__(self, env):
+        super(RNN, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = 64
+
+        self.rnn = nn.RNNCell(self.obs_dim, self.hid_dim)
+        self.fc1 = nn.Linear(self.hid_dim, 64)
+        self.fc2 = nn.Linear(64, self.act_dim)
+
+
+    def init_hidden(self):
+        return T.zeros((1, self.hid_dim))
+
+
+    def forward(self, input):
+        x, h = input
+        h_ = self.rnn(x, h)
+        x = F.selu(self.fc1(h_))
+        x = self.fc2(x)
+        return x, h_
+

@@ -111,19 +111,19 @@ class Hexapod:
         #print(self.sim.data.ncon) # Prints amount of current contacts
         obs_c = self.get_obs()
 
-        # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
-
         # Angle deviation
         qw, qx, qy, qz  = obs_c[1:5]
         angle = 2 * acos(qw)
         #print([qw, qx, qy, qz], angle)
 
         # Reward conditions
-        ctrl_effort = np.square(ctrl).mean() * 0.03
-        target_progress = (obs_p[0] - obs_c[0]) * 30
+        ctrl_effort = np.square(ctrl).mean() * 0.01
+        target_progress = (obs_p[0] - obs_c[0]) * 40
 
-        r = target_progress - ctrl_effort #- abs(angle) * 0.5
+        r = target_progress - ctrl_effort - abs(angle) * 0.1
+
+        # Reevaluate termination condition
+        done = self.step_ctr > self.max_steps or angle > 0.8
 
         return obs_c.astype(np.float32), r, done, self.get_obs_dict()
 

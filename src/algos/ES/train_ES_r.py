@@ -31,27 +31,29 @@ def f_wrapper(env, policy, animate):
 
         vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
 
+        h_0 = policy.init_hidden()
         while not done:
 
             # Get action from policy
             with torch.no_grad():
-                act = policy(torch.from_numpy(np.expand_dims(obs, 0)))[0].numpy()
+                act, h_1 = policy((my_utils.to_tensor(obs, True), h_0))
 
             # Step environment
-            obs, rew, done, _ = env.step(act)
+            obs, rew, done, _ = env.step(act.squeeze(0).numpy())
 
             if animate:
                 env.render()
 
             reward += rew
 
+            h_0 = h_1
+
         return -reward
     return f
 
 
-
 def train(params):
-    env, iters, animate, ID = params
+    env, policy, iters, animate, ID = params
 
     obs_dim, act_dim = env.obs_dim, env.act_dim
 
@@ -98,7 +100,7 @@ if TRAIN:
     print("Elapsed time: {}".format(t2 - t1))
 else:
     policy = T.load("agents/CentipedeMjc.p")
-    env.test(policy)
+    env.test_recurrent(policy)
 
 print("Done.")
 

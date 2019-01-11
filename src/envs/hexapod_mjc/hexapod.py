@@ -121,9 +121,9 @@ class Hexapod:
 
         # Reward conditions
         ctrl_effort = np.square(ctrl).mean() * 0.03
-        target_progress = (obs_p[0] - obs_c[0]) * 60
+        target_progress = (obs_p[0] - obs_c[0]) * 30
 
-        r = target_progress - ctrl_effort - abs(angle)
+        r = target_progress - ctrl_effort #- abs(angle) * 0.5
 
         return obs_c.astype(np.float32), r, done, self.get_obs_dict()
 
@@ -145,6 +145,23 @@ class Hexapod:
             while not done:
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
+                cr += r
+                time.sleep(0.001)
+                self.render()
+            print("Total episode reward: {}".format(cr))
+
+
+    def test_recurrent(self, policy):
+        self.reset()
+        for i in range(100):
+            done = False
+            obs, _ = self.reset()
+            h = policy.init_hidden()
+            cr = 0
+            while not done:
+                action, h_ = policy((my_utils.to_tensor(obs, True), h))
+                h = h_
+                obs, r, done, od, = self.step(action[0].detach())
                 cr += r
                 time.sleep(0.001)
                 self.render()

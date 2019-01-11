@@ -158,7 +158,7 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
@@ -178,7 +178,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AntFeelersMjc_RNN_PG_143_pg.p')
+        policy = T.load('agents/Hexapod_RNN_PG_JUH_pg.p')
         env.test_recurrent(policy)
 
 

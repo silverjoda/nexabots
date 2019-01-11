@@ -29,6 +29,8 @@ class CentipedeMjc30:
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
+        self.max_steps = 200
+        self.test_steps = 1400
 
         # Initial methods
         if animate:
@@ -102,7 +104,7 @@ class CentipedeMjc30:
         x,y,z = obs_c[0:3]
 
         # Reevaluate termination condition
-        done = self.step_ctr > 200 or z < 0.1
+        done = self.step_ctr > self.max_steps or z < 0.1
 
         ctrl_effort = np.square(ctrl).mean() * 0.01
         target_progress = (obs_p[0] - obs_c[0]) * 50
@@ -125,7 +127,7 @@ class CentipedeMjc30:
             done = False
             obs, _ = self.reset()
             cr = 0
-            while not done:
+            for i in range(self.test_steps):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r

@@ -15,28 +15,12 @@ import multiprocessing as mp
 import os
 from copy import deepcopy
 
-class LinearPolicy(nn.Module):
-    def __init__(self, obs_dim, act_dim):
-        super(LinearPolicy, self).__init__()
-        self.fc1 = nn.Linear(obs_dim, act_dim)
+import src.my_utils as my_utils
+import src.policies as policies
+import random
+import string
 
-    def forward(self, x):
-        x = self.fc1(x)
-        return x
-
-
-class NN(nn.Module):
-    def __init__(self, obs_dim, act_dim):
-        super(NN, self).__init__()
-        self.fc1 = nn.Linear(obs_dim, 64)
-        self.fc2 = nn.Linear(64, 32)
-        self.fc3 = nn.Linear(32, act_dim)
-
-    def forward(self, x):
-        x = F.selu(self.fc1(x))
-        x = F.selu(self.fc2(x))
-        x = self.fc3(x)
-        return x
+T.set_num_threads(1)
 
 
 def f_wrapper(env, policy, animate):
@@ -89,15 +73,15 @@ def f_mp(pos, env_fun, sim, policy, w, output):
 
 
 def train(params):
-    env_fun, iters, animate = params
-    env = env_fun(animate=animate)
+    env, iters, animate, ID = params
+
     obs_dim, act_dim = env.obs_dim, env.act_dim
-    policy = NN(obs_dim, act_dim).float()
+
     w = parameters_to_vector(policy.parameters()).detach().numpy()
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format(env_fun.__name__, act_dim,
+    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format(env.__class__.__name__, act_dim,
                                                                                                 obs_dim, len(w)))
     it = 0
     try:
@@ -107,7 +91,8 @@ def train(params):
                 break
             if it % 1000 == 0:
                 sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                    "agents/{}.p".format(env_fun.__name__))
+                                    "agents/{}_{}_{}_es.p".format(env.__class__.__name__, policy.__class__.__name__,
+                                                                  ID))
                 vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
                 T.save(policy, sdir)
                 print("Saved checkpoint")
@@ -120,80 +105,22 @@ def train(params):
     return es.result.fbest
 
 
-def train_mt(params):
-    env_fun, iters, _ = params
-    env = env_fun(animate=False)
-    obs_dim, act_dim = env.obs_dim, env.act_dim
+from src.envs.hexapod_mjc import hexapod
+env = hexapod.Hexapod()
 
-    policy = NN(obs_dim, act_dim).float()
-    w = parameters_to_vector(policy.parameters()).detach().numpy()
-    es = cma.CMAEvolutionStrategy(w, 0.5)
+policy = policies.RNN(env)
+ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format("Ant_reach", act_dim,
-                                                                                              obs_dim, len(w)))
+TRAIN = True
 
-    model = mujoco_py.load_model_from_path(env_fun.MODELPATH)
-
-    sims = [mujoco_py.MjSim(model) for _ in range(es.popsize)]
-    policies = [policy] * es.popsize
-
-    ctr = 0
-    try:
-        while not es.stop():
-            ctr += 1
-            if ctr > iters:
-                break
-            if ctr % 1000 == 0:
-                sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                    "agents/{}.p".format(env_fun.__name__))
-                vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
-                T.save(policy, sdir)
-                print("Saved checkpoint")
-            X = es.ask()
-
-            output = mp.Queue()
-            processes = []
-            for i, ef, sim, policy, x in zip(range(es.popsize), [env_fun] * es.popsize, sims, policies, X):
-                processes.append(mp.Process(target=f_mp, args=(i, ef, sim, policy, x, output)))
-
-            # Run processes
-            for p in processes:
-                p.start()
-
-            # Exit the completed processes
-            for p in processes:
-                p.join()
-
-            evals = [output.get() for _ in processes]
-            evals.sort(key=lambda x : x[0])
-            evals = [ev[1] for ev in evals]
-
-            es.tell(X, evals)
-            es.disp()
-    except KeyboardInterrupt:
-        print("User interrupted process.")
-
-    return es.result.fbest
-
-
-#from src.envs.ant_reach_mjc.ant_reach_mjc import AntReachMjc as env_fun
-from src.envs.centipede_mjc.centipede_mjc import CentipedeMjc as env_fun
-T.set_num_threads(1)
-
-if True:
+if TRAIN:
+    t1 = time.clock()
+    train((env, policy, 100000, True, ID))
+    t2 = time.clock()
+    print("Elapsed time: {}".format(t2 - t1))
+else:
     policy = T.load("agents/CentipedeMjc.p")
-    env_fun(animate=True).test(policy)
-    exit()
+    env.test(policy)
 
-t1 = time.clock()
-train_mt((env_fun, 30000, True))
-t2 = time.clock()
-print("Elapsed time: {}".format(t2 - t1))
-
-# TODO: Modify this file to train for simple envs with homogeneous obs
-# TODO: Make mjc centipede env
-# TODO: Make mjc antreach env
-# TODO: Launch training on GUDLE
-
-
+print("Done.")
 

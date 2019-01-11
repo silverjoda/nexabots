@@ -915,6 +915,7 @@ class RNN_PG(nn.Module):
     def init_hidden(self):
         return T.zeros((1, self.hid_dim))
 
+
     def clone_params(self):
         self.rnn.bias_hh.data = deepcopy(self.batch_rnn.bias_hh_l0.data)
         self.rnn.bias_ih.data = deepcopy(self.batch_rnn.bias_ih_l0.data)

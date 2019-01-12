@@ -88,25 +88,24 @@ class CentipedeMjc30:
 
     def step(self, ctrl):
 
-        obs_p = self._get_jointvals()
+        torso_p = self.sim.get_state().qpos.tolist()
 
         self.sim.data.ctrl[:] = ctrl
-        self.sim.forward()
         self.sim.step()
         self.step_ctr += 1
 
-        obs_c = self._get_jointvals()
+        torso_c = self.sim.get_state().qpos.tolist()
 
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
 
-        ctrl_effort = np.square(ctrl).mean() * 0.001
-        target_progress = (obs_p[0] - obs_c[0]) * 60
+        ctrl_effort = np.square(ctrl).mean() * 0.01
+        target_progress = (torso_p[0] - torso_c[0]) * 60
 
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs_c.astype(np.float32), obs_dict["contacts"]))
+        obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort + obs_dict["contacts"].mean() * 0.5
+        r = target_progress - ctrl_effort + obs_dict["contacts"].mean() * 0.1
 
         return obs, r, done, self.get_obs_dict()
 

@@ -207,16 +207,16 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
               "note" : "Added jlrs to last layer", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede
-    #from src.envs.centipede_mjc.centipede14_mjc import CentipedeMjc14 as centipede
-    #env = centipede()
+    from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
+    env = centipede()
 
     # Centipede new
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    #env = centipede()
 
     # Ant Reach
     #from src.envs.ant_reach_mjc import ant_reach_mjc
@@ -238,7 +238,7 @@ if __name__=="__main__":
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc8_ConvPolicy_Iter_PG_new_U8H_pg.p')
+        policy = T.load('agents/CentipedeMjc30_ConvPolicy_Iter_PG_Y40_pg.p')
         env.test(policy)
 
 

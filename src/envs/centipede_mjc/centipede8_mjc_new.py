@@ -96,14 +96,12 @@ class CentipedeMjc8:
     def step(self, ctrl):
 
         torso_p = self.sim.get_state().qpos.tolist()
-        a = self.sim.data.get_body_xpos("torso_0")
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
         self.step_ctr += 1
 
         torso_c = self.sim.get_state().qpos.tolist()
-        b = self.sim.data.get_body_xpos("torso_0")
 
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps

@@ -978,7 +978,6 @@ class RNN_PG(nn.Module):
         self.fc1 = nn.Linear(self.hid_dim, 64)
         self.fc2 = nn.Linear(64, self.act_dim)
 
-        #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
         self.log_std = T.zeros(1, self.act_dim)
 
 
@@ -1002,10 +1001,11 @@ class RNN_PG(nn.Module):
 
 
     def forward_batch(self, batch_states):
-        h, _ = self.batch_rnn(batch_states)
+        h, hn = self.batch_rnn(batch_states)
+        h = h.squeeze(0)
         x = F.selu(self.fc1(h))
         x = self.fc2(x)
-        return x
+        return x, h
 
 
     def sample_action(self, s):
@@ -1028,7 +1028,7 @@ class RNN_PG(nn.Module):
 
     def log_probs_batch(self, batch_states, batch_actions):
         # Get action means from policy
-        action_means = self.forward_batch(batch_states)
+        action_means, h = self.forward_batch(batch_states)
 
         # Calculate probabilities
         log_std_batch = self.log_std.expand_as(action_means)

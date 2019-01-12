@@ -10,6 +10,10 @@ l = T.tensor(2.)
 
 y = T.sin(x1*w1 + x2*w2) + b
 L = (y-l).pow(2)
+L.backward(retain_graph=True)
+print(y)
+print(L)
+print(w1.grad, x1.grad)
 L.backward()
 print(y)
 print(L)

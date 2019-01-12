@@ -106,7 +106,9 @@ def train(env, policy, params):
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
+    # Call logprobs on hidden states
     log_probs_old = policy.log_probs_batch(batch_states, batch_actions).detach()
+
     c_eps = 0.2
 
     # Do ppo_update
@@ -158,16 +160,16 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False,
+              "ppo_update_iters": 6, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
-    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    #env = ant_feelers_mjc.AntFeelersMjc()
+    from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    env = ant_feelers_mjc.AntFeelersMjc()
 
     # Hexapod
-    from src.envs.hexapod_mjc import hexapod
-    env = hexapod.Hexapod()
+    #from src.envs.hexapod_mjc import hexapod
+    #env = hexapod.Hexapod()
 
     print(params, env.__class__.__name__)
 

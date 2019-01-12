@@ -211,12 +211,12 @@ if __name__=="__main__":
               "note" : "Added jlrs to last layer", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede
-    from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede30_mjc import CentipedeMjc30 as centipede
+    #env = centipede()
 
     # Centipede new
-    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    #env = centipede()
+    from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
+    env = centipede()
 
     # Ant Reach
     #from src.envs.ant_reach_mjc import ant_reach_mjc
@@ -238,7 +238,7 @@ if __name__=="__main__":
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc30_ConvPolicy_Iter_PG_Y40_pg.p')
+        policy = T.load('agents/CentipedeMjc14_ConvPolicy_Iter_PG_new_B6M_pg.p')
         env.test(policy)
 
 

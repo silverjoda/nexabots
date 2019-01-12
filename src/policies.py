@@ -995,7 +995,7 @@ class RNN_PG(nn.Module):
     def forward(self, input):
         x, h = input
         h_ = self.rnn(x, h)
-        x = F.selu(self.fc1(h_))
+        x = F.tanh(self.fc1(h_))
         x = self.fc2(x)
         return x, h_
 

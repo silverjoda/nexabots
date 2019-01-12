@@ -100,7 +100,6 @@ class AntFeelersMjc:
         obs_p = self.get_robot_obs()
 
         self.sim.data.ctrl[:] = ctrl
-        self.sim.forward()
         self.sim.step()
         self.step_ctr += 1
 

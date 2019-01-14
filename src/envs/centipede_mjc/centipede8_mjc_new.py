@@ -102,6 +102,7 @@ class CentipedeMjc8:
         self.step_ctr += 1
 
         torso_c = self.sim.get_state().qpos.tolist()
+        torso_vel = self.sim.get_state().qvel.tolist()
 
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
@@ -112,7 +113,14 @@ class CentipedeMjc8:
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort + obs_dict["contacts"].mean() * 0.1
+        # Normal distance reward
+        #r = target_progress - ctrl_effort + obs_dict["contacts"].mean() * 0.1
+
+
+        # Target velocity reward
+        TV = -0.2
+        vel_rew = 1 / ((torso_vel[0] - TV)**2 + 0.5)
+        r = vel_rew - ctrl_effort # + obs_dict["contacts"].mean() * 0.1
 
         return obs, r, done, self.get_obs_dict()
 

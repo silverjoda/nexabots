@@ -121,7 +121,7 @@ class CentipedeMjc30:
             done = False
             obs, _ = self.reset()
             cr = 0
-            while not done:
+            for i in range(1000):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r

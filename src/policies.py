@@ -1477,11 +1477,11 @@ class C_PhasePolicy_ES(nn.Module):
 
 
     def step_phase(self):
-        self.phases = T.fmod(self.phases + self.step_increment, 2)
+        self.phases = T.fmod(self.phases + self.step_increment, 2 * np.pi)
 
 
     def modify_phase(self, mask):
-        self.phases = T.fmod(self.phases + mask, 2)
+        self.phases = T.fmod(self.phases + mask, 2 * np.pi)
 
 
     def reset(self):
@@ -1525,7 +1525,8 @@ class C_PhasePolicy_ES(nn.Module):
         self.step_phase()
 
         # Phases directly translate into torques
-        acts = self.phases.view(M, self.act_dim) - 1
+        acts = T.sin(self.phases.view(M, self.act_dim + 2))
+
 
         # Phases are desired angles
         #acts = (((self.phases - (np.pi / 2)) - jlrs) * 0.1).view(1,-1)

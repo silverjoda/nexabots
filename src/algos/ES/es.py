@@ -90,7 +90,7 @@ def train(params):
 from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
 env = centipede()
 
-policy = policies.ConvPolicy_Iter_PG_new(env)
+policy = policies.C_PhasePolicy_ES(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True

@@ -95,8 +95,6 @@ class CentipedeMjc8:
 
     def step(self, ctrl):
 
-        torso_p = self.sim.get_state().qpos.tolist()
-
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
         self.step_ctr += 1
@@ -104,23 +102,29 @@ class CentipedeMjc8:
         torso_c = self.sim.get_state().qpos.tolist()
         torso_vel = self.sim.get_state().qvel.tolist()
 
-        # Reevaluate termination condition
-        done = self.step_ctr >= self.max_steps
+        # Quat
+        quat = torso_c[3:7]
+        angle = 2 * np.arccos(quat[0])
 
-        ctrl_effort = np.square(ctrl).mean() * 0.01
-        target_progress = (torso_p[0] - torso_c[0]) * 60
+        # Reevaluate termination condition
+        done = self.step_ctr >= self.max_steps or angle > 1.
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        # Normal distance reward
-        #r = target_progress - ctrl_effort + obs_dict["contacts"].mean() * 0.1
+        ctrl_effort = np.square(ctrl).sum() * 0.01
+        target_progress = -torso_vel[0]
 
+        # Normal distance reward
+        r = target_progress - ctrl_effort
 
         # Target velocity reward
-        TV = -0.2
-        vel_rew = 1 / ((torso_vel[0] - TV)**2 + 0.5)
-        r = vel_rew - ctrl_effort # + obs_dict["contacts"].mean() * 0.1
+        #TV = -0.7
+        #vel_rew = 1 / ((torso_vel[0] - TV)**2 + 0.5)
+        #r = vel_rew - ctrl_effort # + obs_dict["contacts"].mean() * 0.1
+
+        if angle > 1.:
+            r =- 10
 
         return obs, r, done, self.get_obs_dict()
 
@@ -138,7 +142,7 @@ class CentipedeMjc8:
             done = False
             obs, _ = self.reset()
             cr = 0
-            while not done:
+            for i in range(1000):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r

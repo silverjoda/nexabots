@@ -35,10 +35,10 @@ def f_wrapper(env, policy, animate):
 
             # Get action from policy
             with torch.no_grad():
-                act = policy(torch.from_numpy(np.expand_dims(obs, 0)))[0].numpy()
+                act = policy(my_utils.to_tensor(obs, True))
 
             # Step environment
-            obs, rew, done, _ = env.step(act)
+            obs, rew, done, _ = env.step(act.squeeze(0).numpy())
 
             if animate:
                 env.render()
@@ -51,7 +51,7 @@ def f_wrapper(env, policy, animate):
 
 
 def train(params):
-    env, iters, animate, ID = params
+    env, policy, iters, animate, ID = params
 
     obs_dim, act_dim = env.obs_dim, env.act_dim
 
@@ -83,10 +83,14 @@ def train(params):
     return es.result.fbest
 
 
-from src.envs.hexapod_mjc import hexapod
-env = hexapod.Hexapod()
+#from src.envs.hexapod_mjc import hexapod
+#env = hexapod.Hexapod()
 
-policy = policies.RNN(env)
+# Centipede new
+from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+env = centipede()
+
+policy = policies.ConvPolicy_Iter_PG_new(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True

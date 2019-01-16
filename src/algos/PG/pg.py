@@ -207,7 +207,7 @@ if __name__=="__main__":
     T.set_num_threads(1) #
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+              "ppo_update_iters": 6, "animate": False, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede
@@ -238,7 +238,10 @@ if __name__=="__main__":
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc30_ConvPolicy_Iter_PG_new_T28_pg.p')
+        policy = T.load('agents/CentipedeMjc8_C_Linear_YPQ_pg.p')
+        #policy = T.load('agents/CentipedeMjc14_C_MLP_J1V_pg.p')
+        #policy = T.load('agents/CentipedeMjc30_C_Linear_SD2_pg.p')
+        #policy = T.load('agents/CentipedeMjc30_C_MLP_CQJ_pg.p')
         env.test(policy)
 
 

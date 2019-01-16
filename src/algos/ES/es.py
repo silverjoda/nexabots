@@ -87,13 +87,13 @@ def train(params):
 #env = hexapod.Hexapod()
 
 # Centipede new
-from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+from src.envs.centipede_mjc.centipede30_mjc_new import CentipedeMjc30 as centipede
 env = centipede()
 
 policy = policies.C_PhasePolicy_ES(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = True
+TRAIN = False
 
 if TRAIN:
     t1 = time.clock()
@@ -101,7 +101,9 @@ if TRAIN:
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/CentipedeMjc.p")
+    #policy = T.load("agents/CentipedeMjc8_C_PhasePolicy_ES_TBY_es.p")
+    #policy = T.load("agents/CentipedeMjc14_C_PhasePolicy_ES_3ON_es.p")
+    policy = T.load("agents/CentipedeMjc30_C_PhasePolicy_ES_34W_es.p")
     env.test(policy)
 
 print("Done.")

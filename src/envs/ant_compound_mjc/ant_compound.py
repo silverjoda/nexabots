@@ -5,9 +5,9 @@ import time
 import os
 from math import sqrt, acos, fabs
 
-class Hexapod:
+class Ant:
     N = 8
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml".format(N))
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/ant_compound.xml".format(N))
     def __init__(self, animate=False, sim=None):
 
         print([sqrt(l**2 + l**2) for l in [0.1, 0.2, 0.5]])
@@ -18,7 +18,7 @@ class Hexapod:
             self.sim = sim
             self.model = self.sim.model
         else:
-            self.modelpath = Hexapod.MODELPATH
+            self.modelpath = Ant.MODELPATH
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
@@ -43,7 +43,6 @@ class Hexapod:
         self.reset()
 
 
-
     def setupcam(self):
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
@@ -58,7 +57,7 @@ class Hexapod:
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        a = qpos[2:] + qvel
+        a = qpos + qvel
         return np.asarray(a, dtype=np.float32)
 
 
@@ -101,32 +100,30 @@ class Hexapod:
 
     def step(self, ctrl):
 
-        obs_p = self.get_obs()
-
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
         self.sim.step()
         self.step_ctr += 1
 
-        #print(self.sim.data.ncon) # Prints amount of current contacts
-        obs_c = self.get_obs()
+        obs = self.get_obs()
 
         # Angle deviation
-        qw, qx, qy, qz  = obs_c[1:5]
+        x, y, z, qw, qx, qy, qz  = obs[:7]
         angle = 2 * acos(qw)
         #print([qw, qx, qy, qz], angle)
 
         # Reward conditions
         ctrl_effort = np.square(ctrl).mean() * 0.01
-        target_progress = (obs_p[0] - obs_c[0]) * 40
+        target_progress = self.sim.get_state().qvel.tolist()[0]
+        y_dev = abs(y)
 
-        r = target_progress - ctrl_effort - abs(angle) * 0.1
+        r = (target_progress, - ctrl_effort, - abs(angle) * 0.1, y_dev)
         #print(target_progress, ctrl_effort, abs(angle) * 0.1, ctrl)
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
 
-        return obs_c.astype(np.float32), r, done, self.get_obs_dict()
+        return obs.astype(np.float32), r, done, self.get_obs_dict()
 
 
     def demo(self):

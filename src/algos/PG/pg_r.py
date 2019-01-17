@@ -140,6 +140,7 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     # Step policy update
     policy.print_info()
     policy.clip_grads()
+    policy_optim.step()
 
     return loss.data
 
@@ -165,7 +166,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.005, "w_decay" : 0.01, "V_lr": 0.007, "ppo": False,
-              "ppo_update_iters": 1, "animate": True, "train" : True,
+              "ppo_update_iters": 1, "animate": False, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
@@ -173,11 +174,11 @@ if __name__=="__main__":
     #env = ant_feelers_mjc.AntFeelersMjc()
 
     # Hexapod
-    #from src.envs.hexapod_mjc import hexapod
-    #env = hexapod.Hexapod()
+    from src.envs.hexapod_mjc import hexapod
+    env = hexapod.Hexapod()
 
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    #env = centipede()
 
     #from src.envs.ant_reach_mjc import ant_reach_mjc
     #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])

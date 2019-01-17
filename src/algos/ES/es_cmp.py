@@ -81,8 +81,10 @@ def train(params):
 
     return es.result.fbest
 
-import gym
-env = gym.make("Hopper-v2")
+
+# Ant
+from src.envs.ant_compound_mjc import ant_compound
+env = ant_compound.Ant()
 
 policy = policies.GYM_Linear(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))

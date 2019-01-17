@@ -968,14 +968,18 @@ class RNN_PG(nn.Module):
         print("b_hh", self.batch_rnn.bias_hh_l0.data.max(), self.batch_rnn.bias_hh_l0.data.min())
         print("b_ih", self.batch_rnn.bias_ih_l0.data.max(), self.batch_rnn.bias_ih_l0.data.min())
         print("w_fc1", self.fc1.weight.data.max(), self.fc1.weight.data.min())
+        print("b_fc1", self.fc1.bias.data.max(), self.fc1.weight.data.min())
         print("w_fc2", self.fc2.weight.data.max(), self.fc2.weight.data.min())
+        print("b_fc2", self.fc2.bias.data.max(), self.fc1.weight.data.min())
         print("---")
         print("w_hh grad", self.batch_rnn.weight_hh_l0.grad.max(), self.batch_rnn.weight_hh_l0.grad.min())
         print("w_ih grad", self.batch_rnn.weight_ih_l0.grad.max(), self.batch_rnn.weight_ih_l0.grad.min())
         print("b_hh grad", self.batch_rnn.bias_hh_l0.grad.max(), self.batch_rnn.bias_hh_l0.grad.min())
         print("b_ih grad", self.batch_rnn.bias_ih_l0.grad.max(), self.batch_rnn.bias_ih_l0.grad.min())
         print("w_fc1 grad", self.fc1.weight.grad.max(), self.fc1.weight.grad.min())
+        print("b_fc1 grad", self.fc1.bias.grad.max(), self.fc1.bias.grad.min())
         print("w_fc2 grad", self.fc2.weight.grad.max(), self.fc2.weight.grad.min())
+        print("b_fc2 grad", self.fc2.bias.grad.max(), self.fc2.bias.grad.min())
         print("-------------------------------")
 
 
@@ -985,7 +989,9 @@ class RNN_PG(nn.Module):
         self.batch_rnn.bias_hh_l0.grad.clamp_(-0.5, 0.5)
         self.batch_rnn.bias_ih_l0.grad.clamp_(-0.5, 0.5)
         self.fc1.weight.grad.clamp_(-0.5, 0.5)
+        self.fc1.bias.grad.clamp_(-0.5, 0.5)
         self.fc2.weight.grad.clamp_(-0.5, 0.5)
+        self.fc2.bias.grad.clamp_(-0.5, 0.5)
 
 
     def clone_params(self):
@@ -1607,3 +1613,17 @@ class CM_Policy(nn.Module):
 
     def reset(self, batchsize=1):
         return T.zeros(batchsize, self.n_hid).float()
+
+
+class GYM_Linear(nn.Module):
+    def __init__(self, env):
+        super(GYM_Linear, self).__init__()
+        self.obs_dim = env.observation_space.shape[0]
+        self.act_dim = env.action_space.shape[0]
+
+        self.fc1 = nn.Linear(self.obs_dim, self.act_dim)
+
+
+    def forward(self, x):
+        return self.fc1(x)
+

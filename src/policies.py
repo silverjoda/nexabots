@@ -961,6 +961,33 @@ class RNN_PG(nn.Module):
         return T.zeros((1, self.hid_dim))
 
 
+    def print_info(self):
+        print("-------------------------------")
+        print("w_hh", self.batch_rnn.weight_hh_l0.data.max(), self.batch_rnn.weight_hh_l0.data.min())
+        print("w_ih", self.batch_rnn.weight_ih_l0.data.max(), self.batch_rnn.weight_ih_l0.data.min())
+        print("b_hh", self.batch_rnn.bias_hh_l0.data.max(), self.batch_rnn.bias_hh_l0.data.min())
+        print("b_ih", self.batch_rnn.bias_ih_l0.data.max(), self.batch_rnn.bias_ih_l0.data.min())
+        print("w_fc1", self.fc1.weight.data.max(), self.fc1.weight.data.min())
+        print("w_fc2", self.fc2.weight.data.max(), self.fc2.weight.data.min())
+        print("---")
+        print("w_hh grad", self.batch_rnn.weight_hh_l0.grad.max(), self.batch_rnn.weight_hh_l0.grad.min())
+        print("w_ih grad", self.batch_rnn.weight_ih_l0.grad.max(), self.batch_rnn.weight_ih_l0.grad.min())
+        print("b_hh grad", self.batch_rnn.bias_hh_l0.grad.max(), self.batch_rnn.bias_hh_l0.grad.min())
+        print("b_ih grad", self.batch_rnn.bias_ih_l0.grad.max(), self.batch_rnn.bias_ih_l0.grad.min())
+        print("w_fc1 grad", self.fc1.weight.grad.max(), self.fc1.weight.grad.min())
+        print("w_fc2 grad", self.fc2.weight.grad.max(), self.fc2.weight.grad.min())
+        print("-------------------------------")
+
+
+    def clip_grads(self):
+        self.batch_rnn.weight_hh_l0.grad.clamp_(-0.5, 0.5)
+        self.batch_rnn.weight_ih_l0.grad.clamp_(-0.5, 0.5)
+        self.batch_rnn.bias_hh_l0.grad.clamp_(-0.5, 0.5)
+        self.batch_rnn.bias_ih_l0.grad.clamp_(-0.5, 0.5)
+        self.fc1.weight.grad.clamp_(-0.5, 0.5)
+        self.fc2.weight.grad.clamp_(-0.5, 0.5)
+
+
     def clone_params(self):
         self.rnn.bias_hh.data = deepcopy(self.batch_rnn.bias_hh_l0.data)
         self.rnn.bias_ih.data = deepcopy(self.batch_rnn.bias_ih_l0.data)
@@ -971,7 +998,7 @@ class RNN_PG(nn.Module):
     def forward(self, input):
         x, h = input
         h_ = self.rnn(x, h)
-        x = F.tanh(self.fc1(h_))
+        x = T.tanh(self.fc1(h_))
         x = self.fc2(x)
         return x, h_
 

@@ -106,13 +106,13 @@ class CentipedeMjc8:
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
 
-        ctrl_effort = np.square(ctrl).mean() * 0.01
+        ctrl_effort = np.square(ctrl).mean() * 0.05
         target_progress = (torso_p[0] - torso_c[0]) * 60
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort + obs_dict["contacts"].mean() * 0.1
+        r = target_progress - ctrl_effort
 
         return obs, r, done, self.get_obs_dict()
 
@@ -133,6 +133,23 @@ class CentipedeMjc8:
             for i in range(1000):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
+                cr += r
+                time.sleep(0.001)
+                self.render()
+            print("Total episode reward: {}".format(cr))
+
+
+    def test_recurrent(self, policy):
+        self.reset()
+        for i in range(100):
+            done = False
+            obs, _ = self.reset()
+            h = policy.init_hidden()
+            cr = 0
+            while not done:
+                action, h_ = policy((my_utils.to_tensor(obs, True), h))
+                h = h_
+                obs, r, done, od, = self.step(action[0].detach())
                 cr += r
                 time.sleep(0.001)
                 self.render()

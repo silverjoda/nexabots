@@ -3,6 +3,7 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
+from cv2 import *
 
 class CentipedeMjc30:
     N = 30
@@ -39,6 +40,8 @@ class CentipedeMjc30:
             self._setupcam()
 
         self.reset()
+
+        self.frames = []
 
     def _setupcam(self):
         if self.viewer is None:
@@ -85,6 +88,20 @@ class CentipedeMjc30:
             self.viewer = mujoco_py.MjViewer(self.sim)
 
         self.viewer.render()
+        #
+        # cam_array = self.sim.render(camera_name="track", width=640, height=480)
+        #
+        # self.frames.append(cam_array)
+        #
+        # if len(self.frames) > 100:
+        #     writer = cv2.VideoWriter("output.avi", cv2.VideoWriter_fourcc(*"MJPG"), 60, (640, 480))
+        #     for f in self.frames:
+        #         writer.write(f.astype('uint8'))
+        #     writer.release()
+        #
+        #     exit()
+
+
 
     def step(self, ctrl):
 
@@ -99,15 +116,16 @@ class CentipedeMjc30:
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
 
-        ctrl_effort = np.square(ctrl).mean() * 0.01
+        ctrl_effort = np.square(ctrl).mean() * 0.05
         target_progress = (torso_p[0] - torso_c[0]) * 60
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort + obs_dict["contacts"].mean() * 0.1
+        r = target_progress - ctrl_effort
 
         return obs, r, done, self.get_obs_dict()
+
 
     def demo(self):
         self.reset()
@@ -121,7 +139,7 @@ class CentipedeMjc30:
             done = False
             obs, _ = self.reset()
             cr = 0
-            for i in range(1000):
+            for i in range(3000):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r

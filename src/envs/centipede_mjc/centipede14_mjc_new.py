@@ -99,13 +99,13 @@ class CentipedeMjc14:
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
 
-        ctrl_effort = np.square(ctrl).mean() * 0.01
+        ctrl_effort = np.square(ctrl).mean() * 0.05
         target_progress = (torso_p[0] - torso_c[0]) * 60
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort + obs_dict["contacts"].mean() * 0.1
+        r = target_progress - ctrl_effort
 
         return obs, r, done, self.get_obs_dict()
 

@@ -1085,10 +1085,9 @@ class C_MLP(nn.Module):
 
 
     def forward(self, x):
-        x = F.selu(self.fc1(x))
-        x = F.selu(self.fc2(x))
-        x = T.tanh(self.fc3(x))
-
+        x = T.tanh(self.fc1(x))
+        x = T.tanh(self.fc2(x))
+        x = self.fc3(x)
         return x
 
 
@@ -1533,3 +1532,51 @@ class C_PhasePolicy_ES(nn.Module):
 
 
         return acts[:, 2:]
+
+
+class CM_RNN(nn.Module):
+    def __init__(self, obs_dim, output_dim, n_hid):
+        super(CM_RNN, self).__init__()
+
+        self.n_hid = n_hid
+        self.obs_dim = obs_dim
+        self.output_dim = output_dim
+
+        # Set states
+        self.reset()
+
+        self.rnn = nn.GRUCell(self.obs_dim, self.n_hid)
+        self.out = nn.Linear(self.n_hid, self.output_dim)
+
+
+    def forward(self, x, h):
+        h_ = self.rnn(x, h)
+        return self.out(h_), h_
+
+
+    def reset(self, batchsize=1):
+        return T.zeros(1, self.n_hid)
+
+
+class CM_Policy(nn.Module):
+    def __init__(self, obs_dim, act_dim, n_hid):
+        super(CM_Policy, self).__init__()
+
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+        self.n_hid = n_hid
+
+        # Set states
+        self.reset()
+
+        self.rnn = nn.GRUCell(obs_dim, n_hid)
+        self.out = nn.Linear(n_hid, act_dim)
+
+
+    def forward(self, x, h):
+        h_ = self.rnn(x, h)
+        return self.out(h_), h_
+
+
+    def reset(self, batchsize=1):
+        return T.zeros(batchsize, self.n_hid).float()

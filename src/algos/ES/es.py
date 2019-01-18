@@ -83,17 +83,17 @@ def train(params):
     return es.result.fbest
 
 
-#from src.envs.hexapod_mjc import hexapod
-#env = hexapod.Hexapod()
+from src.envs.hexapod_mjc import hexapod
+env = hexapod.Hexapod()
 
 # Centipede new
-from src.envs.centipede_mjc.centipede30_mjc_new import CentipedeMjc30 as centipede
-env = centipede()
+#from src.envs.centipede_mjc.centipede30_mjc_new import CentipedeMjc30 as centipede
+#env = centipede()
 
-policy = policies.C_PhasePolicy_ES(env)
+policy = policies.NN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = False
+TRAIN = True
 
 if TRAIN:
     t1 = time.clock()

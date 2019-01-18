@@ -6,8 +6,7 @@ import os
 from math import sqrt, acos, fabs
 
 class Hexapod:
-    N = 8
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml".format(N))
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
     def __init__(self, animate=False, sim=None):
 
         print([sqrt(l**2 + l**2) for l in [0.1, 0.2, 0.5]])
@@ -118,7 +117,7 @@ class Hexapod:
         ctrl_effort = np.square(ctrl).mean() * 0.001
         target_progress = xd
 
-        r = target_progress - ctrl_effort - abs(angle) * 0.1
+        r = target_progress - ctrl_effort - abs(angle) * 0.05
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps

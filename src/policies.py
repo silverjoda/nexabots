@@ -1587,6 +1587,15 @@ class CM_RNN(nn.Module):
         return self.out(h_), h_
 
 
+    def average_grads(self, N):
+        self.rnn.weight_hh.grad /= N
+        self.rnn.weight_ih.grad /= N
+        self.rnn.bias_hh.grad /= N
+        self.rnn.bias_ih.grad /= N
+        self.out.weight.grad /= N
+        self.out.bias.grad /= N
+
+
     def reset(self, batchsize=1):
         return T.zeros(1, self.n_hid)
 
@@ -1609,6 +1618,14 @@ class CM_Policy(nn.Module):
     def forward(self, x, h):
         h_ = self.rnn(x, h)
         return self.out(h_), h_
+
+    def average_grads(self, N):
+        self.rnn.weight_hh.grad /= N
+        self.rnn.weight_ih.grad /= N
+        self.rnn.bias_hh.grad /= N
+        self.rnn.bias_ih.grad /= N
+        self.out.weight.grad /= N
+        self.out.bias.grad /= N
 
 
     def reset(self, batchsize=1):

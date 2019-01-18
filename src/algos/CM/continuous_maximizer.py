@@ -17,10 +17,10 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
     MSE = torch.nn.MSELoss()
     optim_state_model = torch.optim.Adam(state_model.parameters(), lr=lr, weight_decay=1e-4)
 
-    BATCHSIZE = 32
-    total_loss = 0
+    BATCHSIZE = 24
 
     for i in range(iters):
+        total_loss = 0
         optim_state_model.zero_grad()
         for j in range(BATCHSIZE):
             s, _ = env.reset()
@@ -57,7 +57,7 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
         state_model.average_grads(BATCHSIZE)
         optim_state_model.step()
 
-        if i % 10 == 0:
+        if i % 1 == 0:
             print("Iter: {}/{}, states_loss: {}".format(i, iters, total_loss / BATCHSIZE))
 
     print("Finished pretraining model on random actions, saving")
@@ -193,7 +193,7 @@ def main():
 
     # Pretrain model on random actions
     t1 = time.time()
-    pretrain_iters = 5000
+    pretrain_iters = 400
     pretrain_model(state_model, env, pretrain_iters, lr=1e-3)
     if pretrain_iters == 0:
         state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
@@ -203,8 +203,8 @@ def main():
     torch.save(state_model, '{}_state_model.pt'.format(env.__class__.__name__))
 
     # Train optimization
-    opt_iters = 5000
-    train_opt(state_model, policy, env, opt_iters, animate=False, lr_model=3e-4, lr_policy=1e-3, model_rpts=0)
+    opt_iters = 100
+    train_opt(state_model, policy, env, opt_iters, animate=False, lr_model=1e-3, lr_policy=1e-3, model_rpts=0)
 
     print("Finished training, saving")
     torch.save(policy, '{}_policy.pt'.format(env.__class__.__name__))

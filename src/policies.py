@@ -1575,16 +1575,15 @@ class CM_RNN(nn.Module):
         self.obs_dim = obs_dim
         self.output_dim = output_dim
 
-        # Set states
-        self.reset()
-
         self.rnn = nn.GRUCell(self.obs_dim, self.n_hid)
-        self.out = nn.Linear(self.n_hid, self.output_dim)
+        self.out1 = nn.Linear(self.n_hid, self.n_hid)
+        self.out2 = nn.Linear(self.n_hid, self.output_dim)
 
 
     def forward(self, x, h):
         h_ = self.rnn(x, h)
-        return self.out(h_), h_
+        x = T.tanh(self.out1(h_))
+        return self.out2(x), h_
 
 
     def average_grads(self, N):
@@ -1592,8 +1591,10 @@ class CM_RNN(nn.Module):
         self.rnn.weight_ih.grad /= N
         self.rnn.bias_hh.grad /= N
         self.rnn.bias_ih.grad /= N
-        self.out.weight.grad /= N
-        self.out.bias.grad /= N
+        self.out1.weight.grad /= N
+        self.out1.bias.grad /= N
+        self.out2.weight.grad /= N
+        self.out2.bias.grad /= N
 
 
     def reset(self, batchsize=1):

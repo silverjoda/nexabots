@@ -17,42 +17,48 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
     MSE = torch.nn.MSELoss()
     optim_state_model = torch.optim.Adam(state_model.parameters(), lr=lr, weight_decay=1e-4)
 
+    BATCHSIZE = 32
+    total_loss = 0
+
     for i in range(iters):
-        s, _ = env.reset()
-        h_s = state_model.reset()
-
-        done = False
-
-        states = []
-        state_predictions = []
-
-        while not done:
-            a = np.random.randn(env.act_dim)
-
-            # Make prediction
-            sa = np.concatenate([s, a]).astype(np.float32)
-            pred_state, h_s = state_model(to_tensor(sa, True), h_s)
-            state_predictions.append(pred_state[0])
-
-            s, rew, done, od = env.step(a)
-            states.append(s)
-
-        # Convert to torch tensors
-        states_tens = torch.from_numpy(np.asarray(states, dtype=np.float32))
-        state_pred_tens = torch.stack(state_predictions)
-
-        # Calculate loss
-        loss_states = MSE(state_pred_tens, states_tens)
-
-        # Backprop
         optim_state_model.zero_grad()
-        loss_states.backward()
+        for j in range(BATCHSIZE):
+            s, _ = env.reset()
+            h_s = state_model.reset()
+
+            done = False
+
+            states = []
+            state_predictions = []
+
+            while not done:
+                a = np.random.randn(env.act_dim)
+
+                # Make prediction
+                sa = np.concatenate([s, a]).astype(np.float32)
+                pred_state, h_s = state_model(to_tensor(sa, True), h_s)
+                state_predictions.append(pred_state[0])
+
+                s, rew, done, od = env.step(a)
+                states.append(s)
+
+            # Convert to torch tensors
+            states_tens = torch.from_numpy(np.asarray(states, dtype=np.float32))
+            state_pred_tens = torch.stack(state_predictions)
+
+            # Calculate loss
+            loss_states = MSE(state_pred_tens, states_tens)
+
+            # Backprop
+            loss_states.backward()
+            total_loss += loss_states
 
         # Update
+        state_model.average_grads(BATCHSIZE)
         optim_state_model.step()
 
         if i % 10 == 0:
-            print("Iter: {}/{}, states_loss: {}".format(i, iters, loss_states))
+            print("Iter: {}/{}, states_loss: {}".format(i, iters, total_loss / BATCHSIZE))
 
     print("Finished pretraining model on random actions, saving")
     torch.save(state_model, '{}_state_model.pt'.format(env.__class__.__name__))
@@ -80,7 +86,6 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
             h_p = policy.reset()
             h_s = state_model.reset()
 
-            states = []
             state_predictions = []
 
             sdiff = torch.zeros(1, env.obs_dim)
@@ -181,14 +186,14 @@ def main():
     act_dim = env.act_dim
 
     # Create prediction model
-    state_model = CM_RNN(obs_dim + act_dim, obs_dim, 64)
+    state_model = CM_RNN(obs_dim + act_dim, obs_dim, 96)
 
     # Create policy model
     policy = CM_Policy(obs_dim, act_dim, 64)
 
     # Pretrain model on random actions
     t1 = time.time()
-    pretrain_iters = 0
+    pretrain_iters = 5000
     pretrain_model(state_model, env, pretrain_iters, lr=1e-3)
     if pretrain_iters == 0:
         state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
@@ -198,8 +203,8 @@ def main():
     torch.save(state_model, '{}_state_model.pt'.format(env.__class__.__name__))
 
     # Train optimization
-    opt_iters = 3000
-    train_opt(state_model, policy, env, opt_iters, animate=True, lr_model=3e-4, lr_policy=1e-3, model_rpts=0)
+    opt_iters = 5000
+    train_opt(state_model, policy, env, opt_iters, animate=False, lr_model=3e-4, lr_policy=1e-3, model_rpts=0)
 
     print("Finished training, saving")
     torch.save(policy, '{}_policy.pt'.format(env.__class__.__name__))

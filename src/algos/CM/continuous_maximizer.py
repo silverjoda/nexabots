@@ -69,7 +69,7 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
     for i in range(iters):
 
         optim_policy.zero_grad()
-        BATCHSIZE = 24
+        BATCHSIZE = 12
         total_policy_scores = 0
         for j in range(BATCHSIZE):
 
@@ -116,11 +116,11 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
         policy.average_grads(BATCHSIZE)
         optim_policy.step()
 
-        total_loss_states =0
+        total_loss_states = 0
 
         ## Model Step ----------------------------------------
         # Backprop
-        optim_model.zero_grad()
+        #optim_model.zero_grad()
         for j in range(model_rpts):
 
             done = False
@@ -159,8 +159,8 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
             total_loss_states.append(loss_states)
 
         # Update
-        state_model.average_grads(model_rpts)
-        optim_model.step()
+        #state_model.average_grads(model_rpts)
+        #optim_model.step()
 
         print("Iter: {}/{}, states prediction loss: {}, policy score: {}".format(i, iters, total_loss_states/BATCHSIZE, total_policy_scores/BATCHSIZE))
 

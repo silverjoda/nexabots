@@ -34,7 +34,7 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
             pred_state, h_s = state_model(to_tensor(sa, True), h_s)
             state_predictions.append(pred_state[0])
 
-            s, rew, done, info = env.step(a)
+            s, rew, done, od = env.step(a)
             states.append(s)
 
         # Convert to torch tensors
@@ -69,8 +69,9 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
     for i in range(iters):
 
         optim_policy.zero_grad()
-        BATCHSIZE = 12
-        total_policy_scores = 0
+        BATCHSIZE = 24
+        total_predicted_scores = 0
+        total_actual_scores = 0
         for j in range(BATCHSIZE):
 
             ### Policy step ----------------------------------------
@@ -79,6 +80,7 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
             h_p = policy.reset()
             h_s = state_model.reset()
 
+            states = []
             state_predictions = []
 
             sdiff = torch.zeros(1, env.obs_dim)
@@ -93,7 +95,8 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
                 pred_s, h_s = state_model(torch.cat([to_tensor(s, True), pred_a], 1), h_s)
                 state_predictions.append(pred_s)
 
-                s, rew, done, info = env.step(pred_a.detach().numpy())
+                s, rew, done, od = env.step(pred_a.detach().numpy())
+                total_actual_scores += s[27]
 
                 if animate:
                     env.render()
@@ -106,7 +109,8 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
 
             # Calculate loss
             policy_score = rp[:, 27].sum()
-            total_policy_scores += policy_score
+            total_predicted_scores += policy_score
+
 
             # Backprop
             (policy_score).backward()
@@ -162,7 +166,10 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
         #state_model.average_grads(model_rpts)
         #optim_model.step()
 
-        print("Iter: {}/{}, states prediction loss: {}, policy score: {}".format(i, iters, total_loss_states/BATCHSIZE, total_policy_scores/BATCHSIZE))
+        print("Iter: {}/{}, states prediction loss: {}, predicted score: {}, actual score: {}".format(i, iters,
+                                                                                                      total_loss_states/BATCHSIZE,
+                                                                                                      total_predicted_scores / BATCHSIZE,
+                                                                                                      total_actual_scores / BATCHSIZE))
 
 def main():
 

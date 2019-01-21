@@ -24,7 +24,7 @@ class AntFeelersMjc:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 7 * 5 - 6 * 5 + 6 - 2
+        self.obs_dim = self.q_dim + self.qvel_dim - 7 * 5 - 6 * 5 + 7 - 2
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
@@ -72,6 +72,7 @@ class AntFeelersMjc:
 
         # Contacts:
         od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 15, 17]])).sum(axis=1), 0, 1)
+        od['torso_contact'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1)
 
         return od
 
@@ -104,19 +105,18 @@ class AntFeelersMjc:
 
         #print(self.sim.data.ncon) # Prints amount of current contacts
         obs_c = self.get_robot_obs()
+        obs_dict = self.get_obs_dict()
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
 
-        obs_dict = self.get_obs_dict()
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
         ctrl_effort = np.square(ctrl[0:8]).mean() * 0.000
         target_progress = xd
 
-        obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"]))
-
-        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01
+        obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']]))
+        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 30
 
         return obs, r, done, obs_dict
 
@@ -127,7 +127,7 @@ class AntFeelersMjc:
             self.reset()
             for i in range(self.max_steps):
                 act = np.random.randn(self.act_dim)
-                #act[0:-4] = 0
+                act[0:-4] = 1
                 self.step(act)
                 self.render()
 
@@ -185,7 +185,7 @@ class AntFeelersMjc:
         obs = np.concatenate((init_q[: - 7 * self.N_boxes], init_qvel[: - 6 * self.N_boxes])).astype(np.float32)
 
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs[2:], obs_dict["contacts"]))
+        obs = np.concatenate((obs[2:], obs_dict["contacts"], [obs_dict["torso_contact"]]))
 
         return obs, self.get_obs_dict()
 

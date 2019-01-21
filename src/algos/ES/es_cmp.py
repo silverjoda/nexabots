@@ -48,6 +48,36 @@ def f_wrapper(env, policy, animate):
     return f
 
 
+def f_wrapper_multi(env, policy, animate):
+    def f(w):
+        rewards = []
+        done = False
+        obs, _ = env.reset()
+
+        vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
+
+        while not done:
+
+            # Get action from policy
+            with torch.no_grad():
+                act = policy(my_utils.to_tensor(obs, True))
+
+            # Step environment
+            obs, rew, done, od = env.step(act.squeeze(0).numpy())
+
+            if animate:
+                env.render()
+
+            rewards.append(od['rV'])
+
+        r = 0
+        for rew in rewards:
+            rew_arr = np.array(rew)
+            r += rew_arr.sum() - np.abs(rew_arr - rew_arr.mean()).mean()
+
+        return -r
+    return f
+
 
 def train(params):
     env, policy, iters, animate, ID = params

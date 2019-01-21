@@ -95,15 +95,15 @@ env = hexapod.Hexapod()
 policy = policies.RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = True
+TRAIN = False
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, False, ID))
+    train((env, policy, 100000, True, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/AntFeelersMjc_RNN_RCC_es.p")
+    policy = T.load("agents/Hexapod_RNN_YRA_es.p")
     env.test_recurrent(policy)
 
 print("Done.")

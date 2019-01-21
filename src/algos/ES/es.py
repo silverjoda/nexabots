@@ -83,7 +83,10 @@ def train(params):
     return es.result.fbest
 
 
-from src.envs.hexapod_mjc import hexapod
+#from src.envs.hexapod_mjc import hexapod
+#env = hexapod.Hexapod()
+
+from src.envs.hexapod_flat_mjc import hexapod
 env = hexapod.Hexapod()
 
 # Centipede new

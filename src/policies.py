@@ -21,18 +21,18 @@ class NN(nn.Module):
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.fc1 = nn.Linear(self.obs_dim, 64)
-        self.fc2 = nn.Linear(64, 64)
-        self.fc3 = nn.Linear(64, self.act_dim)
+        self.fc1 = nn.Linear(self.obs_dim, 32)
+        self.fc2 = nn.Linear(32, 32)
+        self.fc3 = nn.Linear(32, self.act_dim)
 
         #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
         self.log_std = T.zeros(1, self.act_dim)
 
 
     def forward(self, x):
-        x = F.selu(self.fc1(x))
-        x = F.selu(self.fc2(x))
-        x = self.fc3(x)
+        x = T.tanh(self.fc1(x))
+        x = T.tanh(self.fc2(x))
+        x = T.tanh(self.fc3(x))
 
         return x
 

@@ -5,20 +5,17 @@ import time
 import os
 from math import sqrt, acos, fabs
 
-class Ant:
-    N = 8
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/ant_compound.xml".format(N))
+class Hexapod:
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
     def __init__(self, animate=False, sim=None):
 
         print([sqrt(l**2 + l**2) for l in [0.1, 0.2, 0.5]])
-
-        self.N_links = 4
 
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
         else:
-            self.modelpath = Ant.MODELPATH
+            self.modelpath = Hexapod.MODELPATH
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
@@ -35,12 +32,14 @@ class Ant:
         self.viewer = None
         self.step_ctr = 0
         self.max_steps = 300
+        self.ctrl_vecs = []
 
         # Initial methods
         if animate:
             self.setupcam()
 
         self.reset()
+
 
 
     def setupcam(self):
@@ -105,29 +104,39 @@ class Ant:
         self.sim.step()
         self.step_ctr += 1
 
+        self.ctrl_vecs.append(ctrl)
+
+        #print(self.sim.data.ncon) # Prints amount of current contacts
+
         obs = self.get_obs()
         obs_dict = self.get_obs_dict()
 
         # Angle deviation
-        x, y, z, qw, qx, qy, qz  = obs[:7]
+        x, y, z, qw, qx, qy, qz = obs[:7]
+        xd, yd, _, _, _, _ = obs_dict["root_vel"]
         angle = 2 * acos(qw)
-        #print([qw, qx, qy, qz], angle)
 
         # Reward conditions
-        ctrl_effort = np.square(ctrl).mean() * 0.01
-        target_progress = self.sim.get_state().qvel.tolist()[0]
-        y_dev = abs(y)
-        ang_dev = abs(angle) * 0.1
+        ctrl_effort = np.abs(ctrl).sum()
+        target_progress = xd
 
-        rV = (target_progress, - ctrl_effort, ang_dev, y_dev)
+        rV = (target_progress, - ctrl_effort * 0.0000, - abs(angle) * 0.0, - abs(yd) * 0.0, self.sim.data.ncon * 0.0)
         r = sum(rV)
 
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps or abs(angle) > 0.7 or abs(y) > 1
 
-        return obs.astype(np.float32), r, done, obs_dict
+        if done:
+            ctrl_sum = np.zeros(self.act_dim)
+            for cv in self.ctrl_vecs:
+                ctrl_sum += np.abs(np.array(cv))
+            ctrl_dev = np.abs(ctrl_sum - ctrl_sum.mean()).mean()
+
+            r -= ctrl_dev * 3
+
+        return obs.astype(np.float32)[2:], r, done, obs_dict
 
 
     def demo(self):
@@ -174,6 +183,7 @@ class Ant:
 
         # Reset env variables
         self.step_ctr = 0
+        self.ctrl_vecs = []
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)

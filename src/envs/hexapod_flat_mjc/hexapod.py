@@ -33,6 +33,8 @@ class Hexapod:
         self.step_ctr = 0
         self.max_steps = 300
         self.ctrl_vecs = []
+        self.dead_joint_idx = 0
+        self.dead_leg_idx = 0
 
         # Initial methods
         if animate:
@@ -99,6 +101,9 @@ class Hexapod:
 
     def step(self, ctrl):
 
+        # ctrl[self.dead_joint_idx] = 0
+        ctrl[self.dead_leg_idx * 3: (self.dead_leg_idx + 1) * 3] = 0
+
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
         self.sim.step()
@@ -128,13 +133,13 @@ class Hexapod:
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps or abs(angle) > 0.7 or abs(y) > 1
 
-        if done:
-            ctrl_sum = np.zeros(self.act_dim)
-            for cv in self.ctrl_vecs:
-                ctrl_sum += np.abs(np.array(cv))
-            ctrl_dev = np.abs(ctrl_sum - ctrl_sum.mean()).mean()
-
-            r -= ctrl_dev * 3
+        # if done:
+        #     ctrl_sum = np.zeros(self.act_dim)
+        #     for cv in self.ctrl_vecs:
+        #         ctrl_sum += np.abs(np.array(cv))
+        #     ctrl_dev = np.abs(ctrl_sum - ctrl_sum.mean()).mean()
+        #
+        #     r -= ctrl_dev * 3
 
         return obs.astype(np.float32)[2:], r, done, obs_dict
 
@@ -180,10 +185,11 @@ class Hexapod:
 
 
     def reset(self): #
-
         # Reset env variables
         self.step_ctr = 0
         self.ctrl_vecs = []
+        self.dead_joint_idx = np.random.randint(0, self.act_dim)
+        self.dead_leg_idx = np.random.randint(0, self.act_dim / 3)
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)

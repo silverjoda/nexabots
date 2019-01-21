@@ -18,7 +18,7 @@ class AntFeelersMjc:
         self.model.opt.timestep = 0.02
         self.N_boxes = 5
 
-        self.max_steps = 300
+        self.max_steps = 400
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -97,7 +97,6 @@ class AntFeelersMjc:
 
 
     def step(self, ctrl):
-        obs_p = self.get_robot_obs()
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
@@ -109,24 +108,28 @@ class AntFeelersMjc:
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
 
-        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.001
-        target_progress = (obs_c[0] - obs_p[0]) * 70
-
         obs_dict = self.get_obs_dict()
+        xd, yd, _, _, _, _ = obs_dict["root_vel"]
+
+        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.000
+        target_progress = xd
+
         obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort + obs_dict["contacts"].sum() * 0.01
+        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01
 
         return obs, r, done, obs_dict
 
 
     def demo(self):
         self.reset()
-        for i in range(self.max_steps):
-            act = np.random.randn(self.act_dim)
-            #act[0:-4] = 0
-            self.step(act)
-            self.render()
+        for i in range(100):
+            self.reset()
+            for i in range(self.max_steps):
+                act = np.random.randn(self.act_dim)
+                #act[0:-4] = 0
+                self.step(act)
+                self.render()
 
 
     def test(self, policy):

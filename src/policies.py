@@ -1053,7 +1053,7 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = 42
+        self.hid_dim = 32
 
         self.rnn = nn.RNNCell(self.obs_dim, self.hid_dim)
         self.fc1 = nn.Linear(self.hid_dim, 32)

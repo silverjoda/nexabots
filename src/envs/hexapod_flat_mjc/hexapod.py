@@ -179,7 +179,7 @@ class Hexapod:
             print("Total episode reward: {}".format(cr))
 
 
-    def reset(self):
+    def reset(self): #
 
         # Reset env variables
         self.step_ctr = 0

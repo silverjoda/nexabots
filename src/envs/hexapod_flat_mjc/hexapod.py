@@ -101,8 +101,9 @@ class Hexapod:
 
     def step(self, ctrl):
 
-        # ctrl[self.dead_joint_idx] = 0
-        ctrl[self.dead_leg_idx * 3: (self.dead_leg_idx + 1) * 3] = 0
+        #ctrl[self.dead_joint_idx] = 0
+        if np.random.rand() < 0.3:
+            ctrl[self.dead_leg_idx * 3: (self.dead_leg_idx + 1) * 3] = 0
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()

@@ -100,13 +100,11 @@ TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, True, ID))
+    train((env, policy, 100000, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    #policy = T.load("agents/CentipedeMjc8_C_PhasePolicy_ES_TBY_es.p")
-    #policy = T.load("agents/CentipedeMjc14_C_PhasePolicy_ES_3ON_es.p")
-    policy = T.load("agents/CentipedeMjc30_C_PhasePolicy_ES_34W_es.p")
+    policy = T.load("agents/Hexapod_NN_5DK_es.p")
     env.test(policy)
 
 print("Done.")

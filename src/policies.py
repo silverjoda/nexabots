@@ -1557,12 +1557,11 @@ class C_PhasePolicy_ES(nn.Module):
         self.step_phase()
 
         # Phases directly translate into torques
-        acts = T.sin(self.phases.view(M, self.act_dim + 2))
-
+        #acts = T.sin(self.phases.view(M, self.act_dim + 2))
 
         # Phases are desired angles
-        #acts = (((self.phases - (np.pi / 2)) - jlrs) * 0.1).view(1,-1)
-
+        refs = T.sin(self.phases)
+        acts = ((refs - jlrs) * 0.9).view(1, -1)
 
         return acts[:, 2:]
 

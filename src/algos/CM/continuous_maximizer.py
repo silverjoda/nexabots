@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Variable
-import gym
+
 import time
 from src.policies import *
 from src.my_utils import *
@@ -17,7 +17,7 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
     MSE = torch.nn.MSELoss()
     optim_state_model = torch.optim.Adam(state_model.parameters(), lr=lr, weight_decay=1e-4)
 
-    BATCHSIZE = 24
+    BATCHSIZE = 16
 
     for i in range(iters):
         total_loss = 0
@@ -177,6 +177,7 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
                                                                                                       total_actual_scores / BATCHSIZE))
 
 def main():
+    T.set_num_threads(1)
 
     # Create environment
     from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
@@ -193,7 +194,7 @@ def main():
 
     # Pretrain model on random actions
     t1 = time.time()
-    pretrain_iters = 400
+    pretrain_iters = 1000
     pretrain_model(state_model, env, pretrain_iters, lr=1e-3)
     if pretrain_iters == 0:
         state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
@@ -204,7 +205,7 @@ def main():
 
     # Train optimization
     opt_iters = 100
-    train_opt(state_model, policy, env, opt_iters, animate=False, lr_model=1e-3, lr_policy=1e-3, model_rpts=0)
+    train_opt(state_model, policy, env, opt_iters, animate=False, lr_model=5e-4, lr_policy=1e-3, model_rpts=0)
 
     print("Finished training, saving")
     torch.save(policy, '{}_policy.pt'.format(env.__class__.__name__))

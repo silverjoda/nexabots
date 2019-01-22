@@ -86,11 +86,11 @@ def train(params):
     return es.result.fbest
 
 
-#from src.envs.hexapod_flat_mjc import hexapod
-#env = hexapod.Hexapod()
+from src.envs.hexapod_flat_mjc import hexapod
+env = hexapod.Hexapod()
 
-from src.envs.ant_feelers_mjc import ant_feelers_mjc
-env = ant_feelers_mjc.AntFeelersMjc()
+#from src.envs.ant_feelers_mjc import ant_feelers_mjc
+#env = ant_feelers_mjc.AntFeelersMjc()
 
 policy = policies.RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
@@ -99,11 +99,11 @@ TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, True, ID))
+    train((env, policy, 100000, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/Hexapod_RNN_YRA_es.p")
+    policy = T.load("agents/Hexapod_RNN_LRC_es.p")
     env.test_recurrent(policy)
 
 print("Done.")

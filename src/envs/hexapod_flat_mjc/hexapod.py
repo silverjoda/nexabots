@@ -25,7 +25,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
@@ -69,12 +69,8 @@ class Hexapod:
             od[j + "_pos"] = self.sim.data.get_joint_qpos(j)
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
 
-        # # Contacts:
-        # ctct_idces = []
-        # for i in range(self.N_links * 2):
-        #     ctct_idces.append(self.model._body_name2id["frontFoot_{}".format(i)])
-        # od['contacts'] = np.clip(np.square(np.array(
-        #     self.sim.data.cfrc_ext[ctct_idces])).sum(axis=1), 0, 1)
+        # Contacts:
+        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1), 0, 1)
 
         return od
 
@@ -126,7 +122,9 @@ class Hexapod:
         ctrl_effort = np.abs(ctrl).sum()
         target_progress = xd
 
-        rV = (target_progress, - ctrl_effort * 0.0000, - abs(angle) * 0.0, - abs(yd) * 0.0, self.sim.data.ncon * 0.0)
+        contact_cost = 0.5 * 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
+
+        rV = (target_progress, - ctrl_effort * 0.0000, - abs(angle) * 0.0, - abs(yd) * 0.0, - contact_cost)
         r = sum(rV)
 
         obs_dict['rV'] = rV
@@ -142,7 +140,9 @@ class Hexapod:
         #
         #     r -= ctrl_dev * 3
 
-        return obs.astype(np.float32)[2:], r, done, obs_dict
+        obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"]))
+
+        return obs, r, done, obs_dict
 
 
     def demo(self):
@@ -159,7 +159,7 @@ class Hexapod:
             done = False
             obs, _ = self.reset()
             cr = 0
-            while not done:
+            for j in range(self.max_steps * 3):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r
@@ -175,7 +175,7 @@ class Hexapod:
             obs, _ = self.reset()
             h = policy.init_hidden()
             cr = 0
-            while not done:
+            for j in range(self.max_steps * 3):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach())
@@ -204,7 +204,10 @@ class Hexapod:
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        return obs, self.get_obs_dict()
+        obs_dict = self.get_obs_dict()
+        obs = np.concatenate((obs, obs_dict["contacts"]))
+
+        return obs, obs_dict
 
 
 if __name__ == "__main__":

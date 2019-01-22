@@ -120,7 +120,7 @@ class Hexapod:
         r = target_progress - ctrl_effort - abs(angle) * 0.05
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps or abs(angle) > 0.7 or z > 1.0
 
         return obs.astype(np.float32)[2:], r, done, obs_dict
 
@@ -139,7 +139,7 @@ class Hexapod:
             done = False
             obs, _ = self.reset()
             cr = 0
-            while not done:
+            for j in range(self.max_steps * 3):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r
@@ -155,7 +155,7 @@ class Hexapod:
             obs, _ = self.reset()
             h = policy.init_hidden()
             cr = 0
-            while not done:
+            for j in range(self.max_steps * 3):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach())

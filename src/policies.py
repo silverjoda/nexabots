@@ -1005,15 +1005,15 @@ class RNN_PG(nn.Module):
         x, h = input
         h_ = self.rnn(x, h)
         x = T.tanh(self.fc1(h_))
-        x = self.fc2(x)
+        x = T.tanh(self.fc2(x))
         return x, h_
 
 
     def forward_batch(self, batch_states):
         h, hn = self.batch_rnn(batch_states)
         h = h.squeeze(0)
-        x = F.selu(self.fc1(h))
-        x = self.fc2(x)
+        x = T.tanh(self.fc1(h))
+        x = T.tanh(self.fc2(x))
         return x, h
 
 
@@ -1110,9 +1110,9 @@ class C_MLP(nn.Module):
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.fc1 = nn.Linear(self.obs_dim, 128)
-        self.fc2 = nn.Linear(128, 128)
-        self.fc3 = nn.Linear(128, self.act_dim)
+        self.fc1 = nn.Linear(self.obs_dim, 64)
+        self.fc2 = nn.Linear(64, 64)
+        self.fc3 = nn.Linear(64, self.act_dim)
 
         self.log_std = T.zeros(1, self.act_dim)
 
@@ -1120,7 +1120,7 @@ class C_MLP(nn.Module):
     def forward(self, x):
         x = T.tanh(self.fc1(x))
         x = T.tanh(self.fc2(x))
-        x = self.fc3(x)
+        x = T.tanh(self.fc3(x))
         return x
 
 

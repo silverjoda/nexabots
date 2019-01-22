@@ -3,7 +3,6 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
-from cv2 import *
 
 class CentipedeMjc30:
     N = 30
@@ -11,7 +10,6 @@ class CentipedeMjc30:
     def __init__(self, animate=False, sim=None):
         self.N_links = 15
 
-        #
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
@@ -116,7 +114,7 @@ class CentipedeMjc30:
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
 
-        ctrl_effort = np.square(ctrl).mean() * 0.05
+        ctrl_effort = np.square(ctrl).sum() * 0.00
         target_progress = (torso_p[0] - torso_c[0]) * 60
 
         obs_dict = self.get_obs_dict()

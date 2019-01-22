@@ -119,12 +119,12 @@ class Hexapod:
         angle = 2 * acos(qw)
 
         # Reward conditions
-        ctrl_effort = np.abs(ctrl).sum()
+        ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
 
         contact_cost = 0.5 * 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
-        rV = (target_progress, - ctrl_effort * 0.0000, - abs(angle) * 0.0, - abs(yd) * 0.0, - contact_cost)
+        rV = (target_progress, - ctrl_effort * 0.0, - abs(angle) * 0.0, - abs(yd) * 0.0, - contact_cost)
         r = sum(rV)
 
         obs_dict['rV'] = rV

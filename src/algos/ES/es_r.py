@@ -99,11 +99,11 @@ TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, False, ID))
+    train((env, policy, 100000, True, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/Hexapod_RNN_LRC_es.p")
+    policy = T.load("agents/Hexapod_RNN_ITN_es.p")
     env.test_recurrent(policy)
 
 print("Done.")

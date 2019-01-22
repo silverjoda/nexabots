@@ -119,9 +119,10 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
         loss.backward()
-        policy.print_grads()
+
+        # Step policy update
+        policy.print_info()
         policy.clip_grads()
-        policy.print_grads()
         policy_optim.step()
 
 
@@ -165,17 +166,17 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.005, "w_decay" : 0.01, "V_lr": 0.007, "ppo": False,
+    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0001, "w_decay" : 0.01, "V_lr": 0.007, "ppo": True,
               "ppo_update_iters": 1, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
-    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    #env = ant_feelers_mjc.AntFeelersMjc()
+    from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    env = ant_feelers_mjc.AntFeelersMjc()
 
     # Hexapod
-    from src.envs.hexapod_mjc import hexapod
-    env = hexapod.Hexapod()
+    #from src.envs.hexapod_flat_mjc import hexapod
+    #env = hexapod.Hexapod()
 
     #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
     #env = centipede()

@@ -107,6 +107,9 @@ class AntFeelersMjc:
         obs_c = self.get_robot_obs()
         obs_dict = self.get_obs_dict()
 
+        x, y, z, qw, qx, qy, qz = obs_c[:7]
+        angle = 2 * np.arccos(qw)
+
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
 
@@ -116,7 +119,7 @@ class AntFeelersMjc:
         target_progress = xd * 1.
 
         obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']]))
-        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.007 - obs_dict['torso_contact'] * 30
+        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.007 - obs_dict['torso_contact'] * 0.3 - angle * 0.1
 
         return obs, r, done, obs_dict
 

@@ -99,7 +99,7 @@ class CentipedeMjc14:
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
 
-        ctrl_effort = np.square(ctrl).mean() * 0.05
+        ctrl_effort = np.square(ctrl).sum() * 0.00
         target_progress = (torso_p[0] - torso_c[0]) * 60
 
         obs_dict = self.get_obs_dict()

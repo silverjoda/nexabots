@@ -166,20 +166,20 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0001, "w_decay" : 0.01, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 1, "animate": True, "train" : True,
+    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "w_decay" : 0.01, "V_lr": 0.007, "ppo": True,
+              "ppo_update_iters": 1, "animate": True, "train" : False,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
-    from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    env = ant_feelers_mjc.AntFeelersMjc()
+    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    #env = ant_feelers_mjc.AntFeelersMjc()
 
     # Hexapod
     #from src.envs.hexapod_flat_mjc import hexapod
     #env = hexapod.Hexapod()
 
-    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    #env = centipede()
+    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    env = centipede()
 
     #from src.envs.ant_reach_mjc import ant_reach_mjc
     #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
@@ -193,7 +193,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AntFeelersMjc_RNN_PG_TB0_pg.p')
+        policy = T.load('agents/CentipedeMjc8_RNN_PG_QR8_pg.p')
         env.test_recurrent(policy)
 
 

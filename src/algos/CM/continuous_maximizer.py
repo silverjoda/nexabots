@@ -15,9 +15,9 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
 
     # Train prediction model on random rollouts
     MSE = torch.nn.MSELoss()
-    optim_state_model = torch.optim.Adam(state_model.parameters(), lr=lr, weight_decay=1e-4)
+    optim_state_model = torch.optim.Adam(state_model.parameters(), lr=lr, weight_decay=1e-5)
 
-    BATCHSIZE = 16
+    BATCHSIZE = 4
 
     for i in range(iters):
         total_loss = 0
@@ -75,7 +75,7 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
     for i in range(iters):
 
         optim_policy.zero_grad()
-        BATCHSIZE = 24
+        BATCHSIZE = 12
         total_predicted_scores = 0
         total_actual_scores = 0
         for j in range(BATCHSIZE):
@@ -88,7 +88,6 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
 
             state_predictions = []
 
-            sdiff = torch.zeros(1, env.obs_dim)
             pred_state = to_tensor(s, True)
 
             while not done:
@@ -96,19 +95,29 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
                 # Predict action from current state
                 pred_a, h_p = policy(pred_state, h_p)
 
+                # TODO: Add rnd to action?
+
                 # Make prediction
-                pred_s, h_s = state_model(torch.cat([to_tensor(s, True), pred_a], 1), h_s)
+                pred_s, h_s = state_model(torch.cat([to_tensor(s, True), pred_a + T.randn(policy.act_dim) * 0.1], 1), h_s)
                 state_predictions.append(pred_s)
 
                 s, rew, done, od = env.step(pred_a.detach().numpy())
                 total_actual_scores += s[27]
+
+                # print("================")
+                # print("prediction", pred_s.detach().numpy())
+                # print("True", s)
+                # print("Diff", np.abs(pred_s.detach().numpy() - s))
+                # print("================")
 
                 if animate:
                     env.render()
 
                 # Difference between predicted state and real
                 sdiff = pred_s - to_tensor(s)
-                pred_state = pred_s
+
+                # TODO: Minus or plus here
+                pred_state = pred_s - sdiff
 
             rp = T.cat(state_predictions)
 
@@ -187,7 +196,7 @@ def main():
     act_dim = env.act_dim
 
     # Create prediction model
-    state_model = CM_RNN(obs_dim + act_dim, obs_dim, 96)
+    state_model = CM_RNN(obs_dim + act_dim, obs_dim, 64)
 
     # Create policy model
     policy = CM_Policy(obs_dim, act_dim, 64)
@@ -195,17 +204,18 @@ def main():
     # Pretrain model on random actions
     t1 = time.time()
     pretrain_iters = 1000
-    pretrain_model(state_model, env, pretrain_iters, lr=1e-3)
     if pretrain_iters == 0:
         state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
         print("Loading pretrained_rnd model")
+    else:
+        pretrain_model(state_model, env, pretrain_iters, lr=5e-3)
 
     print("Pretraining finished, took {} s".format(time.time() - t1))
     torch.save(state_model, '{}_state_model.pt'.format(env.__class__.__name__))
 
     # Train optimization
     opt_iters = 100
-    train_opt(state_model, policy, env, opt_iters, animate=False, lr_model=5e-4, lr_policy=1e-3, model_rpts=0)
+    train_opt(state_model, policy, env, opt_iters, animate=True, lr_model=5e-4, lr_policy=1e-4, model_rpts=0)
 
     print("Finished training, saving")
     torch.save(policy, '{}_policy.pt'.format(env.__class__.__name__))

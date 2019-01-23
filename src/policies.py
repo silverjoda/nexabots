@@ -1574,18 +1574,22 @@ class CM_RNN(nn.Module):
         self.obs_dim = obs_dim
         self.output_dim = output_dim
 
-        self.rnn = nn.GRUCell(self.obs_dim, self.n_hid)
+        self.in1 = nn.Linear(self.obs_dim, self.n_hid)
+        self.rnn = nn.GRUCell(self.n_hid, self.n_hid)
         self.out1 = nn.Linear(self.n_hid, self.n_hid)
         self.out2 = nn.Linear(self.n_hid, self.output_dim)
 
 
     def forward(self, x, h):
+        x = T.tanh(self.in1(x))
         h_ = self.rnn(x, h)
-        x = T.tanh(self.out1(h_))
+        x = self.out1(h_)
         return self.out2(x), h_
 
 
     def average_grads(self, N):
+        self.in1.weight.grad /= N
+        self.in1.bias.grad /= N
         self.rnn.weight_hh.grad /= N
         self.rnn.weight_ih.grad /= N
         self.rnn.bias_hh.grad /= N

@@ -61,7 +61,7 @@ def train(params):
     f = f_wrapper(env, policy, animate)
 
     print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
-          " N_params: {}, comments: ...".format(
+          " N_params: {}, comments: no angle pen".format(
         env.__class__.__name__, policy.__class__.__name__, act_dim, obs_dim, len(w)))
 
     it = 0
@@ -86,16 +86,16 @@ def train(params):
     return es.result.fbest
 
 
-from src.envs.hexapod_flat_mjc import hexapod
-env = hexapod.Hexapod()
+#from src.envs.hexapod_flat_mjc import hexapod
+#env = hexapod.Hexapod()
 
-#from src.envs.ant_feelers_mjc import ant_feelers_mjc
-#env = ant_feelers_mjc.AntFeelersMjc()
+from src.envs.ant_feelers_mjc import ant_feelers_mjc
+env = ant_feelers_mjc.AntFeelersMjc()
 
 policy = policies.RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = True
+TRAIN = False
 
 if TRAIN:
     t1 = time.clock()
@@ -103,7 +103,7 @@ if TRAIN:
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/Hexapod_RNN_ITN_es.p")
+    policy = T.load("agents/AntFeelersMjc_RNN_ROC_es.p")
     env.test_recurrent(policy)
 
 print("Done.")

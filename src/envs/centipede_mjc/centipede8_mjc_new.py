@@ -106,13 +106,16 @@ class CentipedeMjc8:
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
 
-        ctrl_effort = np.square(ctrl).sum() * 0.00
+        ctrl_effort = np.square(ctrl).sum() * 0.1
+        joint_velocity_pen = np.square(self.sim.get_state().qvel[6:]).sum() * 0.001
+        #print(joint_velocity_pen)
         target_progress = (torso_p[0] - torso_c[0]) * 60
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort
+        r = target_progress - ctrl_effort - joint_velocity_pen
+
 
         return obs, r, done, self.get_obs_dict()
 

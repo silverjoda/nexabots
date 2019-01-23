@@ -96,7 +96,7 @@ env = hexapod.Hexapod()
 policy = policies.NN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = True
+TRAIN = False
 
 if TRAIN:
     t1 = time.clock()

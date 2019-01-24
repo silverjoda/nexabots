@@ -106,7 +106,7 @@ class PolicyNetwork(nn.Module):
         z = normal.sample()
         action = torch.tanh(mean + std * z)
         log_prob = Normal(mean, std).log_prob(mean + std * z) - torch.log(1 - action.pow(2) + epsilon)
-        return action, log_prob, z, mean, log_std
+        return action, log_prob.sum(1, keepdim=True), z, mean, log_std.sum(1, keepdim=True)
 
     def get_action(self, state):
         state = torch.FloatTensor(state).unsqueeze(0)
@@ -173,7 +173,6 @@ def update(nets, criteria, optims, params):
         )
 
 
-
 def train(nets, criteria, optims, params):
     _, _, _, _, policy_net = nets
 
@@ -198,11 +197,14 @@ def train(nets, criteria, optims, params):
             episode_reward += reward
             frame_idx += 1
 
+            if params["render"]:
+                env.render()
+
             if len(replay_buffer) > params['batchsize']:
                 update(nets, criteria, optims, params)
 
             if frame_idx % 1000 == 0:
-                print("Frame idx, rewards: ".format(frame_idx, rewards))
+                print("Frame idx {}, rewards: {}".format(frame_idx, rewards))
 
         rewards.append(episode_reward)
 
@@ -219,7 +221,7 @@ if __name__=="__main__":
               "policy_lr": 3e-4,
               "replay_buffer_size": 1000000,
               "hidden_dim" : 256,
-              "animate": True,
+              "render": True,
               "train" : True,
               "note" : "...",
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}

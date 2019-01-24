@@ -215,7 +215,7 @@ if __name__=="__main__":
     #env = centipede()
 
     # Centipede new
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
     env = centipede()
 
     # Ant Reach
@@ -241,7 +241,7 @@ if __name__=="__main__":
         train(env, policy, None, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc8_NN_PG_OZ1_pg.p')
+        policy = T.load('agents/CentipedeMjc14_C_MLP_WTV_pg.p')
 
 
         env.test(policy)

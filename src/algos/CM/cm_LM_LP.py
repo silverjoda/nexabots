@@ -17,7 +17,7 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
     MSE = torch.nn.MSELoss()
     optim_state_model = torch.optim.Adam(state_model.parameters(), lr=lr, weight_decay=1e-5)
 
-    BATCHSIZE = 8
+    BATCHSIZE = 4
 
     for i in range(iters):
         total_loss = 0
@@ -201,13 +201,13 @@ def main():
 
     # Pretrain model on random actions
     t1 = time.time()
-    pretrain_iters = 30
+    pretrain_iters = 300
     if pretrain_iters == 0:
         state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
         print("Loading pretrained_rnd model")
     else:
         state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
-        pretrain_model(state_model, env, pretrain_iters, lr=1e-4)
+        pretrain_model(state_model, env, pretrain_iters, lr=7e-4)
 
     print("Pretraining finished, took {} s".format(time.time() - t1))
     torch.save(state_model, '{}_state_model.pt'.format(env.__class__.__name__))

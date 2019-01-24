@@ -107,7 +107,7 @@ class CentipedeMjc8:
         done = self.step_ctr >= self.max_steps
 
         ctrl_effort = np.square(ctrl).sum() * 0.1
-        joint_velocity_pen = np.square(self.sim.get_state().qvel[6:]).sum() * 0.001
+        joint_velocity_pen = np.square(self.sim.get_state().qvel[6:]).sum() * 0.000
         #print(joint_velocity_pen)
         target_progress = (torso_p[0] - torso_c[0]) * 60
 

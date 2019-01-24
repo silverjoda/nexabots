@@ -1583,7 +1583,7 @@ class CM_RNN(nn.Module):
     def forward(self, x, h):
         x = T.tanh(self.in1(x))
         h_ = self.rnn(x, h)
-        x = self.out1(h_)
+        x = T.tanh(self.out1(h_))
         return self.out2(x), h_
 
 

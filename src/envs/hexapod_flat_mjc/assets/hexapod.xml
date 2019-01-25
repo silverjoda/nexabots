@@ -109,23 +109,23 @@
     </body>
   </worldbody>
   <actuator>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_fl" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_fl" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_fl" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_fr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_fr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_fr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_rr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_rr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_rr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_rl" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_rl" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_rl" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_mr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_mr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_mr" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_ml" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_ml" gear="20"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_ml" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_fl" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_fl" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_fl" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_fr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_fr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_fr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_rr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_rr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_rr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_rl" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_rl" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_rl" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_mr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_mr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_mr" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="coxa_ml" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="femur_ml" gear="90"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="tibia_ml" gear="90"/>
   </actuator>
 </mujoco>

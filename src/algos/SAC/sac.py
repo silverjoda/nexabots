@@ -204,7 +204,7 @@ def train(nets, criteria, optims, params):
                 update(nets, criteria, optims, params)
 
             if frame_idx % 1000 == 0:
-                print("Frame idx {}, rewards: {}".format(frame_idx, rewards))
+                print("Frame idx {}, rewards: {}".format(frame_idx, rewards[-1]))
 
         rewards.append(episode_reward)
 
@@ -227,8 +227,8 @@ if __name__=="__main__":
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    #env = centipede()
 
     # Ant Reach
     #from src.envs.ant_reach_mjc import ant_reach_mjc
@@ -237,6 +237,9 @@ if __name__=="__main__":
     # Ant feelers
     #from src.envs.ant_feelers_mjc import ant_feelers_mjc
     #env = ant_feelers_mjc.AntFeelersMjc()
+
+    from src.envs.hexapod_flat_mjc import hexapod
+    env = hexapod.Hexapod()
 
     action_dim = env.act_dim
     state_dim = env.obs_dim

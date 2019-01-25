@@ -106,7 +106,7 @@ class CentipedeMjc8:
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps
 
-        ctrl_effort = np.square(ctrl).sum() * 0.1
+        ctrl_effort = np.square(ctrl).sum() * 0.0
         joint_velocity_pen = np.square(self.sim.get_state().qvel[6:]).sum() * 0.000
         #print(joint_velocity_pen)
         target_progress = (torso_p[0] - torso_c[0]) * 60

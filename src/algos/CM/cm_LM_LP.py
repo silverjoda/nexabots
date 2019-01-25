@@ -5,8 +5,28 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 
 import time
-from src.policies import *
 from src.my_utils import *
+
+from copy import deepcopy
+
+class NN(nn.Module):
+    def __init__(self, input_dim, output_dim, n_hid):
+        super(NN, self).__init__()
+
+        self.n_hid = n_hid
+        self.input_dim = input_dim
+        self.output_dim = output_dim
+
+        self.l1 = nn.Linear(self.input_dim, self.n_hid)
+        self.l2 = nn.Linear(self.n_hid, self.n_hid)
+        self.l3 = nn.Linear(self.n_hid, self.output_dim)
+
+
+    def forward(self, x):
+        x = T.tanh(self.l1(x))
+        x = T.tanh(self.l2(x))
+        x = T.tanh(self.l3(x))
+        return x
 
 
 def pretrain_model(state_model, env, iters, lr=1e-3):
@@ -15,43 +35,44 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
 
     # Train prediction model on random rollouts
     MSE = torch.nn.MSELoss()
-    optim_state_model = torch.optim.Adam(state_model.parameters(), lr=lr, weight_decay=1e-5)
+    optim_state_model = torch.optim.Adam(state_model.parameters(), lr=lr, weight_decay=1e-4)
 
-    BATCHSIZE = 4
+    BATCHSIZE = 16
 
     for i in range(iters):
         total_loss = 0
-        optim_state_model.zero_grad()
+
+        states = []
+        s_diff_preds = []
+
         for j in range(BATCHSIZE):
             s, _ = env.reset()
-            h_s = state_model.reset()
-
             done = False
-
-            states = []
-            state_predictions = []
 
             while not done:
                 a = np.random.randn(env.act_dim)
 
                 # Make prediction
                 sa = np.concatenate([s, a]).astype(np.float32)
-                pred_state, h_s = state_model(to_tensor(sa, True), h_s)
-                state_predictions.append(pred_state[0])
+                s_diff_pred = state_model(to_tensor(sa, True))
+                s_diff_preds.append(s_diff_pred[0])
 
-                s, rew, done, od = env.step(a)
-                states.append(s)
+                s_new, rew, done, od = env.step(a)
+                states.append(deepcopy(s - s_new))
+                s = s_new
 
-            # Convert to torch tensors
-            states_tens = torch.from_numpy(np.asarray(states, dtype=np.float32))
-            state_pred_tens = torch.stack(state_predictions)
+        # Convert to torch tensors
+        states_tens = torch.from_numpy(np.asarray(states, dtype=np.float32))
+        state_pred_tens = torch.stack(s_diff_preds)
 
-            # Calculate loss
-            loss_states = MSE(state_pred_tens, states_tens)
+        # Calculate loss
+        loss_states = MSE(state_pred_tens, states_tens)
 
-            # Backprop
-            loss_states.backward()
-            total_loss += loss_states
+        optim_state_model.zero_grad()
+
+        # Backprop
+        loss_states.backward()
+        total_loss += loss_states
 
         # Update
         state_model.average_grads(BATCHSIZE)
@@ -95,7 +116,6 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
                 # Predict action from current state
                 pred_a, h_p = policy(pred_state, h_p)
 
-                # TODO: Add rnd to action?
 
                 # Make prediction
                 pred_s, h_s = state_model(torch.cat([to_tensor(s, True), pred_a + T.randn(policy.act_dim) * 0.1], 1), h_s)

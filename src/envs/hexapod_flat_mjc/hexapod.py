@@ -125,7 +125,7 @@ class Hexapod:
 
         contact_cost = 0.5 * 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
-        rV = (target_progress * 0, - ctrl_effort * 0.0, - abs(angle) * 0.0, - abs(yd) * 0.0, - contact_cost, - velocity_pen)
+        rV = (target_progress * 1, - ctrl_effort * 0.0, - abs(angle) * 0.0, - abs(yd) * 0.0, - contact_cost * 0, - velocity_pen * 0)
         r = sum(rV)
 
         obs_dict['rV'] = rV

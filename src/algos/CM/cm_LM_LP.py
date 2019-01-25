@@ -40,7 +40,7 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
     BATCHSIZE = 16
 
     for i in range(iters):
-        total_loss = 0
+        total_loss = 0#
 
         states = []
         s_diff_preds = []

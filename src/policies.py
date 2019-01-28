@@ -1648,3 +1648,39 @@ class GYM_Linear(nn.Module):
     def forward(self, x):
         return self.fc1(x)
 
+
+class FB_RNN(nn.Module):
+    def __init__(self, env):
+        super(FB_RNN, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = 24
+
+
+        self.rnn = nn.RNNCell(self.obs_dim, self.hid_dim)
+        self.xp = nn.Linear(self.obs_dim, self.obs_dim)
+        self.pa = nn.Linear(self.hid_dim, self.act_dim)
+        self.ph = nn.Linear(self.hid_dim, self.hid_dim)
+        self.ah = nn.Linear(self.act_dim, self.hid_dim)
+
+
+    def init_hidden(self):
+        return T.zeros((1, self.hid_dim))
+
+
+    def forward(self, input):
+        x, h = input
+
+        # Input to rnn
+        x = self.xp(x)
+
+        # Pre-hidden state
+        p = self.rnn(x, h)
+
+        # Action output
+        a = self.pa(p)
+
+        # Next hidden state
+        h_ = T.tanh(self.ph(p) + self.ah(a))
+
+        return a, h_

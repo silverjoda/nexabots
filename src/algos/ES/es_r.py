@@ -91,7 +91,7 @@ def train(params):
 from src.envs.ant_feelers_mjc import ant_feelers_mjc
 env = ant_feelers_mjc.AntFeelersMjc()
 
-policy = policies.RNN(env)
+policy = policies.FB_RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True

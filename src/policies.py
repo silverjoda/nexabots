@@ -1705,3 +1705,6 @@ class FB_RNN(nn.Module):
         h_ = T.tanh(self.ph(p) + self.ah(a))
 
         return a, h_
+
+    def calc_weight(self):
+        return self.rnn.weight_ih.data

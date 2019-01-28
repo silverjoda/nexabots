@@ -70,16 +70,22 @@ def train(params):
             it += 1
             if it > iters:
                 break
-            if it % 1000 == 0:
+            if it % 200 == 0:
                 sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                     "agents/{}_{}_{}_es.p".format(env.__class__.__name__, policy.__class__.__name__,
                                                                   ID))
                 vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
                 T.save(policy, sdir)
                 print("Saved checkpoint")
-            X = es.ask()
+
+            sol = es.mean
+            sol_penalty = np.square(es.mean)
+            es.mean = sol - sol_penalty * 0.01
+
+            X = es.ask(number=40)
             es.tell(X, [f(x) for x in X])
             es.disp()
+
     except KeyboardInterrupt:
         print("User interrupted process.")
 
@@ -102,7 +108,7 @@ if TRAIN:
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/AntFeelersMjc_RNN_ROC_es.p")
+    policy = T.load("agents/AntFeelersMjc_FB_RNN_TLB_es.p")
     env.test_recurrent(policy)
 
 print("Done.")

@@ -67,7 +67,7 @@ def train(params):
             it += 1
             if it > iters:
                 break
-            if it % 1000 == 0:
+            if it % 200 == 0:
                 sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                     "agents/{}_{}_{}_es.p".format(env.__class__.__name__, policy.__class__.__name__,
                                                                   ID))

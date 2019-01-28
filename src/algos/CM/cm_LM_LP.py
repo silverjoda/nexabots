@@ -13,9 +13,9 @@ class NN(nn.Module):
     def __init__(self, input_dim, output_dim, n_hid):
         super(NN, self).__init__()
 
-        self.n_hid = n_hid
         self.input_dim = input_dim
         self.output_dim = output_dim
+        self.n_hid = n_hid
 
         self.l1 = nn.Linear(self.input_dim, self.n_hid)
         self.l2 = nn.Linear(self.n_hid, self.n_hid)
@@ -23,8 +23,8 @@ class NN(nn.Module):
 
 
     def forward(self, x):
-        x = T.tanh(self.l1(x))
-        x = T.tanh(self.l2(x))
+        x = F.relu(self.l1(x))
+        x = F.relu(self.l2(x))
         x = T.tanh(self.l3(x))
         return x
 
@@ -40,9 +40,9 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
     BATCHSIZE = 16
 
     for i in range(iters):
-        total_loss = 0#
+        total_loss = 0
 
-        states = []
+        s_diffs = []
         s_diff_preds = []
 
         for j in range(BATCHSIZE):
@@ -58,16 +58,15 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
                 s_diff_preds.append(s_diff_pred[0])
 
                 s_new, rew, done, od = env.step(a)
-                states.append(deepcopy(s - s_new))
+                s_diffs.append(deepcopy(s_new - s))
                 s = s_new
 
         # Convert to torch tensors
-        states_tens = torch.from_numpy(np.asarray(states, dtype=np.float32))
+        states_tens = torch.from_numpy(np.asarray(s_diffs, dtype=np.float32))
         state_pred_tens = torch.stack(s_diff_preds)
 
         # Calculate loss
         loss_states = MSE(state_pred_tens, states_tens)
-
         optim_state_model.zero_grad()
 
         # Backprop
@@ -87,42 +86,36 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
 
 
 def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_policy=2e-4, model_rpts=1):
-    optim_model = torch.optim.Adam(state_model.parameters(), lr=lr_model, weight_decay=1e-4)
     optim_policy = torch.optim.Adam(policy.parameters(), lr=lr_policy, weight_decay=1e-4)
 
     MSE = torch.nn.MSELoss()
 
     # Training algorithm:
     for i in range(iters):
-
         optim_policy.zero_grad()
         BATCHSIZE = 12
         total_predicted_scores = 0
         total_actual_scores = 0
         for j in range(BATCHSIZE):
-
-            ### Policy step ----------------------------------------
             done = False
             s, _ = env.reset()
-            h_p = policy.reset()
-            h_s = state_model.reset()
 
-            state_predictions = []
+            sdiff_pred = T.zeros(env.obs_dim)
+            curr_state = to_tensor(s, True) - sdiff_pred
 
-            pred_state = to_tensor(s, True)
+            score_list = []
 
             while not done:
 
                 # Predict action from current state
-                pred_a, h_p = policy(pred_state, h_p)
-
+                pred_a = policy(curr_state)
 
                 # Make prediction
-                pred_s, h_s = state_model(torch.cat([to_tensor(s, True), pred_a + T.randn(policy.act_dim) * 0.1], 1), h_s)
-                state_predictions.append(pred_s)
+                sdiff_pred = state_model(T.cat([curr_state, pred_a + T.randn(policy.act_dim) * 0.1], 1))
 
                 s, rew, done, od = env.step(pred_a.detach().numpy())
                 total_actual_scores += s[27]
+                score_list.append(to_tensor(s[27]) - sdiff_pred[0,27])
 
                 # print("================")
                 # print("prediction", pred_s.detach().numpy())
@@ -134,15 +127,14 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
                     env.render()
 
                 # Difference between predicted state and real
-                sdiff = pred_s - to_tensor(s)
-                pred_state = pred_s - sdiff
 
-            rp = T.cat(state_predictions)
+                curr_state = to_tensor(s, True) - sdiff_pred
+
+            rp = T.cat(score_list)
 
             # Calculate loss
-            policy_score = rp[:, 27].sum()
+            policy_score = rp.sum()
             total_predicted_scores += policy_score
-
 
             # Backprop
             (policy_score).backward()
@@ -214,19 +206,19 @@ def main():
     act_dim = env.act_dim
 
     # Create prediction model
-    state_model = CM_RNN(obs_dim + act_dim, obs_dim, 64)
+    state_model = NN(obs_dim + act_dim, obs_dim, 64)
 
     # Create policy model
-    policy = CM_Policy(obs_dim, act_dim, 64)
+    policy = NN(obs_dim, act_dim, 64)
 
     # Pretrain model on random actions
     t1 = time.time()
-    pretrain_iters = 300
+    pretrain_iters = 1000
     if pretrain_iters == 0:
         state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
         print("Loading pretrained_rnd model")
     else:
-        state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
+        #state_model = torch.load("{}_state_model.pt".format(env.__class__.__name__))
         pretrain_model(state_model, env, pretrain_iters, lr=7e-4)
 
     print("Pretraining finished, took {} s".format(time.time() - t1))
@@ -239,12 +231,11 @@ def main():
     print("Finished training, saving")
     torch.save(policy, '{}_policy.pt'.format(env.__class__.__name__))
 
-
     if opt_iters == 0:
         policy = torch.load("{}_policy.pt".format(env.__class__.__name__))
         print("Loading pretrained_policy")
 
-    env.test_recurrent(policy)
+    env.test(policy)
 
 if __name__=='__main__':
     main()

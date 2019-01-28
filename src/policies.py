@@ -1566,6 +1566,27 @@ class C_PhasePolicy_ES(nn.Module):
         return acts[:, 2:]
 
 
+class CM_MLP(nn.Module):
+    def __init__(self, obs_dim, act_dim, n_hid):
+        super(CM_MLP, self).__init__()
+
+        self.obs_dim = obs_dim
+        self.act_dim = act_dim
+        self.n_hid = n_hid
+
+        self.fc1 = nn.Linear(self.obs_dim, self.n_hid)
+        self.fc2 = nn.Linear(self.n_hid, self.n_hid)
+        self.fc3 = nn.Linear(self.n_hid, self.act_dim)
+
+
+    def forward(self, x):
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        x = F.tanh(self.fc3(x))
+        return x
+
+
+
 class CM_RNN(nn.Module):
     def __init__(self, obs_dim, output_dim, n_hid):
         super(CM_RNN, self).__init__()
@@ -1672,13 +1693,13 @@ class FB_RNN(nn.Module):
         x, h = input
 
         # Input to rnn
-        x = self.xp(x)
+        x = T.tanh(self.xp(x))
 
         # Pre-hidden state
         p = self.rnn(x, h)
 
         # Action output
-        a = self.pa(p)
+        a = T.tanh(self.pa(p))
 
         # Next hidden state
         h_ = T.tanh(self.ph(p) + self.ah(a))

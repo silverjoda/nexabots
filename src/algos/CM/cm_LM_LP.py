@@ -74,7 +74,7 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
         total_loss += loss_states
 
         # Update
-        state_model.average_grads(BATCHSIZE)
+
         optim_state_model.step()
 
         if i % 1 == 0:
@@ -88,22 +88,20 @@ def pretrain_model(state_model, env, iters, lr=1e-3):
 def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_policy=2e-4, model_rpts=1):
     optim_policy = torch.optim.Adam(policy.parameters(), lr=lr_policy, weight_decay=1e-4)
 
-    MSE = torch.nn.MSELoss()
-
     # Training algorithm:
     for i in range(iters):
         optim_policy.zero_grad()
         BATCHSIZE = 12
-        total_predicted_scores = 0
+
         total_actual_scores = 0
+
+        score_list = []
         for j in range(BATCHSIZE):
             done = False
             s, _ = env.reset()
 
             sdiff_pred = T.zeros(env.obs_dim)
             curr_state = to_tensor(s, True) - sdiff_pred
-
-            score_list = []
 
             while not done:
 
@@ -114,8 +112,8 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
                 sdiff_pred = state_model(T.cat([curr_state, pred_a + T.randn(policy.act_dim) * 0.1], 1))
 
                 s, rew, done, od = env.step(pred_a.detach().numpy())
-                total_actual_scores += s[27]
-                score_list.append(to_tensor(s[27]) - sdiff_pred[0,27])
+                total_actual_scores += s[27] - curr_state[:, 27]
+                score_list.append(sdiff_pred[:, 27])
 
                 # print("================")
                 # print("prediction", pred_s.detach().numpy())
@@ -126,74 +124,22 @@ def train_opt(state_model, policy, env, iters, animate=True, lr_model=1e-3, lr_p
                 if animate:
                     env.render()
 
-                # Difference between predicted state and real
-
                 curr_state = to_tensor(s, True) - sdiff_pred
 
-            rp = T.cat(score_list)
+        rp = T.cat(score_list)
 
-            # Calculate loss
-            policy_score = rp.sum()
-            total_predicted_scores += policy_score
+        # Calculate loss
+        policy_score = rp.sum()
 
-            # Backprop
-            (policy_score).backward()
-
+        # Backprop
+        (policy_score).backward()
 
         # Update
-        policy.average_grads(BATCHSIZE)
         optim_policy.step()
 
-        total_loss_states = 0
 
-        ## Model Step ----------------------------------------
-        # Backprop
-        #optim_model.zero_grad()
-        for j in range(model_rpts):
-
-            done = False
-            s, _ = env.reset()
-            h_p = policy.reset()
-            h_s = state_model.reset()
-
-            states = []
-            state_predictions = []
-
-            while not done:
-
-                # Predict action from current state
-                with torch.no_grad():
-                    pred_a, h_p = policy(to_tensor(s, True), h_p)
-                    pred_a += torch.randn(1, env.act_dim) * 0.3
-
-                # Make prediction
-                pred_s, h_s = state_model(torch.cat([to_tensor(s, True), pred_a], 1), h_s)
-                state_predictions.append(pred_s)
-
-                s, rew, done, info = env.step(pred_a.numpy())
-                states.append(to_tensor(s, True))
-
-                if animate:
-                    env.render()
-
-            # Convert to torch
-            states_tens = torch.cat(states)
-            state_pred_tens = torch.cat(state_predictions)
-
-            # Calculate loss
-            loss_states = MSE(state_pred_tens, states_tens)
-            loss_states.backward()
-
-            total_loss_states.append(loss_states)
-
-        # Update
-        #state_model.average_grads(model_rpts)
-        #optim_model.step()
-
-        print("Iter: {}/{}, states prediction loss: {}, predicted score: {}, actual score: {}".format(i, iters,
-                                                                                                      total_loss_states/BATCHSIZE,
-                                                                                                      total_predicted_scores / BATCHSIZE,
-                                                                                                      total_actual_scores / BATCHSIZE))
+        print("Iter: {}/{},  predicted score: {}, actual score: {}".format(i, iters, policy_score / BATCHSIZE,
+                                                                                     total_actual_scores / BATCHSIZE))
 
 def main():
     T.set_num_threads(1)

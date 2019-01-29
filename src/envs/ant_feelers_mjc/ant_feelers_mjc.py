@@ -110,7 +110,7 @@ class AntFeelersMjc:
         x, y, z, qw, qx, qy, qz = obs_c[:7]
         angle = 2 * np.arccos(qw)
 
-        # Reevaluate termination condition
+        # Reevaluate termination condition.
         done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]

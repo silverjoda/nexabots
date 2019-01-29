@@ -257,7 +257,7 @@ def train(env, params):
         rewards.append(episode_reward)
 
 if __name__=="__main__":
-    T.set_num_threads(1) #
+    T.set_num_threads(1)
 
     params = {"max_frames": 80000,
               "max_steps" : 700,

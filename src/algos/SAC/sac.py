@@ -1,18 +1,17 @@
 import math
 import random
 
-import gym
 import numpy as np
 
 import torch
+import torch as T
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Normal
 
-from IPython.display import clear_output
-import matplotlib.pyplot as plt
-
+import string
+import os
 use_cuda = torch.cuda.is_available()
 device   = torch.device("cuda" if use_cuda else "cpu")
 
@@ -38,14 +37,6 @@ class ReplayBuffer:
         return len(self.buffer)
 
 
-
-def plot(frame_idx, rewards):
-    clear_output(True)
-    plt.figure(figsize=(20,5))
-    plt.subplot(131)
-    plt.title('frame %s. reward: %s' % (frame_idx, rewards[-1]))
-    plt.plot(rewards)
-    plt.show()
 
 
 class ValueNetwork(nn.Module):
@@ -139,13 +130,18 @@ class PolicyNetwork(nn.Module):
         return action[0]
 
 
-def soft_q_update(batch_size,
-                  gamma=0.99,
-                  mean_lambda=1e-3,
-                  std_lambda=1e-3,
-                  z_lambda=0.0,
-                  soft_tau=1e-2,
-                  ):
+def soft_q_update(params, replay_buffer, nets, optims, criteria):
+    batch_size = params["batch_size"]
+    gamma = params["gamma"]
+    mean_lambda = params["mean_lambda"]
+    std_lambda = params["std_lambda"]
+    z_lambda = params["z_lambda"]
+    soft_tau = params["soft_tau"]
+
+    value_net, target_value_net, soft_q_net, policy_net = nets
+    value_optimizer, soft_q_optimizer, policy_optimizer = optims
+    value_criterion, soft_q_criterion = criteria
+
     state, action, reward, next_state, done = replay_buffer.sample(batch_size)
 
     state = torch.FloatTensor(state).to(device)
@@ -193,65 +189,96 @@ def soft_q_update(batch_size,
         )
 
 
-env = gym.make("Hopper-v2")
 
-action_dim = env.action_space.shape[0]
-state_dim = env.observation_space.shape[0]
-hidden_dim = 64
+def train(env, params):
+    action_dim = 22 #env.action_space.shape[0]
+    state_dim = 63 #env.observation_space.shape[0]
 
-value_net = ValueNetwork(state_dim, hidden_dim).to(device)
-target_value_net = ValueNetwork(state_dim, hidden_dim).to(device)
+    value_net = ValueNetwork(state_dim, params["hidden_dim"]).to(device)
+    target_value_net = ValueNetwork(state_dim, params["hidden_dim"]).to(device)
 
-soft_q_net = SoftQNetwork(state_dim, action_dim, hidden_dim).to(device)
-policy_net = PolicyNetwork(state_dim, action_dim, hidden_dim).to(device)
+    soft_q_net = SoftQNetwork(state_dim, action_dim, params["hidden_dim"]).to(device)
+    policy_net = PolicyNetwork(state_dim, action_dim, params["hidden_dim"]).to(device)
 
-for target_param, param in zip(target_value_net.parameters(), value_net.parameters()):
-    target_param.data.copy_(param.data)
+    for target_param, param in zip(target_value_net.parameters(), value_net.parameters()):
+        target_param.data.copy_(param.data)
 
-value_criterion = nn.MSELoss()
-soft_q_criterion = nn.MSELoss()
+    value_criterion = nn.MSELoss()
+    soft_q_criterion = nn.MSELoss()
 
-value_lr = 3e-4
-soft_q_lr = 3e-4
-policy_lr = 3e-4
+    value_optimizer = optim.Adam(value_net.parameters(), lr=params["value_lr"])
+    soft_q_optimizer = optim.Adam(soft_q_net.parameters(), lr=params["soft_q_lr"])
+    policy_optimizer = optim.Adam(policy_net.parameters(), lr=params["policy_lr"])
 
-value_optimizer = optim.Adam(value_net.parameters(), lr=value_lr)
-soft_q_optimizer = optim.Adam(soft_q_net.parameters(), lr=soft_q_lr)
-policy_optimizer = optim.Adam(policy_net.parameters(), lr=policy_lr)
+    nets = (value_net, target_value_net, soft_q_net, policy_net)
+    optims = (value_optimizer, soft_q_optimizer, policy_optimizer)
+    criteria = (value_criterion, soft_q_criterion)
 
-replay_buffer_size = 1000000
-replay_buffer = ReplayBuffer(replay_buffer_size)
+    replay_buffer = ReplayBuffer(params["replay_buffer_size"])
 
+    rewards = []
+    frame_idx = 0
 
-max_frames  = 80000
-max_steps   = 700
-frame_idx   = 0
-rewards     = []
-batch_size  = 128
+    while frame_idx < params["max_frames"]:
+        state, _ = env.reset()
+        episode_reward = 0
 
+        for step in range(params["max_steps"]):
+            action = policy_net.get_action(state)
+            next_state, reward, done, _ = env.step(action)
 
-while frame_idx < max_frames:
-    state = env.reset()
-    episode_reward = 0
+            if params["render"]:
+                env.render()
 
-    for step in range(max_steps):
-        action = policy_net.get_action(state)
-        next_state, reward, done, _ = env.step(action)
+            replay_buffer.push(state, action, reward, next_state, done)
+            if len(replay_buffer) > params["batch_size"]:
+                soft_q_update(params, replay_buffer, nets, optims, criteria)
 
-        env.render()
+            state = next_state
+            episode_reward += reward
+            frame_idx += 1
 
-        replay_buffer.push(state, action, reward, next_state, done)
-        if len(replay_buffer) > batch_size:
-            soft_q_update(batch_size)
+            if frame_idx % 1000 == 0:
+                print(frame_idx, rewards[-1])
 
-        state = next_state
-        episode_reward += reward
-        frame_idx += 1
+            if frame_idx % 30000 == 0:
+                sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                    "agents/{}_{}_{}_sac.p".format(env.__class__.__name__, policy_net.__class__.__name__,
+                                                                  params["ID"]))
+                T.save(policy_net, sdir)
+                print("Saved checkpoint at {} with params {}".format(sdir, params))
 
-        if frame_idx % 1000 == 0:
-            print(frame_idx, rewards[-1])
+            if done:
+                break
 
-        if done:
-            break
+        rewards.append(episode_reward)
 
-    rewards.append(episode_reward)
+if __name__=="__main__":
+    T.set_num_threads(1)
+
+    params = {"max_frames": 800000,
+              "max_steps" : 1000,
+              "batch_size": 128,
+              "hidden_dim": 64,
+              "gamma": 0.99,
+              "mean_lambda" : 1e-3,
+              "std_lambda" : 1e-3,
+              "z_lambda" : 0.0,
+              "soft_tau" : 1e-2,
+              "value_lr": 3e-4,
+              "soft_q_lr": 3e-4,
+              "policy_lr": 3e-4,
+              "replay_buffer_size" : 1000000,
+              "render": False,
+              "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
+
+    # Centipede new
+    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    env = centipede()
+
+    #from src.envs.hexapod_flat_mjc import hexapod
+    #env = hexapod.Hexapod()
+
+    #env = gym.make("Hopper-v2")
+    train(env, params)
+

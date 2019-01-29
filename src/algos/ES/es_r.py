@@ -24,30 +24,35 @@ T.set_num_threads(1)
 
 def f_wrapper(env, policy, animate):
     def f(w):
-        reward = 0
-        done = False
-        obs, _ = env.reset()
-
+        reward_total = 0
+        reps = 5
         vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
 
-        h_0 = policy.init_hidden()
-        while not done:
+        for i in range(reps):
+            reward = 0
+            done = False
+            obs, _ = env.reset()
 
-            # Get action from policy
-            with torch.no_grad():
-                act, h_1 = policy((my_utils.to_tensor(obs, True), h_0))
+            h_0 = policy.init_hidden()
+            while not done:
 
-            # Step environment
-            obs, rew, done, _ = env.step(act.squeeze(0).numpy())
+                # Get action from policy
+                with torch.no_grad():
+                    act, h_1 = policy((my_utils.to_tensor(obs, True), h_0))
 
-            if animate:
-                env.render()
+                # Step environment
+                obs, rew, done, _ = env.step(act.squeeze(0).numpy())
 
-            reward += rew
+                if animate:
+                    env.render()
 
-            h_0 = h_1
+                reward += rew
 
-        return -reward
+                h_0 = h_1
+
+            reward_total += reward
+
+        return - (reward_total) / reps
     return f
 
 
@@ -60,9 +65,11 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
+    weight_decay = 0.005
+
     print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
-          " N_params: {}, comments: no angle pen".format(
-        env.__class__.__name__, policy.__class__.__name__, act_dim, obs_dim, len(w)))
+          " N_params: {}, wd = {}, comments: ...".format(
+        env.__class__.__name__, policy.__class__.__name__, act_dim, obs_dim, len(w), weight_decay))
 
     it = 0
     try:
@@ -79,8 +86,8 @@ def train(params):
                 print("Saved checkpoint")
 
             sol = es.mean
-            sol_penalty = np.square(es.mean)
-            es.mean = sol - sol_penalty * 0.01
+            sol_penalty = np.square(es.mean) * weight_decay
+            es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
 
             X = es.ask(number=40)
             es.tell(X, [f(x) for x in X])
@@ -100,15 +107,15 @@ env = ant_feelers_mjc.AntFeelersMjc()
 policy = policies.FB_RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = True
+TRAIN = False
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, False, ID))
+    train((env, policy, 100000, True, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/AntFeelersMjc_FB_RNN_TLB_es.p")
+    policy = T.load("agents/AntFeelersMjc_FB_RNN_DNX_es.p")
     env.test_recurrent(policy)
 
 print("Done.")

@@ -93,7 +93,7 @@ class PolicyNetwork(nn.Module):
         super(PolicyNetwork, self).__init__()
 
         self.log_std_min = log_std_min
-        self.log_std_max = log_std_max
+        self.log_std_max = log_std_max#
 
         self.linear1 = nn.Linear(num_inputs, hidden_size)
         self.linear2 = nn.Linear(hidden_size, hidden_size)

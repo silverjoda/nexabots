@@ -25,7 +25,7 @@ T.set_num_threads(1)
 def f_wrapper(env, policy, animate):
     def f(w):
         reward_total = 0
-        reps = 5
+        reps = 3
         vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
 
         for i in range(reps):
@@ -83,7 +83,7 @@ def train(params):
                                                                   ID))
                 vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
                 T.save(policy, sdir)
-                print("Saved checkpoint")
+                print("Saved checkpoint, {}".format(sdir))
 
             if weight_decay > 0:
                 sol = es.mean

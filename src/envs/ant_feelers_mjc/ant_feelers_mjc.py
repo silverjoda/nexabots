@@ -115,7 +115,7 @@ class AntFeelersMjc:
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
-        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.3
+        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.1
         target_progress = xd * 1.
 
         obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']]))

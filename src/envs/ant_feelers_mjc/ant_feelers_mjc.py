@@ -24,7 +24,7 @@ class AntFeelersMjc:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 7 * 5 - 6 * 5 + 7 - 2
+        self.obs_dim = self.q_dim + self.qvel_dim - 7 * self.N_boxes - 6 * self.N_boxes + 7 - 2
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
@@ -115,7 +115,7 @@ class AntFeelersMjc:
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
-        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.000
+        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.3
         target_progress = xd * 1.
 
         obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']]))
@@ -157,13 +157,38 @@ class AntFeelersMjc:
             obs, _ = self.reset()
             h = policy.init_hidden()
             cr = 0
+            self.max_steps = 700
+            import matplotlib.pyplot as plt
+            #fig = plt.figure()
+            acts = []
             while not done:
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
+                acts.append(action[0].detach())
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach())
                 cr += r
                 time.sleep(0.001)
                 self.render()
+
+
+            # plt.subplot(4, 1, 1)
+            # plt.plot(range(len(acts)), [a[8] for a in acts], 'r')
+            # plt.title('lf1')
+            #
+            # plt.subplot(4, 1,2)
+            # plt.plot(range(len(acts)), [a[9] for a in acts], 'g')
+            # plt.xlabel('lf2')
+            #
+            # plt.subplot(4, 1, 3)
+            # plt.plot(range(len(acts)), [a[10] for a in acts], 'b')
+            # plt.xlabel('rf1')
+            #
+            # plt.subplot(4, 1, 4)
+            # plt.plot(range(len(acts)), [a[11] for a in acts], 'k')
+            # plt.xlabel('rf2')
+            #
+            # plt.show()
+
             print("Total episode reward: {}".format(cr))
 
 
@@ -181,7 +206,7 @@ class AntFeelersMjc:
 
         r = self.q_dim - self.N_boxes * 7
         for i in range(self.N_boxes):
-            init_q[r + i * 7 :r + i * 7 + 3] = [i + 1.5, np.random.rand() * 6 - 3, 0.3]
+            init_q[r + i * 7 :r + i * 7 + 3] = [i * 1.7 + 1.65, np.clip(np.random.randn() * 1.0, -1.8, 1.8), 0.6]
 
         # Set environment state
         self.set_state(init_q, init_qvel)

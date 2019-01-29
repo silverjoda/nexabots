@@ -1706,5 +1706,5 @@ class FB_RNN(nn.Module):
 
         return a, h_
 
-    def calc_weight(self):
-        return self.rnn.weight_ih.data
+    def wstats(self):
+        return self.rnn.weight_ih.data.min(), self.rnn.weight_ih.data.max()

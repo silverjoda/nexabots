@@ -68,8 +68,8 @@ def train(params):
     weight_decay = 0.005
 
     print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
-          " N_params: {}, wd = {}, comments: ...".format(
-        env.__class__.__name__, policy.__class__.__name__, act_dim, obs_dim, len(w), weight_decay))
+          " N_params: {}, ID: {}, wd = {}, comments: ...".format(
+        env.__class__.__name__, policy.__class__.__name__, act_dim, obs_dim, len(w), ID, weight_decay))
 
     it = 0
     try:
@@ -85,9 +85,10 @@ def train(params):
                 T.save(policy, sdir)
                 print("Saved checkpoint")
 
-            sol = es.mean
-            sol_penalty = np.square(es.mean) * weight_decay
-            es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
+            if weight_decay > 0:
+                sol = es.mean
+                sol_penalty = np.square(es.mean) * weight_decay
+                es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
 
             X = es.ask(number=40)
             es.tell(X, [f(x) for x in X])
@@ -107,15 +108,16 @@ env = ant_feelers_mjc.AntFeelersMjc()
 policy = policies.FB_RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = False
+TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, True, ID))
+    train((env, policy, 100000, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/AntFeelersMjc_FB_RNN_DNX_es.p")
+    policy = T.load("agents/AntFeelersMjc_FB_RNN_OKQ_es.p")
+    print(policy.wstats())
     env.test_recurrent(policy)
 
 print("Done.")

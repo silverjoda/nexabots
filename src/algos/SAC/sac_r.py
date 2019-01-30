@@ -326,7 +326,7 @@ if __name__=="__main__":
               "soft_q_lr": 3e-4,
               "policy_lr": 3e-4,
               "replay_buffer_size" : 1000000,
-              "render": False,
+              "render": True,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Gym env

@@ -257,7 +257,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"max_frames": 800000,
-              "max_steps" : 1000,
+              "max_steps" : 800,
               "batch_size": 128,
               "hidden_dim": 64,
               "gamma": 0.99,
@@ -274,7 +274,7 @@ if __name__=="__main__":
 
     # Gym env
     import gym
-    env = gym.make("Ant-v2")
+    env = gym.make("HalfCheetah-v2")
 
     # Centipede new
     #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede

@@ -23,7 +23,7 @@
 
     <body name="torso" pos="0 0 0.75">
       <camera name="track" mode="trackcom" pos="0 -3 0.3" xyaxes="1 0 0 0 0 1"/>
-      <geom name="torso_geom" pos="0 0 0" size="0.25" type="sphere"/>
+      <geom name="torso_geom" pos="0 0 0" size="0.25" mass="0.1" type="sphere"/>
       <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
       <body name="front_left_leg" pos="0 0 0">
         <geom fromto="0.0 0.0 0.0 0.2 0.2 0.0" name="aux_1_geom" size="0.08" type="capsule"/>
@@ -136,17 +136,17 @@
   </worldbody>
 
   <actuator>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_4" gear="100"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_4" gear="100"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_1" gear="100"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_1" gear="100"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_2" gear="100"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_2" gear="100"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_3" gear="100"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_3" gear="100"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="lf1" gear="30"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="lf2" gear="30"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="rf1" gear="30"/>
-    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="rf2" gear="30"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_4" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_4" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_1" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_1" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_2" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_2" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="hip_3" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_3" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="lf1" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="lf2" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="rf1" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="rf2" gear="20"/>
   </actuator>
 </mujoco>

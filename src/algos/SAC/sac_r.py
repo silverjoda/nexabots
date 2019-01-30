@@ -63,7 +63,7 @@ class ValueNetwork(nn.Module):
 
 
     def forward(self, x):
-        x = self.fc_in(x)
+        x = F.relu(self.fc_in(x))
         x, _ = self.rnn(x)
         x = F.relu(self.fc_out1(x))
         x = self.fc_out2(x)
@@ -87,7 +87,7 @@ class SoftQNetwork(nn.Module):
 
 
     def forward(self, state, action):
-        x = self.fc_in(T.cat([state, action], 1))
+        x = F.relu(self.fc_in(T.cat([state, action], 2)))
         x, _ = self.rnn(x)
         x = F.relu(self.fc_out1(x))
         x = self.fc_out2(x)
@@ -104,9 +104,9 @@ class PolicyNetwork(nn.Module):
         self.linear_in = nn.Linear(num_inputs, hidden_size)
         self.linear_out = nn.Linear(hidden_size, hidden_size)
 
-        self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
-        self.batch_rnn = nn.LSTM(input_size=self.obs_dim,
-                                 hidden_size=self.hid_dim,
+        self.rnn = nn.LSTMCell(hidden_size, hidden_size)
+        self.batch_rnn = nn.LSTM(input_size=hidden_size,
+                                 hidden_size=hidden_size,
                                  batch_first=True)
 
         self.mean_linear = nn.Linear(hidden_size, num_actions)
@@ -163,8 +163,8 @@ class PolicyNetwork(nn.Module):
         state = torch.FloatTensor(state).unsqueeze(0).to(device)
 
         x = F.relu(self.linear_in(state))
-        h_ = self.rnn(x, hidden)
-        x = F.relu(self.linear_out(h_))
+        h, c = self.rnn(x, hidden)
+        x = F.relu(self.linear_out(h))
 
         mean = self.mean_linear(x)
         log_std = self.log_std_linear(x)
@@ -177,7 +177,7 @@ class PolicyNetwork(nn.Module):
         action = torch.tanh(z)
 
         action = action.detach().cpu().numpy()
-        return action[0], h_
+        return action[0], (h, c)
 
 
 def soft_q_update(params, replay_buffer, nets, optims, criteria):
@@ -194,12 +194,14 @@ def soft_q_update(params, replay_buffer, nets, optims, criteria):
 
     states, actions, rewards, next_states = replay_buffer.sample(batch_size)
 
+    # TODO: Start debug here
+
     expected_q_value = soft_q_net(states, actions)
     expected_value = value_net(states)
     new_action, log_prob, z, mean, log_std = policy_net.evaluate(states)
 
     target_value = target_value_net(next_states)
-    next_q_value = rewards + gamma * target_value
+    next_q_value = rewards.unsqueeze(2) + gamma * target_value
     q_value_loss = soft_q_criterion(expected_q_value, next_q_value.detach())
 
     expected_new_q_value = soft_q_net(states, new_action)
@@ -313,7 +315,7 @@ if __name__=="__main__":
 
     params = {"max_frames": 80000,
               "max_steps" : 700,
-              "batch_size": 12,
+              "batch_size": 24,
               "hidden_dim": 64,
               "gamma": 0.99,
               "mean_lambda" : 1e-3,
@@ -324,12 +326,12 @@ if __name__=="__main__":
               "soft_q_lr": 3e-4,
               "policy_lr": 3e-4,
               "replay_buffer_size" : 1000000,
-              "render": True,
+              "render": False,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Gym env
     import gym
-    env = gym.make("Hopper-v2")
+    env = gym.make("HalfCheetah-v2")
 
     # Centipede new
     #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede

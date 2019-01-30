@@ -34,8 +34,12 @@ class ReplayBuffer:
     def sample(self, batch_size):
         # TODO: Test this
         batch = random.sample(self.buffer, batch_size)
-        states, actions, rewards, next_states = map(np.stack, zip(*batch))
-        return states, actions, rewards, next_states
+        statelist, actionlist, rewardlist, next_statelist = zip(*batch)
+
+        return T.FloatTensor(statelist), \
+               T.FloatTensor(actionlist), \
+               T.FloatTensor(rewardlist), \
+               T.FloatTensor(next_statelist)
 
 
     def __len__(self):

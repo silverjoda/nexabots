@@ -134,7 +134,7 @@ class CentipedeMjc8:
             obs, _ = self.reset()
             cr = 0
             for i in range(1000):
-                action = policy(my_utils.to_tensor(obs, True)).detach()
+                action = policy(my_utils.to_tensor(obs, True))[0].detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r
                 time.sleep(0.001)

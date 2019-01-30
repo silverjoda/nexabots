@@ -191,8 +191,8 @@ def soft_q_update(params, replay_buffer, nets, optims, criteria):
 
 
 def train(env, params):
-    action_dim = 22 #env.action_space.shape[0]
-    state_dim = 63 #env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+    state_dim = env.observation_space.shape[0]
 
     value_net = ValueNetwork(state_dim, params["hidden_dim"]).to(device)
     target_value_net = ValueNetwork(state_dim, params["hidden_dim"]).to(device)
@@ -220,7 +220,7 @@ def train(env, params):
     frame_idx = 0
 
     while frame_idx < params["max_frames"]:
-        state, _ = env.reset()
+        state = env.reset()
         episode_reward = 0
 
         for step in range(params["max_steps"]):
@@ -269,12 +269,16 @@ if __name__=="__main__":
               "soft_q_lr": 3e-4,
               "policy_lr": 3e-4,
               "replay_buffer_size" : 1000000,
-              "render": False,
+              "render": True,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
+    # Gym env
+    import gym
+    env = gym.make("Ant-v2")
+
     # Centipede new
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    #env = centipede()
 
     #from src.envs.hexapod_flat_mjc import hexapod
     #env = hexapod.Hexapod()

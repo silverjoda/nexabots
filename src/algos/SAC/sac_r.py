@@ -12,8 +12,10 @@ from torch.distributions import Normal
 
 import string
 import os
-use_cuda = torch.cuda.is_available()
-device   = torch.device("cuda" if use_cuda else "cpu")
+
+from copy import deepcopy
+
+device   = torch.device("cpu")
 
 class ReplayBuffer:
     def __init__(self, capacity):
@@ -93,10 +95,15 @@ class PolicyNetwork(nn.Module):
         super(PolicyNetwork, self).__init__()
 
         self.log_std_min = log_std_min
-        self.log_std_max = log_std_max#
+        self.log_std_max = log_std_max
 
-        self.linear1 = nn.Linear(num_inputs, hidden_size)
-        self.linear2 = nn.Linear(hidden_size, hidden_size)
+        self.linear_in = nn.Linear(num_inputs, hidden_size)
+        self.linear_out = nn.Linear(hidden_size, hidden_size)
+
+        self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
+        self.batch_rnn = nn.LSTM(input_size=self.obs_dim,
+                                 hidden_size=self.hid_dim,
+                                 batch_first=True)
 
         self.mean_linear = nn.Linear(hidden_size, num_actions)
         self.mean_linear.weight.data.uniform_(-init_w, init_w)
@@ -106,15 +113,29 @@ class PolicyNetwork(nn.Module):
         self.log_std_linear.weight.data.uniform_(-init_w, init_w)
         self.log_std_linear.bias.data.uniform_(-init_w, init_w)
 
+        self.stale_rnn = True
+
+
     def forward(self, state):
-        x = F.relu(self.linear1(state))
-        x = F.relu(self.linear2(x))
+        self.stale_rnn = True
+
+        x = F.relu(self.linear_in(state))
+        x, _ = self.batch_rnn(x)
+        x = F.relu(self.linear_out(x))
 
         mean = self.mean_linear(x)
         log_std = self.log_std_linear(x)
         log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
 
         return mean, log_std
+
+
+    def clone_params(self):
+        self.rnn.bias_hh.data = deepcopy(self.batch_rnn.bias_hh_l0.data)
+        self.rnn.bias_ih.data = deepcopy(self.batch_rnn.bias_ih_l0.data)
+        self.rnn.weight_hh.data = deepcopy(self.batch_rnn.weight_hh_l0.data)
+        self.rnn.weight_ih.data = deepcopy(self.batch_rnn.weight_ih_l0.data)
+
 
     def evaluate(self, state, epsilon=1e-6):
         mean, log_std = self.forward(state)
@@ -129,9 +150,22 @@ class PolicyNetwork(nn.Module):
 
         return action, log_prob, z, mean, log_std
 
-    def get_action(self, state):
+
+    def get_action(self, state, hidden):
+        if self.stale_rnn:
+            self.clone_params()
+            self.stale_rnn = False
+
         state = torch.FloatTensor(state).unsqueeze(0).to(device)
-        mean, log_std = self.forward(state)
+
+        x = F.relu(self.linear_in(state))
+        h_ = self.rnn(x, hidden)
+        x = F.relu(self.linear_out(h_))
+
+        mean = self.mean_linear(x)
+        log_std = self.log_std_linear(x)
+        log_std = torch.clamp(log_std, self.log_std_min, self.log_std_max)
+
         std = log_std.exp()
 
         normal = Normal(mean, std)
@@ -139,7 +173,7 @@ class PolicyNetwork(nn.Module):
         action = torch.tanh(z)
 
         action = action.detach().cpu().numpy()
-        return action[0]
+        return action[0], h_
 
 
 def soft_q_update(params, replay_buffer, nets, optims, criteria):
@@ -154,23 +188,17 @@ def soft_q_update(params, replay_buffer, nets, optims, criteria):
     value_optimizer, soft_q_optimizer, policy_optimizer = optims
     value_criterion, soft_q_criterion = criteria
 
-    state, action, reward, next_state, done = replay_buffer.sample(batch_size)
+    states, actions, rewards, next_states = replay_buffer.sample(batch_size)
 
-    state = torch.FloatTensor(state).to(device)
-    next_state = torch.FloatTensor(next_state).to(device)
-    action = torch.FloatTensor(action).to(device)
-    reward = torch.FloatTensor(reward).unsqueeze(1).to(device)
-    done = torch.FloatTensor(np.float32(done)).unsqueeze(1).to(device)
+    expected_q_value = soft_q_net(states, actions)
+    expected_value = value_net(states)
+    new_action, log_prob, z, mean, log_std = policy_net.evaluate(states)
 
-    expected_q_value = soft_q_net(state, action)
-    expected_value = value_net(state)
-    new_action, log_prob, z, mean, log_std = policy_net.evaluate(state)
-
-    target_value = target_value_net(next_state)
-    next_q_value = reward + (1 - done) * gamma * target_value
+    target_value = target_value_net(next_states)
+    next_q_value = rewards + gamma * target_value
     q_value_loss = soft_q_criterion(expected_q_value, next_q_value.detach())
 
-    expected_new_q_value = soft_q_net(state, new_action)
+    expected_new_q_value = soft_q_net(states, new_action)
     next_value = expected_new_q_value - log_prob
     value_loss = value_criterion(expected_value, next_value.detach())
 
@@ -203,8 +231,8 @@ def soft_q_update(params, replay_buffer, nets, optims, criteria):
 
 
 def train(env, params):
-    action_dim = 22 #env.action_space.shape[0]
-    state_dim = 63 #env.observation_space.shape[0]
+    action_dim = env.action_space.shape[0]
+    state_dim = env.observation_space.shape[0]
 
     value_net = ValueNetwork(state_dim, params["hidden_dim"]).to(device)
     target_value_net = ValueNetwork(state_dim, params["hidden_dim"]).to(device)
@@ -232,19 +260,26 @@ def train(env, params):
     frame_idx = 0
 
     while frame_idx < params["max_frames"]:
-        state, _ = env.reset()
+        state = env.reset()
         episode_reward = 0
+        h = None
+
+        states = []
+        actions = []
+        rews = []
+        next_states = []
 
         for step in range(params["max_steps"]):
-            action = policy_net.get_action(state)
+            action, h = policy_net.get_action(state, h)
             next_state, reward, done, _ = env.step(action)
 
             if params["render"]:
                 env.render()
 
-            replay_buffer.push(state, action, reward, next_state, done)
-            if len(replay_buffer) > params["batch_size"]:
-                soft_q_update(params, replay_buffer, nets, optims, criteria)
+            states.append(state)
+            actions.append(action)
+            rews.append(reward)
+            next_states.append(next_state)
 
             state = next_state
             episode_reward += reward
@@ -253,7 +288,6 @@ def train(env, params):
             if frame_idx % 1000 == 0:
                 print(frame_idx, rewards[-1])
 
-
             if frame_idx % 30000 == 0:
                 sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                     "agents/{}_{}_{}_sac.p".format(env.__class__.__name__, policy_net.__class__.__name__,
@@ -261,19 +295,21 @@ def train(env, params):
                 T.save(policy_net, sdir)
                 print("Saved checkpoint at {} with params {}".format(sdir, params))
 
-
-
             if done:
                 break
 
+        replay_buffer.push(states, actions, rews, next_states)
         rewards.append(episode_reward)
+
+        if len(replay_buffer) > params["batch_size"]:
+            soft_q_update(params, replay_buffer, nets, optims, criteria)
 
 if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"max_frames": 80000,
               "max_steps" : 700,
-              "batch_size": 128,
+              "batch_size": 12,
               "hidden_dim": 64,
               "gamma": 0.99,
               "mean_lambda" : 1e-3,
@@ -287,13 +323,20 @@ if __name__=="__main__":
               "render": True,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
+    # Gym env
+    import gym
+    env = gym.make("Hopper-v2")
+
     # Centipede new
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    #env = centipede()
 
     #from src.envs.hexapod_flat_mjc import hexapod
     #env = hexapod.Hexapod()
 
-    #env = gym.make("Hopper-v2")
     train(env, params)
+
+    # Testing
+    #policy = T.load("agents/CentipedeMjc8_PolicyNetwork_XAS_pg.p", map_location="cpu")
+    #env.test(policy)
 

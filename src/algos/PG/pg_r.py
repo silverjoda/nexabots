@@ -25,7 +25,7 @@ def train(env, policy, params):
     batch_rew = 0
 
     for i in range(params["iters"]):
-        s_0, _ = env.reset()
+        s_0 = env.reset()
         h_0 = T.zeros(1, policy.hid_dim)
         done = False
         step_ctr = 0
@@ -166,8 +166,8 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "w_decay" : 0.01, "V_lr": 0.007, "ppo": True,
-              "ppo_update_iters": 1, "animate": True, "train" : False,
+    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.005, "w_decay" : 0.005, "V_lr": 0.007, "ppo": True,
+              "ppo_update_iters": 1, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
@@ -178,11 +178,14 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_mjc import hexapod
     #env = hexapod.Hexapod()
 
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    #env = centipede()
 
     #from src.envs.ant_reach_mjc import ant_reach_mjc
     #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
+
+    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    env = hexapod_pd.Hexapod()
 
     print(params, env.__class__.__name__)
 

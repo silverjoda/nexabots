@@ -15,7 +15,7 @@ class AntFeelersMjc:
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
-        self.model.opt.timestep = 0.02
+        self.model.opt.timestep = 0.04
         self.N_boxes = 5
 
         self.max_steps = 400
@@ -111,15 +111,15 @@ class AntFeelersMjc:
         angle = 2 * np.arccos(qw)
 
         # Reevaluate termination condition.
-        done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
+        done = self.step_ctr > self.max_steps # or obs_dict['torso_contact'] > 0.1
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
-        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.1
+        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.00
         target_progress = xd * 1.
 
         obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']]))
-        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.1 - angle * 0.0
+        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.2 - angle * 0.0
 
         return obs, r, done, obs_dict
 
@@ -130,7 +130,7 @@ class AntFeelersMjc:
             self.reset()
             for i in range(self.max_steps):
                 act = np.random.randn(self.act_dim)
-                act[0:-4] = 1
+                #act[0:-4] = -1
                 self.step(act)
                 self.render()
 
@@ -215,7 +215,7 @@ class AntFeelersMjc:
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((obs[2:], obs_dict["contacts"], [obs_dict["torso_contact"]]))
 
-        return obs, self.get_obs_dict()
+        return obs
 
 
 if __name__ == "__main__":

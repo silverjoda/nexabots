@@ -6,7 +6,7 @@ import os
 
 class CentipedeMjc14:
     N = 14
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}.xml".format(N))
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}_pd.xml".format(N))
     def __init__(self, animate=False, sim=None):
         self.N_links = 7
 
@@ -87,25 +87,28 @@ class CentipedeMjc14:
         self.viewer.render()
 
     def step(self, ctrl):
-
-        torso_p = self.sim.get_state().qpos.tolist()
-
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
         self.step_ctr += 1
 
-        torso_c = self.sim.get_state().qpos.tolist()
+        vel = self.sim.get_state().qvel.tolist()
+        pos = self.sim.get_state().qpos.tolist()
+
+        # Angle deviation
+        x, y, z, qw, qx, qy, qz = pos[:7]
+        angle = 2 * np.arccos(qw)
 
         # Reevaluate termination condition
-        done = self.step_ctr >= self.max_steps
+        done = self.step_ctr >= self.max_steps or angle > 0.7 or z > 1 or z < 0.4 or abs(y) > 0.5
 
-        ctrl_effort = np.square(ctrl).sum() * 0.00
-        target_progress = (torso_p[0] - torso_c[0]) * 60
+        ctrl_effort = np.square(ctrl).sum() * 0.0
+        target_progress = -vel[0]
+        survival = 0.1
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort
+        r = target_progress - ctrl_effort - abs(y) * 0.1 - abs(angle) * 0.3 + survival
 
         return obs, r, done, self.get_obs_dict()
 
@@ -149,7 +152,7 @@ class CentipedeMjc14:
         # Set environment state
         self._set_state(init_q, init_qvel)
 
-        return obs, obs_dict
+        return obs
 
 
 if __name__ == "__main__":

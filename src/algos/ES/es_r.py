@@ -31,7 +31,7 @@ def f_wrapper(env, policy, animate):
         for i in range(reps):
             reward = 0
             done = False
-            obs, _ = env.reset()
+            obs = env.reset()
 
             h_0 = policy.init_hidden()
             while not done:
@@ -65,7 +65,7 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    weight_decay = 0.000
+    weight_decay = 0.00
 
     print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
           " N_params: {}, ID: {}, wd = {}, comments: ...".format(
@@ -108,7 +108,7 @@ env = ant_feelers_mjc.AntFeelersMjc()
 policy = policies.FB_RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = False
+TRAIN = True
 
 if TRAIN:
     t1 = time.clock()

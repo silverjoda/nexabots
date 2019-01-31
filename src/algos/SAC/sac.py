@@ -12,8 +12,8 @@ from torch.distributions import Normal
 
 import string
 import os
-use_cuda = torch.cuda.is_available()
-device   = torch.device("cuda" if use_cuda else "cpu")
+
+device   = torch.device("cpu")
 
 
 class ReplayBuffer:
@@ -191,8 +191,8 @@ def soft_q_update(params, replay_buffer, nets, optims, criteria):
 
 
 def train(env, params):
-    action_dim = env.action_space.shape[0]
-    state_dim = env.observation_space.shape[0]
+    action_dim = env.act_dim#env.action_space.shape[0]
+    state_dim = env.obs_dim#env.observation_space.shape[0]
 
     value_net = ValueNetwork(state_dim, params["hidden_dim"]).to(device)
     target_value_net = ValueNetwork(state_dim, params["hidden_dim"]).to(device)
@@ -206,9 +206,9 @@ def train(env, params):
     value_criterion = nn.MSELoss()
     soft_q_criterion = nn.MSELoss()
 
-    value_optimizer = optim.Adam(value_net.parameters(), lr=params["value_lr"])
-    soft_q_optimizer = optim.Adam(soft_q_net.parameters(), lr=params["soft_q_lr"])
-    policy_optimizer = optim.Adam(policy_net.parameters(), lr=params["policy_lr"])
+    value_optimizer = optim.Adam(value_net.parameters(), lr=params["value_lr"], weight_decay=0.001)
+    soft_q_optimizer = optim.Adam(soft_q_net.parameters(), lr=params["soft_q_lr"], weight_decay=0.001)
+    policy_optimizer = optim.Adam(policy_net.parameters(), lr=params["policy_lr"], weight_decay=0.001)
 
     nets = (value_net, target_value_net, soft_q_net, policy_net)
     optims = (value_optimizer, soft_q_optimizer, policy_optimizer)
@@ -263,25 +263,28 @@ if __name__=="__main__":
               "gamma": 0.99,
               "mean_lambda" : 1e-3,
               "std_lambda" : 1e-3,
-              "z_lambda" : 0.0,
-              "soft_tau" : 1e-2,
-              "value_lr": 3e-4,
-              "soft_q_lr": 3e-4,
-              "policy_lr": 3e-4,
+              "z_lambda" : 0.00,
+              "soft_tau" : 1e-3,
+              "value_lr": 1e-4,
+              "soft_q_lr": 1e-4,
+              "policy_lr": 1e-4,
               "replay_buffer_size" : 1000000,
-              "render": True,
+              "render": False,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Gym env
-    import gym
-    env = gym.make("HalfCheetah-v2")
+    #import gym
+    #env = gym.make("HalfCheetah-v2")
 
     # Centipede new
     #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
     #env = centipede()
 
-    #from src.envs.hexapod_flat_mjc import hexapod
-    #env = hexapod.Hexapod()
+    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    env = hexapod_pd.Hexapod()
+
+    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    #env = ant_feelers_mjc.AntFeelersMjc()
 
     #env = gym.make("Hopper-v2")
     train(env, params)

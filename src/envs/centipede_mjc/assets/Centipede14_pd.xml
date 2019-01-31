@@ -211,52 +211,52 @@
     </body>
   </worldbody>
   <actuator>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="lefthip_0" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_0" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="righthip_1" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_1" kp="30"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="lefthip_0" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_0" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="righthip_1" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_1" kp="50"/>
 
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="body_1" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="bodyupdown_1" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="lefthip_2" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_2" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="righthip_3" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_3" kp="30"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="body_1" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="bodyupdown_1" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="lefthip_2" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_2" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="righthip_3" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_3" kp="50"/>
     
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="body_2" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="bodyupdown_2" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="lefthip_4" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_4" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="righthip_5" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_5" kp="30"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="body_2" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="bodyupdown_2" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="lefthip_4" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_4" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="righthip_5" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_5" kp="50"/>
     
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="body_3" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="bodyupdown_3" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="lefthip_6" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_6" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="righthip_7" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_7" kp="30"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="body_3" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="bodyupdown_3" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="lefthip_6" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_6" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="righthip_7" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_7" kp="50"/>
 
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="body_4" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="bodyupdown_4" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="lefthip_8" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_8" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="righthip_9" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_9" kp="30"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="body_4" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="bodyupdown_4" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="lefthip_8" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_8" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="righthip_9" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_9" kp="50"/>
     
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="body_5" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="bodyupdown_5" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="lefthip_10" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_10" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="righthip_11" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_11" kp="30"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="body_5" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="bodyupdown_5" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="lefthip_10" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_10" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="righthip_11" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_11" kp="50"/>
     
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="body_6" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="bodyupdown_6" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="lefthip_12" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_12" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="righthip_13" kp="30"/>
-    <position ctrllimited="true" ctrlrange="-1.0 1.0" joint="ankle_13" kp="30"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="body_6" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="bodyupdown_6" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="lefthip_12" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_12" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="righthip_13" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_13" kp="50"/>
     
   </actuator>
   <custom>

@@ -106,16 +106,16 @@ class CentipedeMjc8:
         angle = 2 * np.arccos(qw)
 
         # Reevaluate termination condition
-        done = self.step_ctr >= self.max_steps or angle > 0.7 or z > 1 or z < 0.4 or abs(y) > 0.5
+        done = self.step_ctr >= self.max_steps or angle > 0.7 or z > 1 or z < 0.3 or abs(y) > 0.7
 
         ctrl_effort = np.square(ctrl).sum() * 0.0
         target_progress = -vel[0]
-        survival = 0.1
+        survival = 0.0
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self._get_jointvals().astype(np.float32), obs_dict["contacts"]))
 
-        r = target_progress - ctrl_effort - abs(y) * 0.1 - abs(angle) * 0.3 + survival
+        r = target_progress - ctrl_effort - abs(y) * 0.05 - abs(angle) * 0.1 + survival
 
         return obs, r, done, self.get_obs_dict()
 
@@ -131,7 +131,7 @@ class CentipedeMjc8:
         self.reset()
         for i in range(100):
             done = False
-            obs, _ = self.reset()
+            obs = self.reset()
             cr = 0
             for i in range(1000):
                 action = policy(my_utils.to_tensor(obs, True))[0].detach()
@@ -146,7 +146,7 @@ class CentipedeMjc8:
         self.reset()
         for i in range(100):
             done = False
-            obs, _ = self.reset()
+            obs = self.reset()
             h = policy.init_hidden()
             cr = 0
             while not done:

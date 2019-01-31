@@ -127,12 +127,12 @@ class Hexapod:
         contact_cost = 0.5 * 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
         rV = (target_progress * 1,
-              - ctrl_effort * 0.05,
-              - np.square(angle) * 1.0,
+              - ctrl_effort * 0.03,
+              - np.square(angle) * 1.5,
               - abs(yd) * 0.1,
               - contact_cost * 0,
               - velocity_pen * 0,
-              height_pen * 0.5)
+              height_pen * 2.5)
 
         r = sum(rV)
 

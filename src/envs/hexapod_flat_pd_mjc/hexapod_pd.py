@@ -114,6 +114,7 @@ class Hexapod:
 
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
+
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
         angle = 2 * acos(qw)
 
@@ -121,16 +122,24 @@ class Hexapod:
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
         velocity_pen = np.square(xd - 1)
+        height_pen = np.square(z - 0.5)
 
         contact_cost = 0.5 * 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
-        rV = (target_progress * 1, - ctrl_effort * 0.01, - abs(angle) * 0.1, - abs(yd) * 0.01, - contact_cost * 0, - velocity_pen * 0)
+        rV = (target_progress * 1,
+              - ctrl_effort * 0.01,
+              - np.square(angle) * 0.7,
+              - abs(yd) * 0.01,
+              - contact_cost * 0,
+              - velocity_pen * 0,
+              height_pen * 0.9)
+
         r = sum(rV)
 
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or abs(angle) > 0.5 or abs(y) > 1
+        done = self.step_ctr > self.max_steps or abs(angle) > 0.5 or abs(y) > 0.5
 
         # if done:
         #     ctrl_sum = np.zeros(self.act_dim)

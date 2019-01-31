@@ -127,19 +127,19 @@ class Hexapod:
         contact_cost = 0.5 * 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
         rV = (target_progress * 1,
-              - ctrl_effort * 0.01,
-              - np.square(angle) * 0.7,
-              - abs(yd) * 0.01,
+              - ctrl_effort * 0.05,
+              - np.square(angle) * 1.0,
+              - abs(yd) * 0.1,
               - contact_cost * 0,
               - velocity_pen * 0,
-              height_pen * 0.9)
+              height_pen * 0.5)
 
         r = sum(rV)
 
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or abs(angle) > 0.5 or abs(y) > 0.5
+        done = self.step_ctr > self.max_steps or abs(angle) > 0.7 or abs(y) > 0.5
 
         # if done:
         #     ctrl_sum = np.zeros(self.act_dim)
@@ -169,7 +169,7 @@ class Hexapod:
             done = False
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps * 3):
+            for j in range(self.max_steps):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r
@@ -185,7 +185,7 @@ class Hexapod:
             obs, _ = self.reset()
             h = policy.init_hidden()
             cr = 0
-            for j in range(self.max_steps * 3):
+            for j in range(self.max_steps):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach())

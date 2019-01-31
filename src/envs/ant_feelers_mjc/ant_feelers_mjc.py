@@ -183,6 +183,7 @@ class AntFeelersMjc:
             # plt.subplot(4, 1, 3)
             # plt.plot(range(len(acts)), [a[10] for a in acts], 'b')
             # plt.xlabel('rf1')
+
             #
             # plt.subplot(4, 1, 4)
             # plt.plot(range(len(acts)), [a[11] for a in acts], 'k')

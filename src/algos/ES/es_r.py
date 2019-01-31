@@ -65,7 +65,7 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    weight_decay = 0.00
+    weight_decay = 0.0
 
     print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
           " N_params: {}, ID: {}, wd = {}, comments: ...".format(

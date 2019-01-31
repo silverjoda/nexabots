@@ -29,7 +29,7 @@ class Valuefun(nn.Module):
         return x
 
 
-def train(env, policy, V, params):
+def train(env, policy, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"])
 
@@ -237,10 +237,10 @@ if __name__=="__main__":
         print("Training")
         policy = policies.NN_PG(env)
         print(params, env.__class__.__name__, policy.__class__.__name__)
-        train(env, policy, None, params)
+        train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_668_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_MPP_pg.p')
 
 
         env.test(policy)

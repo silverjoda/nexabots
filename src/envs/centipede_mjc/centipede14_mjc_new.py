@@ -122,7 +122,7 @@ class CentipedeMjc14:
         self.reset()
         for i in range(100):
             done = False
-            obs, _ = self.reset()
+            obs = self.reset()
             cr = 0
             while not done:
                 action = policy(my_utils.to_tensor(obs, True)).detach()

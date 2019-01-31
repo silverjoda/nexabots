@@ -31,7 +31,7 @@
           <joint axis="0 0 1" name="hip_1" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.2 0.2 0.0" name="left_leg_geom" size="0.08" type="capsule"/>
           <body pos="0.2 0.2 0">
-            <joint axis="-1 1 0" name="ankle_1" pos="0.0 0.0 0.0" range="30 70" type="hinge"/>
+            <joint axis="-1 1 0" name="ankle_1" pos="0.0 0.0 0.0" range="40 70" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 0.4 0.4 0.0" name="left_ankle_geom" size="0.08" type="capsule"/>
           </body>
         </body>
@@ -42,7 +42,7 @@
           <joint axis="0 0 1" name="hip_2" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 -0.2 0.2 0.0" name="right_leg_geom" size="0.08" type="capsule"/>
           <body pos="-0.2 0.2 0">
-            <joint axis="1 1 0" name="ankle_2" pos="0.0 0.0 0.0" range="-70 -30" type="hinge"/>
+            <joint axis="1 1 0" name="ankle_2" pos="0.0 0.0 0.0" range="-70 -40" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 -0.4 0.4 0.0" name="right_ankle_geom" size="0.08" type="capsule"/>
           </body>
         </body>
@@ -53,7 +53,7 @@
           <joint axis="0 0 1" name="hip_3" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 -0.2 -0.2 0.0" name="back_leg_geom" size="0.08" type="capsule"/>
           <body pos="-0.2 -0.2 0">
-            <joint axis="-1 1 0" name="ankle_3" pos="0.0 0.0 0.0" range="-70 -30" type="hinge"/>
+            <joint axis="-1 1 0" name="ankle_3" pos="0.0 0.0 0.0" range="-70 -40" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 -0.4 -0.4 0.0" name="third_ankle_geom" size="0.08" type="capsule"/>
           </body>
         </body>
@@ -64,8 +64,8 @@
           <joint axis="0 0 1" name="hip_4" pos="0.0 0.0 0.0" range="-30 30" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.2 -0.2 0.0" name="rightback_leg_geom" size="0.08" type="capsule"/>
           <body pos="0.2 -0.2 0">
-            <joint axis="1 1 0" name="ankle_4" pos="0.0 0.0 0.0" range="30 70" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 0.4 -0.4 0.0" name="fourth_ankle_geom" size="0.08" type="capsule"/>
+            <joint axis="1 1 0" name="ankle_4" pos="0.0 0.0 0.0" range="40 70" type="hinge"/>
+            <geom fromto="0.0 0.0 0.0 0.4 -0.4 0.0" name="fourth_ankle_geom" size="0.08" rgba="1 0 0 1" type="capsule"/>
           </body>
         </body>
       </body>
@@ -111,11 +111,6 @@
         <geom conaffinity="1" condim="3" name="cube3_geom" pos="0 0 0" size="0.4 0.5 0.6" rgba="1 1 1 1" mass="70" type="box"/>
     </body>
 
-    <body>
-        <freejoint name="cube_4"/>
-        <geom conaffinity="1" condim="3" name="cube4_geom" pos="0 0 0" size="0.4 0.5 0.6" rgba="1 1 1 1" mass="70" type="box"/>
-    </body>
-
 
     <body>
         <geom conaffinity="1" condim="3" name="wall1_geom" pos="4 2.4 0.6" size="6.0 0.1 0.6" rgba="1 1 1 1" mass="70" type="box"/>
@@ -136,14 +131,14 @@
   </worldbody>
 
   <actuator>
-    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="hip_4" kp="50"/>
-    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_4" kp="50"/>
-    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="hip_1" kp="50"/>
-    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_1" kp="50"/>
-    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="hip_2" kp="50"/>
-    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_2" kp="50"/>
-    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="hip_3" kp="50"/>
-    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_3" kp="50"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="hip_4" kp="20"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_4" kp="20"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="hip_1" kp="20"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_1" kp="20"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="hip_2" kp="20"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_2" kp="20"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="hip_3" kp="20"/>
+    <position ctrllimited="false" ctrlrange="-1.0 1.0" joint="ankle_3" kp="20"/>
     <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="lf1" gear="20"/>
     <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="lf2" gear="20"/>
     <motor ctrllimited="true" ctrlrange="-1.0 1.0" joint="rf1" gear="20"/>

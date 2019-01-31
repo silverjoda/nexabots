@@ -16,7 +16,7 @@ class AntFeelersMjc:
             self.sim = mujoco_py.MjSim(self.model)
 
         self.model.opt.timestep = 0.04
-        self.N_boxes = 5
+        self.N_boxes = 4
 
         self.max_steps = 400
 
@@ -111,7 +111,7 @@ class AntFeelersMjc:
         angle = 2 * np.arccos(qw)
 
         # Reevaluate termination condition.
-        done = self.step_ctr > self.max_steps # or obs_dict['torso_contact'] > 0.1
+        done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
@@ -131,6 +131,7 @@ class AntFeelersMjc:
             for i in range(self.max_steps):
                 act = np.random.randn(self.act_dim)
                 #act[0:-4] = -1
+                #act[:] = 1
                 self.step(act)
                 self.render()
 
@@ -139,7 +140,7 @@ class AntFeelersMjc:
         self.reset()
         for i in range(100):
             done = False
-            obs, _ = self.reset()
+            obs = self.reset()
             cr = 0
             while not done:
                 action = policy(my_utils.to_tensor(obs, True)).detach()
@@ -154,10 +155,10 @@ class AntFeelersMjc:
         self.reset()
         for i in range(100):
             done = False
-            obs, _ = self.reset()
+            obs = self.reset()
             h = policy.init_hidden()
             cr = 0
-            self.max_steps = 700
+            self.max_steps = 600
             import matplotlib.pyplot as plt
             #fig = plt.figure()
             acts = []
@@ -206,7 +207,7 @@ class AntFeelersMjc:
 
         r = self.q_dim - self.N_boxes * 7
         for i in range(self.N_boxes):
-            init_q[r + i * 7 :r + i * 7 + 3] = [i * 1.7 + 1.65, np.clip(np.random.randn() * 1.0, -1.8, 1.8), 0.6]
+            init_q[r + i * 7 :r + i * 7 + 3] = [i * 2.2 + 1.7, np.clip(np.random.randn() * 1.0, -1.8, 1.8), 0.6]
 
         # Set environment state
         self.set_state(init_q, init_qvel)

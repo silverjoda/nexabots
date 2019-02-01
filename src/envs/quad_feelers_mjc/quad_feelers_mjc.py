@@ -31,8 +31,8 @@ class QuadFeelersMjc:
         self.viewer = None
         self.step_ctr = 0
 
-        self.joints_rads_low = np.array([-0.3, -1.] * 4)
-        self.joints_rads_high = np.array([0.3, 0] * 4)
+        self.joints_rads_low = np.array([-0.3, -1.] * 4 + [-1, -1, -1, -1])
+        self.joints_rads_high = np.array([0.3, 0] * 4 + [1, 1, 1, 1])
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # Initial methods
@@ -130,13 +130,16 @@ class QuadFeelersMjc:
 
     def demo(self):
         self.reset()
-        for i in range(100):
-            self.reset()
-            for i in range(self.max_steps):
-                act = np.random.randn(self.act_dim)
-                #act[0:-4] = -1
-                #act[:] = 1
-                self.step(act)
+        for i in range(1000):
+            # self.step(np.random.randn(self.act_dim))
+            for i in range(100):
+                self.step(np.ones((self.act_dim)) * 0)
+                self.render()
+            for i in range(100):
+                self.step(np.ones((self.act_dim)) * 1)
+                self.render()
+            for i in range(100):
+                self.step(np.ones((self.act_dim)) * -1)
                 self.render()
 
 

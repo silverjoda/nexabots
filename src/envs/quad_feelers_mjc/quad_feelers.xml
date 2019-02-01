@@ -23,64 +23,60 @@
 
     <body name="torso" pos="0 0 0.75">
       <camera name="track" mode="trackcom" pos="0 -3 0.3" xyaxes="1 0 0 0 0 1"/>
-      <geom name="torso_geom" pos="0 0 0" size="0.3 0.2 0.1" mass="0.1" type="box"/>
+      <geom name="torso_geom" pos="0 0 0" size="0.35 0.25 0.1" mass="0.1" type="box"/>
       <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
 
-
        <body name="front_left_leg" pos="0.2 0.2 0">
-        <joint axis="0 1 0" name="hip_1" pos="0.0 0.0 0.0" range="30 90" type="hinge"/>
+        <joint axis="0 1 0" name="hip_1" pos="0.0 0.0 0.0" range="0.5 1.5" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.2 0.0 0.0" name="coxa_fl_geom" size="0.06" type="capsule"/>
           <body pos="0.2 0.0 0">
-            <joint axis="-1 1 0" name="knee_1" pos="0.0 0.0 0.0" range="30 90" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 0.2 0.0 0.0" name="femur_fl_geom" size="0.06" type="capsule"/>
+            <joint axis="0 1 0" name="knee_1" pos="0.0 0.0 0.0" range="0.5 1.5" type="hinge"/>
+            <geom fromto="0.0 0.0 0.0 0.4 0.0 0.0" name="femur_fl_geom" size="0.06" type="capsule"/>
           </body>
       </body>
-
 
       <body name="front_right_leg" pos="0.2 -0.2 0">
-        <joint axis="0 0 1" name="hip_2" pos="0.0 0.0 0.0" range="-20 20" type="hinge"/>
-          <geom fromto="0.0 0.0 0.0 0.1 -0.1 0.0" name="coxa_fr_geom" size="0.06" type="capsule"/>
-          <body pos="0.1 -0.1 0">
-            <joint axis="1 1 0" name="knee_2" pos="0.0 0.0 0.0" range="-50 0" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 0.2 -0.2 0.0" name="femur_fr_geom" size="0.06" type="capsule"/>
+        <joint axis="0 1 0" name="hip_2" pos="0.0 0.0 0.0" range="0.5 1.5" type="hinge"/>
+          <geom fromto="0.0 0.0 0.0 0.2 0.0 0.0" name="coxa_fr_geom" size="0.06" type="capsule"/>
+          <body pos="0.2 0.0 0">
+            <joint axis="0 1 0" name="knee_2" pos="0.0 0.0 0.0" range="0.5 1.5" type="hinge"/>
+            <geom fromto="0.0 0.0 0.0 0.4 0.0 0.0" name="femur_fr_geom" size="0.06" type="capsule"/>
           </body>
       </body>
-
-
-      <body name="mid_right_leg" pos="0.0 -0.2 0">
-        <joint axis="0 0 1" name="hip_3" pos="0.0 0.0 0.0" range="-20 20" type="hinge"/>
-          <geom fromto="0.0 0.0 0.0 0.0 -0.14142 0.0" name="coxa_mr_geom" size="0.06" type="capsule"/>
-          <body pos="0.0 -0.14142 0">
-            <joint axis="1 0 0" name="knee_3" pos="0.0 0.0 0.0" range="-50 0" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 0.0 -0.28284 0.0" name="femur_mr_geom" size="0.06" type="capsule"/>
-          </body>
-      </body>
-
 
       <body name="back_left_leg" pos="-0.2 0.2 0">
-        <joint axis="0 0 1" name="hip_4" pos="0.0 0.0 0.0" range="-20 20" type="hinge"/>
-          <geom fromto="0.0 0.0 0.0 -0.1 0.1 0.0" name="coxa_rl_geom" size="0.06" type="capsule"/>
-          <body pos="-0.1 0.1 0">
-            <joint axis="-1 -1 0" name="knee_4" pos="0.0 0.0 0.0" range="-50 0" type="hinge"/>
-            <geom fromto="0.0 0.0 0.0 -0.2 0.2 0.0" name="femur_rl_geom" size="0.06" type="capsule"/>
+        <joint axis="0 -1 0" name="hip_3" pos="0.0 0.0 0.0" range="0.5 1.5" type="hinge"/>
+          <geom fromto="0.0 0.0 0.0 -0.2 0.0 0.0" name="coxa_rl_geom" size="0.06" type="capsule"/>
+          <body pos="-0.2 0.0 0">
+            <joint axis="0 -1 0" name="knee_3" pos="0.0 0.0 0.0" range="0.5 1.5" type="hinge"/>
+            <geom fromto="0.0 0.0 0.0 -0.4 0.0 0.0" name="femur_rl_geom" size="0.06" type="capsule"/>
           </body>
       </body>
 
+      <body name="back_right_leg" pos="-0.2 -0.2 0">
+        <joint axis="0 -1 0" name="hip_4" pos="0.0 0.0 0.0" range="0.5 1.5" type="hinge"/>
+          <geom fromto="0.0 0.0 0.0 -0.2 0.0 0.0" name="coxa_rr_geom" size="0.06" type="capsule"/>
+          <body pos="-0.2 0.0 0">
+            <joint axis="0 -1 0" name="knee_4" pos="0.0 0.0 0.0" range="0.5 1.5" type="hinge"/>
+            <geom fromto="0.0 0.0 0.0 -0.4 -0.0 0.0" name="femur_rr_geom" size="0.06" type="capsule"/>
+          </body>
+      </body>
+
+
        <body name="left_feeler" pos="0 0 0">
-        <joint axis="0 0 1" name="lf1" pos="0.0 0.0 0.0" range="5 20" type="hinge"/>
+        <joint axis="0 0 1" name="lf1" pos="0.0 0.0 0.0" range="0.08 0.3" type="hinge"/>
         <geom fromto="0.2 0.0 0.0 0.6 0.0 0.0" name="lf1_geom" size="0.01" density="1" type="capsule" rgba="0 1 1 1"/>
         <body pos="0.6 0.0 0">
-          <joint axis="0 1 0" name="lf2" pos="0.0 0.0 0.0" range="-40 20" type="hinge"/>
+          <joint axis="0 1 0" name="lf2" pos="0.0 0.0 0.0" range="-0.65 0.3" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.6 0.0 0.0" name="lf2_geom" size="0.01" density="1" type="capsule" rgba="0 1 1 1"/>
         </body>
       </body>
 
-
       <body name="right_feeler" pos="0 0 0">
-        <joint axis="0 0 1" name="rf1" pos="0.0 0.0 0.0" range="-20 -5" type="hinge"/>
+        <joint axis="0 0 1" name="rf1" pos="0.0 0.0 0.0" range="-0.3 -0.08" type="hinge"/>
         <geom fromto="0.2 0.0 0.0 0.6 0.0 0.0" name="rf1_geom" size="0.01" density="1" type="capsule" rgba="0 1 1 1"/>
         <body pos="0.6 0.0 0">
-          <joint axis="0 1 0" name="rf2" pos="0.0 0.0 0.0" range="-40 20" type="hinge"/>
+          <joint axis="0 1 0" name="rf2" pos="0.0 0.0 0.0" range="-0.65 0.3" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.6 0.0 0.0" name="rf2_geom" size="0.01" density="1" type="capsule" rgba="0 1 1 1"/>
         </body>
       </body>
@@ -126,17 +122,17 @@
   </worldbody>
 
   <actuator>
-    <position joint="hip_1" kp="20"/>
-    <position joint="knee_1" kp="20"/>
-    <position joint="hip_2" kp="20"/>
-    <position joint="knee_2" kp="20"/>
-    <position joint="hip_3" kp="20"/>
-    <position joint="knee_3" kp="20"/>
-    <position joint="hip_4" kp="20"/>
-    <position joint="knee_4" kp="20"/>
-    <motor joint="lf1" gear="20"/>
-    <motor joint="lf2" gear="20"/>
-    <motor joint="rf1" gear="20"/>
-    <motor joint="rf2" gear="20"/>
+    <position joint="hip_1" kp="30"/>
+    <position joint="knee_1" kp="30"/>
+    <position joint="hip_2" kp="30"/>
+    <position joint="knee_2" kp="30"/>
+    <position joint="hip_3" kp="30"/>
+    <position joint="knee_3" kp="30"/>
+    <position joint="hip_4" kp="30"/>
+    <position joint="knee_4" kp="30"/>
+    <motor ctrllimited="true" ctrlrange="-1 1" joint="lf1" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1 1" joint="lf2" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1 1" joint="rf1" gear="20"/>
+    <motor ctrllimited="true" ctrlrange="-1 1" joint="rf2" gear="20"/>
   </actuator>
 </mujoco>

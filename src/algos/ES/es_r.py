@@ -102,13 +102,16 @@ def train(params):
 #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
 #env = hexapod_pd.Hexapod()
 
-from src.envs.ant_feelers_mjc import ant_feelers_mjc
-env = ant_feelers_mjc.AntFeelersMjc()
+#from src.envs.ant_feelers_mjc import ant_feelers_mjc
+#env = ant_feelers_mjc.AntFeelersMjc()
+
+from src.envs.quad_feelers_mjc import quad_feelers_mjc
+env = quad_feelers_mjc.QuadFeelersMjc()
 
 policy = policies.FB_RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = False
+TRAIN = True
 
 if TRAIN:
     t1 = time.clock()

@@ -75,7 +75,8 @@ class QuadFeelersMjc:
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
 
         # Contacts:
-        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 15, 17]])).sum(axis=1), 0, 1)
+        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[3, 5, 7, 9, 11, 13]])).sum(axis=1), 0, 1)
+        print(od['contacts'])
         od['torso_contact'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1)
 
         return od

@@ -3,40 +3,36 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
-from math import sqrt, acos, fabs
 
-class Hexapod:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
+class QuadFeelersMjc:
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "quad_feelers.xml")
     def __init__(self, animate=False, sim=None):
-
-        print([sqrt(l**2 + l**2) for l in [0.1, 0.3, 0.4]])
-
         if sim is not None:
             self.sim = sim
             self.model = self.sim.model
         else:
-            self.modelpath = Hexapod.MODELPATH
+            self.modelpath = QuadFeelersMjc.MODELPATH
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
-        self.model.opt.timestep = 0.02
+        self.model.opt.timestep = 0.04
+        self.N_boxes = 4
+
+        self.max_steps = 400
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6
+        self.obs_dim = self.q_dim + self.qvel_dim - 7 * self.N_boxes - 6 * self.N_boxes + 7 - 2
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
-        self.max_steps = 600
-        self.ctrl_vecs = []
-        self.dead_joint_idx = 0
-        self.dead_leg_idx = 0
-        self.joints_rads_low = np.array([-0.3, -1., 1.] * 6)
-        self.joints_rads_high = np.array([0.3, 0, 2.] * 6)
+
+        self.joints_rads_low = np.array([-0.3, -1.] * 4)
+        self.joints_rads_high = np.array([0.3, 0] * 4)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # Initial methods
@@ -57,13 +53,16 @@ class Hexapod:
         self.viewer.cam.elevation = -20
 
 
-    def scale_action(self, action):
-        return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
-
-
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
+        a = qpos + qvel
+        return np.asarray(a, dtype=np.float32)
+
+
+    def get_robot_obs(self):
+        qpos = self.sim.get_state().qpos.tolist()[: - 7 * self.N_boxes]
+        qvel = self.sim.get_state().qvel.tolist()[: - 6 * self.N_boxes]
         a = qpos + qvel
         return np.asarray(a, dtype=np.float32)
 
@@ -76,7 +75,8 @@ class Hexapod:
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
 
         # Contacts:
-        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1), 0, 1)
+        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 15, 17]])).sum(axis=1), 0, 1)
+        od['torso_contact'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1)
 
         return od
 
@@ -103,80 +103,40 @@ class Hexapod:
 
     def step(self, ctrl):
 
-        #ctrl[self.dead_joint_idx] = 0
-        #if np.random.rand() < 0.3:
-        #    ctrl[self.dead_leg_idx * 3: (self.dead_leg_idx + 1) * 3] = 0
-
-        ctrl = self.scale_action(ctrl)
-
         self.sim.data.ctrl[:] = ctrl
-        self.sim.forward()
         self.sim.step()
         self.step_ctr += 1
 
-        self.ctrl_vecs.append(ctrl)
-
         #print(self.sim.data.ncon) # Prints amount of current contacts
-
-        obs = self.get_obs()
+        obs_c = self.get_robot_obs()
         obs_dict = self.get_obs_dict()
 
-        # Angle deviation
-        x, y, z, qw, qx, qy, qz = obs[:7]
+        x, y, z, qw, qx, qy, qz = obs_c[:7]
+        angle = 2 * np.arccos(qw)
 
-        xd, yd, zd, _, _, _ = obs_dict["root_vel"]
-        angle = 2 * acos(qw)
+        # Reevaluate termination condition.
+        done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
 
-        # Reward conditions
-        ctrl_effort = np.square(ctrl).sum()
-        target_progress = xd
-        velocity_pen = np.square(xd - 1)
-        height_pen = np.square(zd)
+        xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
-        contact_cost = 0.5 * 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
+        ctrl_effort = np.square(ctrl[0:8]).mean() * 0.00
+        target_progress = xd * 1.
 
-        rV = (target_progress * 1,
-              - ctrl_effort * 0.03,
-              - np.square(angle) * 1.0,
-              - abs(yd) * 0.1,
-              - contact_cost * 0,
-              - velocity_pen * 0,
-              - height_pen * 0.5)
-
-        r = sum(rV)
-        obs_dict['rV'] = rV
-
-        # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or abs(angle) > 0.7 or abs(y) > 0.5
-
-        # if done:
-        #     ctrl_sum = np.zeros(self.act_dim)
-        #     for cv in self.ctrl_vecs:
-        #         ctrl_sum += np.abs(np.array(cv))
-        #     ctrl_dev = np.abs(ctrl_sum - ctrl_sum.mean()).mean()
-        #
-        #     r -= ctrl_dev * 3
-
-        obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"]))
+        obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']]))
+        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.2 - angle * 0.0
 
         return obs, r, done, obs_dict
 
 
     def demo(self):
         self.reset()
-        for i in range(1000):
-            #self.step(np.random.randn(self.act_dim))
-            for i in range(100):
-                self.step(np.ones((self.act_dim)) * 0)
-                self.render()
-            for i in range(100):
-                self.step(np.array([0, -1, 1] * 6))
-                self.render()
-            for i in range(100):
-                self.step(np.ones((self.act_dim)) * 1)
-                self.render()
-            for i in range(100):
-                self.step(np.ones((self.act_dim)) * -1)
+        for i in range(100):
+            self.reset()
+            for i in range(self.max_steps):
+                act = np.random.randn(self.act_dim)
+                #act[0:-4] = -1
+                #act[:] = 1
+                self.step(act)
                 self.render()
 
 
@@ -186,7 +146,7 @@ class Hexapod:
             done = False
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps):
+            while not done:
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0])
                 cr += r
@@ -202,22 +162,27 @@ class Hexapod:
             obs = self.reset()
             h = policy.init_hidden()
             cr = 0
-            for j in range(self.max_steps):
+            self.max_steps = 600
+            import matplotlib.pyplot as plt
+            #fig = plt.figure()
+            acts = []
+            while not done:
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
+                acts.append(action[0].detach())
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach())
                 cr += r
                 time.sleep(0.001)
                 self.render()
+
+
             print("Total episode reward: {}".format(cr))
 
 
-    def reset(self): #
+    def reset(self):
+
         # Reset env variables
         self.step_ctr = 0
-        self.ctrl_vecs = []
-        self.dead_joint_idx = np.random.randint(0, self.act_dim)
-        self.dead_leg_idx = np.random.randint(0, self.act_dim / 3)
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
@@ -226,19 +191,22 @@ class Hexapod:
         init_q[2] = 0.80 + np.random.rand() * 0.1
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
-        obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
+        r = self.q_dim - self.N_boxes * 7
+        for i in range(self.N_boxes):
+            init_q[r + i * 7 :r + i * 7 + 3] = [i * 2.2 + 1.7, np.clip(np.random.randn() * 1.0, -1.8, 1.8), 0.6]
 
         # Set environment state
         self.set_state(init_q, init_qvel)
+        obs = np.concatenate((init_q[: - 7 * self.N_boxes], init_qvel[: - 6 * self.N_boxes])).astype(np.float32)
 
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs, obs_dict["contacts"]))
+        obs = np.concatenate((obs[2:], obs_dict["contacts"], [obs_dict["torso_contact"]]))
 
         return obs
 
 
 if __name__ == "__main__":
-    ant = Hexapod(animate=True)
+    ant = QuadFeelersMjc(animate=True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

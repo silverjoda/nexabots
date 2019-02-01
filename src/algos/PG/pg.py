@@ -240,7 +240,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc8_ConvPolicy_Iter_PG_new_EOQ_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_EK9_pg.p')
         env.test(policy)
 
 

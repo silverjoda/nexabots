@@ -9,6 +9,7 @@ N = 120
 M = 30
 div = 5
 mat = np.random.randint(0, 70, size=(M//div,N//div), dtype=np.uint8).repeat(div, axis=0).repeat(div, axis=1)
+mat[:,:16] = 0
 mat[0,:] = 255
 mat[:,0] = 255
 mat[-1,:] = 255

@@ -76,7 +76,7 @@ class QuadFeelersMjc:
 
         # Contacts:
         od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[3, 5, 7, 9, 11, 13]])).sum(axis=1), 0, 1)
-        print(od['contacts'])
+        #print(od['contacts'])
         od['torso_contact'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1)
 
         return od
@@ -116,15 +116,16 @@ class QuadFeelersMjc:
         angle = 2 * np.arccos(qw)
 
         # Reevaluate termination condition.
-        done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
+        done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1 or ((obs_dict['contacts'] > 0).sum() < 2 and self.step_ctr > 15)
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
         ctrl_effort = np.square(ctrl[0:8]).mean() * 0.00
         target_progress = xd * 1.
+        survival = 0.3
 
         obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']]))
-        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.2 - angle * 0.0
+        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.2 - angle * 0.0 + survival
 
         return obs, r, done, obs_dict
 

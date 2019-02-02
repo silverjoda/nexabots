@@ -115,11 +115,11 @@ TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, False, ID))
+    train((env, policy, 100000, True, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/AntFeelersMjc_FB_RNN_WY9_es.p")
+    policy = T.load("agents/QuadFeelersMjc_FB_RNN_LYG_es.p")
     print(policy.wstats())
     env.test_recurrent(policy)
 

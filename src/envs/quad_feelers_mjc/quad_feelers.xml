@@ -122,14 +122,14 @@
   </worldbody>
 
   <actuator>
-    <position joint="hip_1" kp="30"/>
-    <position joint="knee_1" kp="30"/>
-    <position joint="hip_2" kp="30"/>
-    <position joint="knee_2" kp="30"/>
-    <position joint="hip_3" kp="30"/>
-    <position joint="knee_3" kp="30"/>
-    <position joint="hip_4" kp="30"/>
-    <position joint="knee_4" kp="30"/>
+    <position joint="hip_1" kp="20"/>
+    <position joint="knee_1" kp="20"/>
+    <position joint="hip_2" kp="20"/>
+    <position joint="knee_2" kp="20"/>
+    <position joint="hip_3" kp="20"/>
+    <position joint="knee_3" kp="20"/>
+    <position joint="hip_4" kp="20"/>
+    <position joint="knee_4" kp="20"/>
     <motor ctrllimited="true" ctrlrange="-1 1" joint="lf1" gear="20"/>
     <motor ctrllimited="true" ctrlrange="-1 1" joint="lf2" gear="20"/>
     <motor ctrllimited="true" ctrlrange="-1 1" joint="rf1" gear="20"/>

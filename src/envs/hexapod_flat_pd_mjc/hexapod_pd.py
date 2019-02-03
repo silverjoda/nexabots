@@ -130,25 +130,28 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        velocity_rew = 1. / (np.square(xd - 0.7) + 1.)
+        target_vel = 1.0
+        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
         contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
-        rV = (target_progress * 1.0,
-              velocity_rew * 0.0,
-              - ctrl_effort * 0.01,
-              - np.square(angle) * 0.1,
-              - abs(yd) * 0.1,
-              + contact_cost * 0.0,
-              - height_pen * 0.1)
+        rV = (target_progress * 0.0,
+              velocity_rew * 5.0,
+              - ctrl_effort * 0.005,
+              - np.square(angle) * 0.9,
+              - abs(yd) * 0.05,
+              - contact_cost * 0.0,
+              - height_pen * 0.9)
+
+        # 1.0 with 0.1 pens # 1.4 with 0.3 pens # 1.2 with 0.9 pens
+        #print(rV)
 
         r = sum(rV)
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
-
 
         # if done:
         #     ctrl_sum = np.zeros(self.act_dim)

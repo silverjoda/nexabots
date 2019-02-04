@@ -103,9 +103,6 @@ class Hexapod:
 
     def step(self, ctrl):
 
-        #ctrl[self.dead_joint_idx] = 0
-        #if np.random.rand() < 0.3:
-        #    ctrl[self.dead_leg_idx * 3: (self.dead_leg_idx + 1) * 3] = 0
 
         ctrl = self.scale_action(ctrl)
 
@@ -140,7 +137,7 @@ class Hexapod:
               velocity_rew * 5.0,
               - ctrl_effort * 0.005,
               - np.square(angle) * 0.9,
-              - abs(yd) * 0.05,
+              - abs(yd) * 0.1,
               - contact_cost * 0.0,
               - height_pen * 0.9)
 

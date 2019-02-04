@@ -3,7 +3,7 @@ import cv2
 import os
 
 filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                    "assets/hf2.png")
+                                    "assets/hf3.png")
 
 N = 120
 M = 30

@@ -3,17 +3,9 @@ import cma
 from time import sleep
 import torch
 import torch as T
-import torch.nn as nn
-import torch.nn.functional as F
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import time
-import mujoco_py
-
-from multiprocessing import Pool
-from multiprocessing.dummy import Pool as ThreadPool
-import multiprocessing as mp
 import os
-from copy import deepcopy
 
 import src.my_utils as my_utils
 import src.policies as policies
@@ -22,12 +14,11 @@ import string
 
 T.set_num_threads(1)
 
-
 def f_wrapper(env, policy, animate):
     def f(w):
         reward = 0
         done = False
-        obs, _ = env.reset()
+        obs = env.reset()
 
         vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
 
@@ -59,8 +50,12 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    print("Env: {} Action space: {}, observation space: {}, N_params: {}, comments: ...".format(env.__class__.__name__, act_dim,
-                                                                                                obs_dim, len(w)))
+    weight_decay = 0.005
+
+    print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
+          " N_params: {}, ID: {}, wd = {}, comments: ...".format(
+        env.__class__.__name__, policy.__class__.__name__, act_dim, obs_dim, len(w), ID, weight_decay))
+
     it = 0
     try:
         while not es.stop():
@@ -73,25 +68,25 @@ def train(params):
                                                                   ID))
                 vector_to_parameters(torch.from_numpy(es.result.xbest).float(), policy.parameters())
                 T.save(policy, sdir)
-                print("Saved checkpoint")
-            X = es.ask()
+                print("Saved checkpoint, {}".format(sdir))
+
+            if weight_decay > 0:
+                sol = es.mean
+                sol_penalty = np.square(es.mean) * weight_decay
+                es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
+
+            X = es.ask(number=40)
             es.tell(X, [f(x) for x in X])
             es.disp()
+
     except KeyboardInterrupt:
         print("User interrupted process.")
 
     return es.result.fbest
 
 
-#from src.envs.hexapod_mjc import hexapod
-#env = hexapod.Hexapod()
-
-#from src.envs.hexapod_flat_mjc import hexapod
-#env = hexapod.Hexapod()
-
-# Centipede new
-from src.envs.centipede_mjc.centipede30_mjc_new import CentipedeMjc30 as centipede
-env = centipede()
+from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+env = hexapod_pd.Hexapod()
 
 policy = policies.NN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
@@ -100,12 +95,12 @@ TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, True, ID))
+    train((env, policy, 100000, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/Hexapod_NN_ENO_es.p")
+    policy = T.load("agents/Hexapod_FB_RNN_TQV_es.p")
+    print(policy.wstats())
     env.test(policy)
 
 print("Done.")
-

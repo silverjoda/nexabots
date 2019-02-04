@@ -21,36 +21,17 @@ class NN(nn.Module):
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.fc1 = nn.Linear(self.obs_dim, 32)
-        self.fc2 = nn.Linear(32, 32)
-        self.fc3 = nn.Linear(32, self.act_dim)
-
-        #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
-        self.log_std = T.zeros(1, self.act_dim)
+        self.fc1 = nn.Linear(self.obs_dim, 42)
+        self.fc2 = nn.Linear(42, 42)
+        self.fc3 = nn.Linear(42, self.act_dim)
 
 
     def forward(self, x):
         x = T.tanh(self.fc1(x))
         x = T.tanh(self.fc2(x))
-        x = T.tanh(self.fc3(x))
-
+        x = self.fc3(x)
         return x
 
-    def sample_action(self, s):
-        return T.normal(self.forward(s), T.exp(self.log_std))
-
-
-    def log_probs(self, batch_states, batch_actions):
-        # Get action means from policy
-        action_means = self.forward(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
 
 
 class ConvPolicy14(nn.Module):
@@ -1055,9 +1036,9 @@ class RNN(nn.Module):
         self.act_dim = env.act_dim
         self.hid_dim = 32
 
-        self.rnn = nn.RNNCell(self.obs_dim, self.hid_dim)
-        self.fc1 = nn.Linear(self.hid_dim, 32)
-        self.fc2 = nn.Linear(32, self.act_dim)
+        self.rnn = nn.RNNCell(self.hid_dim, self.hid_dim)
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.act_dim)
 
 
     def init_hidden(self):
@@ -1066,9 +1047,9 @@ class RNN(nn.Module):
 
     def forward(self, input):
         x, h = input
+        x = T.tanh(self.fc1(x))
         h_ = self.rnn(x, h)
-        x = T.tanh(self.fc1(h_))
-        x = T.tanh(self.fc2(x))
+        x = self.fc2(h_)
         return x, h_
 
 
@@ -1584,7 +1565,6 @@ class CM_MLP(nn.Module):
         x = F.relu(self.fc2(x))
         x = F.tanh(self.fc3(x))
         return x
-
 
 
 class CM_RNN(nn.Module):

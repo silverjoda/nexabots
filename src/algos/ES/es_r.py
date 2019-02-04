@@ -25,7 +25,7 @@ T.set_num_threads(1)
 def f_wrapper(env, policy, animate):
     def f(w):
         reward_total = 0
-        reps = 3
+        reps = 1
         vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
 
         for i in range(reps):
@@ -65,7 +65,7 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    weight_decay = 0.0
+    weight_decay = 0.005
 
     print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
           " N_params: {}, ID: {}, wd = {}, comments: ...".format(
@@ -105,21 +105,24 @@ def train(params):
 #from src.envs.ant_feelers_mjc import ant_feelers_mjc
 #env = ant_feelers_mjc.AntFeelersMjc()
 
-from src.envs.quad_feelers_mjc import quad_feelers_mjc
-env = quad_feelers_mjc.QuadFeelersMjc()
+#from src.envs.quad_feelers_mjc import quad_feelers_mjc
+#env = quad_feelers_mjc.QuadFeelersMjc()
 
-policy = policies.FB_RNN(env)
+from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+env = hexapod_pd.Hexapod()
+
+policy = policies.RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, True, ID))
+    train((env, policy, 100000, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/QuadFeelersMjc_FB_RNN_LYG_es.p")
+    policy = T.load("agents/Hexapod_FB_RNN_TQV_es.p")
     print(policy.wstats())
     env.test_recurrent(policy)
 

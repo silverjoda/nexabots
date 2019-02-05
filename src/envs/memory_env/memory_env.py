@@ -4,15 +4,14 @@ import src.my_utils as my_utils
 import time
 import os
 
-class CentipedeMjc8:
-    N = 8
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/Centipede{}_pd.xml".format(N))
-    def __init__(self, animate=False, sim=None):
+class MemoryEnv:
+    def __init__(self, animate=False):
         self.obs_dim = 2
         self.act_dim = 2
 
         # Environent inner parameters
         self.env_size = 10
+        self.N_points = self.env_size / 2
         self.step_ctr = 0
         self.max_steps = self.env_size * 2
 
@@ -20,17 +19,21 @@ class CentipedeMjc8:
 
 
     def render(self):
-        if self.viewer is None:
-            self.viewer = mujoco_py.MjViewer(self.sim)
-
-        self.viewer.render()
+        pass
 
 
     def step(self, ctrl):
+        if self.stage == 0:
+            pass
+        else:
+            pass
 
+        obs = self.get_obs()
 
+        r = 0
+        done = False
 
-        return obs, r, done, _
+        return obs, r, done, None
 
 
     def reset(self):
@@ -38,7 +41,24 @@ class CentipedeMjc8:
         # Reset env variables
         self.step_ctr = 0
 
-        return obs
+        # Set up board
+        self.board = np.zeros((self.env_size, 2))
+        self.current_pos = (0,0)
+        self.stage = 0
+
+        # Randomly set points
+        pts = np.random.choice(self.env_size, self.N_points, replace=False)
+        for p in pts:
+            self.board[p, np.random.randint(0,2)] = 1
+
+        return self.get_obs()
+
+
+    def get_obs(self):
+        if self.stage == 0:
+            return [self.board[self.current_pos[0] + 1], self.stage]
+        else:
+            return [self.board[self.current_pos[0] - 1], self.stage]
 
 
     def demo(self):
@@ -84,7 +104,7 @@ class CentipedeMjc8:
 
 
 if __name__ == "__main__":
-    ant = CentipedeMjc8(animate=True)
+    ant = MemoryEnv(animate=True)
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

@@ -269,7 +269,7 @@ if __name__=="__main__":
               "soft_q_lr": 1e-4,
               "policy_lr": 1e-4,
               "replay_buffer_size" : 1000000,
-              "render": False,
+              "render": True,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Gym env
@@ -277,11 +277,11 @@ if __name__=="__main__":
     #env = gym.make("HalfCheetah-v2")
 
     # Centipede new
-    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    #env = centipede()
+    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
+    env = centipede()
 
-    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    env = hexapod_pd.Hexapod()
+    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    #env = hexapod_pd.Hexapod()
 
     #from src.envs.ant_feelers_mjc import ant_feelers_mjc
     #env = ant_feelers_mjc.AntFeelersMjc()

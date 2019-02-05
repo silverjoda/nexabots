@@ -31,15 +31,18 @@ class CentipedeMjc30:
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
-        self.max_steps = 200
+        self.max_steps = 250
+
+        self.joints_rads_low = np.array(
+            [-0.65, 0.5, -0.65, 0.5] + [-0.2, -0.15, -0.65, 0.5, -0.65, 0.5] * (self.N_links - 1))
+        self.joints_rads_high = np.array([0.65, 1.6, 0.65, 1.6] + [0.2, 0.3, 0.65, 1.6, 0.65, 1.6] * (self.N_links - 1))
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # Initial methods
         if animate:
             self._setupcam()
 
         self.reset()
-
-        self.frames = []
 
     def _setupcam(self):
         if self.viewer is None:
@@ -50,6 +53,9 @@ class CentipedeMjc30:
         self.viewer.cam.lookat[1] = 0
         self.viewer.cam.lookat[2] = 0.5
         self.viewer.cam.elevation = -20
+
+    def scale_action(self, action):
+        return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
     def _get_jointvals(self):
         qpos = self.sim.get_state().qpos.tolist()
@@ -86,22 +92,10 @@ class CentipedeMjc30:
             self.viewer = mujoco_py.MjViewer(self.sim)
 
         self.viewer.render()
-        #
-        # cam_array = self.sim.render(camera_name="track", width=640, height=480)
-        #
-        # self.frames.append(cam_array)
-        #
-        # if len(self.frames) > 100:
-        #     writer = cv2.VideoWriter("output.avi", cv2.VideoWriter_fourcc(*"MJPG"), 60, (640, 480))
-        #     for f in self.frames:
-        #         writer.write(f.astype('uint8'))
-        #     writer.release()
-        #
-        #     exit()
-
-
 
     def step(self, ctrl):
+        ctrl = self.scale_action(ctrl)
+
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
         self.step_ctr += 1
@@ -127,27 +121,6 @@ class CentipedeMjc30:
 
         return obs, r, done, self.get_obs_dict()
 
-
-    def demo(self):
-        self.reset()
-        for i in range(1000):
-            self.step(np.random.randn(self.act_dim))
-            self.render()
-
-    def test(self, policy):
-        self.reset()
-        for i in range(100):
-            done = False
-            obs, _ = self.reset()
-            cr = 0
-            for i in range(3000):
-                action = policy(my_utils.to_tensor(obs, True)).detach()
-                obs, r, done, od, = self.step(action[0])
-                cr += r
-                time.sleep(0.001)
-                self.render()
-            print("Total episode reward: {}".format(cr))
-
     def reset(self):
 
         # Reset env variables
@@ -169,6 +142,52 @@ class CentipedeMjc30:
         self._set_state(init_q, init_qvel)
 
         return obs
+
+    def demo(self):
+        self.reset()
+        for i in range(1000):
+            # self.step(np.random.randn(self.act_dim))
+            # self.render()
+
+            for i in range(200):
+                self.step(np.ones(self.act_dim) * 1)
+                self.render()
+            for i in range(200):
+                self.step(np.ones(self.act_dim) * -1)
+                self.render()
+            for i in range(200):
+                self.step(np.ones(self.act_dim) * 0)
+                self.render()
+
+    def test(self, policy):
+        self.reset()
+        for i in range(100):
+            done = False
+            obs = self.reset()
+            cr = 0
+            for i in range(1000):
+                action = policy(my_utils.to_tensor(obs, True))[0].detach()
+                obs, r, done, od, = self.step(action[0])
+                cr += r
+                time.sleep(0.001)
+                self.render()
+            print("Total episode reward: {}".format(cr))
+
+    def test_recurrent(self, policy):
+        self.reset()
+        for i in range(100):
+            done = False
+            obs = self.reset()
+            h = policy.init_hidden()
+            cr = 0
+            while not done:
+                action, h_ = policy((my_utils.to_tensor(obs, True), h))
+                h = h_
+                obs, r, done, od, = self.step(action[0].detach())
+                cr += r
+                time.sleep(0.001)
+                self.render()
+            print("Total episode reward: {}".format(cr))
 
 
 if __name__ == "__main__":

@@ -50,7 +50,7 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    weight_decay = 0.005
+    weight_decay = 0.00
 
     print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
           " N_params: {}, ID: {}, wd = {}, comments: ...".format(
@@ -85,17 +85,21 @@ def train(params):
     return es.result.fbest
 
 
-from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-env = hexapod_pd.Hexapod()
+#from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+#env = hexapod_pd.Hexapod()
 
-policy = policies.NN(env)
+# Centipede new
+from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
+env = centipede()
+
+policy = policies.StatePolicy(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, False, ID))
+    train((env, policy, 100000, True, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:

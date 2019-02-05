@@ -129,5 +129,26 @@
     <position joint="coxa_ml" kp="30"/>
     <position joint="femur_ml" kp="30"/>
     <position joint="tibia_ml" kp="30"/>
+
+<!--
+    <motor joint="coxa_fl" gear="100"/>
+    <motor joint="femur_fl" gear="100"/>
+    <motor joint="tibia_fl" gear="100"/>
+    <motor joint="coxa_fr" gear="100"/>
+    <motor joint="femur_fr" gear="100"/>
+    <motor joint="tibia_fr" gear="100"/>
+    <motor joint="coxa_rr" gear="100"/>
+    <motor joint="femur_rr" gear="100"/>
+    <motor joint="tibia_rr" gear="100"/>
+    <motor joint="coxa_rl" gear="100"/>
+    <motor joint="femur_rl" gear="100"/>
+    <motor joint="tibia_rl" gear="100"/>
+    <motor joint="coxa_mr" gear="100"/>
+    <motor joint="femur_mr" gear="100"/>
+    <motor joint="tibia_mr" gear="100"/>
+    <motor joint="coxa_ml" gear="100"/>
+    <motor joint="femur_ml" gear="100"/>
+    <motor joint="tibia_ml" gear="100"/>
+    -->
   </actuator>
 </mujoco>

@@ -32,6 +32,7 @@ class Hexapod:
         self.viewer = None
         self.step_ctr = 0
         self.max_steps = 600
+
         self.ctrl_vecs = []
         self.dead_joint_idx = 0
         self.dead_leg_idx = 0
@@ -77,7 +78,7 @@ class Hexapod:
 
         # Contacts:
         od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1), 0, 1)
-
+        #od['contacts'] = np.zeros(6)
         return od
 
 
@@ -146,7 +147,7 @@ class Hexapod:
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps #or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
+        done = self.step_ctr > self.max_steps or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
 
         # if done:
         #     ctrl_sum = np.zeros(self.act_dim)
@@ -160,6 +161,30 @@ class Hexapod:
 
         return obs, r, done, obs_dict
 
+
+    def reset(self):  #
+        # Reset env variables
+        self.step_ctr = 0
+        self.ctrl_vecs = []
+        self.dead_joint_idx = np.random.randint(0, self.act_dim)
+        self.dead_leg_idx = np.random.randint(0, self.act_dim / 3)
+
+        # Sample initial configuration
+        init_q = np.zeros(self.q_dim, dtype=np.float32)
+        init_q[0] = np.random.randn() * 0.1
+        init_q[1] = np.random.randn() * 0.1
+        init_q[2] = 0.80 + np.random.rand() * 0.1
+        init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
+
+        obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
+
+        # Set environment state
+        self.set_state(init_q, init_qvel)
+
+        obs_dict = self.get_obs_dict()
+        obs = np.concatenate((obs, obs_dict["contacts"]))
+
+        return obs
 
     def demo(self):
         self.reset()
@@ -197,9 +222,8 @@ class Hexapod:
     def test_recurrent(self, policy):
         self.reset()
         for i in range(100):
-            done = False
             obs = self.reset()
-            h = policy.init_hidden()
+            h = None
             cr = 0
             for j in range(self.max_steps):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
@@ -211,29 +235,6 @@ class Hexapod:
             print("Total episode reward: {}".format(cr))
 
 
-    def reset(self): #
-        # Reset env variables
-        self.step_ctr = 0
-        self.ctrl_vecs = []
-        self.dead_joint_idx = np.random.randint(0, self.act_dim)
-        self.dead_leg_idx = np.random.randint(0, self.act_dim / 3)
-
-        # Sample initial configuration
-        init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.randn() * 0.1
-        init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.80 + np.random.rand() * 0.1
-        init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
-
-        obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
-
-        # Set environment state
-        self.set_state(init_q, init_qvel)
-
-        obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs, obs_dict["contacts"]))
-
-        return obs
 
 
 if __name__ == "__main__":

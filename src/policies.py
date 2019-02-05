@@ -33,7 +33,6 @@ class NN(nn.Module):
         return x
 
 
-
 class ConvPolicy14(nn.Module):
     def __init__(self, N):
         super(ConvPolicy14, self).__init__()
@@ -225,9 +224,10 @@ class RecPolicy(nn.Module):
 
 
 class StatePolicy(nn.Module):
-    def __init__(self, N):
+    def __init__(self, env):
         super(StatePolicy, self).__init__()
-        self.N_links = int(N / 2)
+        self.N_links = env.N_links
+        self.act_dim = self.N_links * 6 - 2
 
         # Rep conv
         self.conv_1 = nn.Conv1d(7, 7, kernel_size=3, stride=1, padding=1)
@@ -960,6 +960,14 @@ class RNN_PG(nn.Module):
         print("-------------------------------")
 
 
+    def rnn_params(self):
+        return self.batch_rnn.parameters()
+
+
+    def policy_params(self):
+        return list(self.fc1.parameters()) + list(self.fc2.parameters())
+
+
     def clip_grads(self):
         self.batch_rnn.weight_hh_l0.grad.clamp_(-0.5, 0.5)
         self.batch_rnn.weight_ih_l0.grad.clamp_(-0.5, 0.5)
@@ -1533,11 +1541,7 @@ class C_PhasePolicy_ES(nn.Module):
         self.step_phase()
 
         # Phases directly translate into torques
-        #acts = T.sin(self.phases.view(M, self.act_dim + 2))
-
-        # Phases are desired angles
-        refs = T.sin(self.phases)
-        acts = ((refs - jlrs) * 0.9).view(1, -1)
+        acts = T.sin(self.phases.view(M, self.act_dim + 2))
 
         return acts[:, 2:]
 

@@ -18,7 +18,8 @@ class AntFeelersMjc:
         self.model.opt.timestep = 0.04
         self.N_boxes = 4
 
-        self.max_steps = 400
+        self.max_steps = 600
+        print("WARNING: !!!! MAX STEPS = 300, DONE = MAXSTEPS")
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -120,7 +121,7 @@ class AntFeelersMjc:
         angle = 2 * np.arccos(qw)
 
         # Reevaluate termination condition.
-        done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
+        done = self.step_ctr > self.max_steps #or obs_dict['torso_contact'] > 0.1
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
@@ -171,7 +172,7 @@ class AntFeelersMjc:
         for i in range(100):
             done = False
             obs = self.reset()
-            h = policy.init_hidden()
+            h = None
             cr = 0
             self.max_steps = 600
             import matplotlib.pyplot as plt

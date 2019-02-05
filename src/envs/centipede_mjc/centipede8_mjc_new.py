@@ -33,7 +33,11 @@ class CentipedeMjc8:
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
-        self.max_steps = 200
+        self.max_steps = 250
+
+        self.joints_rads_low = np.array([-0.65, 0.5, -0.65, 0.5] + [-0.2, -0.15, -0.65, 0.5, -0.65, 0.5] * (self.N_links - 1))
+        self.joints_rads_high = np.array([0.65, 1.6, 0.65, 1.6] + [0.2, 0.3, 0.65, 1.6, 0.65, 1.6] * (self.N_links - 1))
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # Initial methods
         if animate:
@@ -51,6 +55,10 @@ class CentipedeMjc8:
         self.viewer.cam.lookat[1] = 0
         self.viewer.cam.lookat[2] = 0.5
         self.viewer.cam.elevation = -20
+
+
+    def scale_action(self, action):
+        return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
 
     def _get_jointvals(self):
@@ -94,6 +102,8 @@ class CentipedeMjc8:
 
 
     def step(self, ctrl):
+        ctrl = self.scale_action(ctrl)
+
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
         self.step_ctr += 1
@@ -120,11 +130,45 @@ class CentipedeMjc8:
         return obs, r, done, self.get_obs_dict()
 
 
+    def reset(self):
+
+        # Reset env variables
+        self.step_ctr = 0
+
+        # Sample initial configuration
+        init_q = np.zeros(self.q_dim, dtype=np.float32)
+        init_q[0] = np.random.randn() * 0.1
+        init_q[1] = np.random.randn() * 0.1
+        init_q[2] = 0.80 + np.random.rand() * 0.1
+        init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
+
+        obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
+
+        obs_dict = self.get_obs_dict()
+        obs = np.concatenate((obs, obs_dict["contacts"]))
+
+        # Set environment state
+        self._set_state(init_q, init_qvel)
+
+        return obs
+
+
+
     def demo(self):
         self.reset()
         for i in range(1000):
-            self.step(np.random.randn(self.act_dim))
-            self.render()
+            #self.step(np.random.randn(self.act_dim))
+            #self.render()
+
+            for i in range(200):
+                self.step(np.ones(self.act_dim) * 1)
+                self.render()
+            for i in range(200):
+                self.step(np.ones(self.act_dim) * -1)
+                self.render()
+            for i in range(200):
+                self.step(np.ones(self.act_dim) * 0)
+                self.render()
 
 
     def test(self, policy):
@@ -159,27 +203,6 @@ class CentipedeMjc8:
             print("Total episode reward: {}".format(cr))
 
 
-    def reset(self):
-
-        # Reset env variables
-        self.step_ctr = 0
-
-        # Sample initial configuration
-        init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.randn() * 0.1
-        init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.80 + np.random.rand() * 0.1
-        init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
-
-        obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
-
-        obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs, obs_dict["contacts"]))
-
-        # Set environment state
-        self._set_state(init_q, init_qvel)
-
-        return obs
 
 
 if __name__ == "__main__":

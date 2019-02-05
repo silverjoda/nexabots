@@ -13,10 +13,10 @@ import string
 
 def train(env, policy, params):
 
-    policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["w_decay"])
+    policy_optim = T.optim.Adam(policy.policy_params(), lr=params["policy_lr"], weight_decay=params["w_decay"])
+    rnn_optim = T.optim.Adam(policy.rnn_params(), lr=params["rnn_lr"], weight_decay=0.005)
 
     batch_states = []
-    batch_hiddens = []
     batch_actions = []
     batch_rewards = []
     batch_terminals = []
@@ -79,7 +79,7 @@ def train(env, policy, params):
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
             if params["ppo"]:
-                update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+                update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             else:
                 update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
@@ -102,7 +102,7 @@ def train(env, policy, params):
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 
-def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
+def update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages, update_iters):
     # Call logprobs on hidden states
     log_probs_old = policy.log_probs_batch(batch_states, batch_actions).detach()
 
@@ -120,6 +120,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         policy.print_info()
         policy.clip_grads()
         policy_optim.step()
+        rnn_optim.step()
 
 
 def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
@@ -162,13 +163,13 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.005, "w_decay" : 0.005, "V_lr": 0.007, "ppo": False,
-              "ppo_update_iters": 1, "animate": True, "train" : True,
+    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "rnn_lr": 0.01, "w_decay" : 0.005, "ppo": True,
+              "ppo_update_iters": 6, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
-    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    #env = ant_feelers_mjc.AntFeelersMjc()
+    from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    env = ant_feelers_mjc.AntFeelersMjc()
 
     # Hexapod
     #from src.envs.hexapod_flat_mjc import hexapod
@@ -180,8 +181,9 @@ if __name__=="__main__":
     #from src.envs.ant_reach_mjc import ant_reach_mjc
     #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
 
-    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    env = hexapod_pd.Hexapod()
+    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    #env = hexapod_pd.Hexapod()
+
 
     print(params, env.__class__.__name__)
 
@@ -192,7 +194,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/CentipedeMjc8_RNN_PG_QR8_pg.p')
+        policy = T.load('agents/AntFeelersMjc_RNN_PG_YFD_pg.p')
         env.test_recurrent(policy)
 
 

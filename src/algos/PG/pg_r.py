@@ -26,13 +26,12 @@ def train(env, policy, params):
 
     for i in range(params["iters"]):
         s_0 = env.reset()
-        h_0 = T.zeros(1, policy.hid_dim)
+        h_0 = None
         done = False
         step_ctr = 0
 
         # Episode lists
         episode_states = []
-        episode_hiddens = []
         episode_actions = []
 
         # Set sampling parameters to currently trained ones
@@ -57,7 +56,6 @@ def train(env, policy, params):
             # Record transition
             episode_states.append(my_utils.to_tensor(s_0, True))
             episode_actions.append(action)
-            episode_hiddens.append(h_0)
             batch_rewards.append(my_utils.to_tensor(np.asarray(r, dtype=np.float32), True))
             batch_terminals.append(done)
 
@@ -69,12 +67,11 @@ def train(env, policy, params):
 
         batch_states.append(T.cat(episode_states))
         batch_actions.append(T.cat(episode_actions))
-        batch_hiddens.append(T.cat(episode_hiddens))
+
 
         # If enough data gathered, then perform update
         if batch_ctr == params["batchsize"]:
             batch_states = T.stack(batch_states)
-            batch_hiddens = T.stack(batch_hiddens)
             batch_actions = T.stack(batch_actions)
             batch_rewards = T.cat(batch_rewards)
 
@@ -96,7 +93,6 @@ def train(env, policy, params):
             batch_states = []
             batch_actions = []
             batch_rewards = []
-            batch_hiddens = []
             batch_terminals = []
 
         if i % 1000 == 0 and i > 0:
@@ -166,7 +162,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.005, "w_decay" : 0.005, "V_lr": 0.007, "ppo": True,
+    params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.005, "w_decay" : 0.005, "V_lr": 0.007, "ppo": False,
               "ppo_update_iters": 1, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 

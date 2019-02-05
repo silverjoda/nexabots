@@ -102,8 +102,6 @@ class Hexapod:
 
 
     def step(self, ctrl):
-
-
         ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
@@ -148,7 +146,7 @@ class Hexapod:
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
+        done = self.step_ctr > self.max_steps #or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
 
         # if done:
         #     ctrl_sum = np.zeros(self.act_dim)

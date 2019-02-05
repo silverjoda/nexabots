@@ -31,6 +31,10 @@ class AntFeelersMjc:
         self.viewer = None
         self.step_ctr = 0
 
+        self.joints_rads_low = np.array([-0.7, 0.8] * 4 + [-1, -1, -1, -1])
+        self.joints_rads_high = np.array([0.7, 1.4] * 4 + [1, 1, 1, 1])
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
         # Initial methods
         if animate:
             self.setupcam()
@@ -47,6 +51,10 @@ class AntFeelersMjc:
         self.viewer.cam.lookat[1] = 0
         self.viewer.cam.lookat[2] = 0.5
         self.viewer.cam.elevation = -20
+
+
+    def scale_action(self, action):
+        return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
 
     def get_obs(self):
@@ -98,6 +106,7 @@ class AntFeelersMjc:
 
 
     def step(self, ctrl):
+        ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
@@ -127,13 +136,19 @@ class AntFeelersMjc:
     def demo(self):
         self.reset()
         for i in range(100):
-            self.reset()
-            for i in range(self.max_steps):
-                act = np.random.randn(self.act_dim)
-                #act[0:-4] = -1
-                #act[:] = 1
-                self.step(act)
-                self.render()
+            act = np.ones(self.act_dim)
+            self.step(act)
+            self.render()
+
+        for i in range(100):
+            act = np.ones(self.act_dim) * -1
+            self.step(act)
+            self.render()
+
+        for i in range(100):
+            act = np.zeros(self.act_dim)
+            self.step(act)
+            self.render()
 
 
     def test(self, policy):

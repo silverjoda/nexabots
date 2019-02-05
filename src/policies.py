@@ -926,8 +926,8 @@ class RNN_PG(nn.Module):
         self.act_dim = env.act_dim
         self.hid_dim = 64
 
-        self.rnn = nn.GRUCell(self.obs_dim, self.hid_dim)
-        self.batch_rnn = nn.GRU(input_size=self.obs_dim,
+        self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
+        self.batch_rnn = nn.LSTM(input_size=self.obs_dim,
                                 hidden_size=self.hid_dim,
                                 batch_first=True)
 
@@ -936,10 +936,6 @@ class RNN_PG(nn.Module):
         self.fc2 = nn.Linear(64, self.act_dim)
 
         self.log_std = T.zeros(1, self.act_dim)
-
-
-    def init_hidden(self):
-        return T.zeros((1, self.hid_dim))
 
 
     def print_info(self):
@@ -984,18 +980,17 @@ class RNN_PG(nn.Module):
 
     def forward(self, input):
         x, h = input
-        h_ = self.rnn(x, h)
-        x = T.tanh(self.fc1(h_))
-        x = T.tanh(self.fc2(x))
-        return x, h_
+        h_, c_ = self.rnn(x, h)
+        x = F.selu(self.fc1(h_))
+        x = self.fc2(x)
+        return x, (h_, c_)
 
 
     def forward_batch(self, batch_states):
-        h, hn = self.batch_rnn(batch_states)
-        h = h.squeeze(0)
-        x = T.tanh(self.fc1(h))
-        x = T.tanh(self.fc2(x))
-        return x, h
+        outputs, _ = self.batch_rnn(batch_states)
+        x = F.selu(self.fc1(outputs))
+        x = self.fc2(x)
+        return x
 
 
     def sample_action(self, s):
@@ -1018,7 +1013,7 @@ class RNN_PG(nn.Module):
 
     def log_probs_batch(self, batch_states, batch_actions):
         # Get action means from policy
-        action_means, h = self.forward_batch(batch_states)
+        action_means = self.forward_batch(batch_states)
 
         # Calculate probabilities
         log_std_batch = self.log_std.expand_as(action_means)

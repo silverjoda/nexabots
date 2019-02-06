@@ -3,10 +3,11 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
+from copy import deepcopy
 
 class MemoryEnv:
     def __init__(self, animate=False):
-        self.obs_dim = 4
+        self.obs_dim = 3
         self.act_dim = 1
 
         # Environent inner parameters
@@ -16,10 +17,6 @@ class MemoryEnv:
         self.max_steps = self.env_size * 2
 
         self.reset()
-
-
-    def render(self):
-        pass
 
 
     def step(self, ctrl):
@@ -65,31 +62,42 @@ class MemoryEnv:
 
 
     def get_obs(self):
-        inc = -1
         if self.stage == 0:
-            inc = 1
+            return [self.board[self.current_pos[0] + 1, 0],
+                    self.board[self.current_pos[0] + 1, 1],
+                    self.current_pos[1]]
+        else:
+            return [-1, -1, self.current_pos[1]]
 
-        return [self.board[self.current_pos[0] + inc, 0],
-                self.board[self.current_pos[0] + inc, 1],
-                self.current_pos[1],
-                self.stage]
+
+    def get_env_img(self):
+        img = np.tile(np.expand_dims(self.board, 2), (1,1,3))
+        img[self.current_pos[0], self.current_pos[1], 0] = 1
+        return img
 
 
     def test_recurrent(self, policy):
+        import cv2
+
         self.reset()
         for i in range(100):
             done = False
             obs = self.reset()
             h = None
             cr = 0
+            cv2.namedWindow('image')
             while not done:
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                h = h_
-                obs, r, done, od, = self.step(action[0].detach())
+                action_dist, h = policy((my_utils.to_tensor(obs, True), h))
+                action = np.argmax(action[0].detach().numpy())
+                obs, r, done, od, = self.step(action)
                 cr += r
                 time.sleep(0.001)
-                self.render()
-            print("Total episode reward: {}".format(cr))
 
+                cv2.imshow('image', self.get_env_img())
+                if cv2.waitKey(20) & 0xFF == 27:
+                    break
+
+            print("Total episode reward: {}".format(cr))
+        cv2.destroyAllWindows()
 
 

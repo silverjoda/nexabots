@@ -4,6 +4,7 @@ import src.my_utils as my_utils
 import time
 import os
 from math import sqrt, acos, fabs
+import queue
 
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
@@ -39,6 +40,10 @@ class Hexapod:
         self.joints_rads_low = np.array([-0.3, -1., 1.] * 6)
         self.joints_rads_high = np.array([0.3, 0, 2.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.rew_len = 1200
+        self.rew_list = [0] * self.rew_len
+        self.n_episodes = 0
 
         # Initial methods
         if animate:
@@ -148,18 +153,15 @@ class Hexapod:
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
-
-        # if done:
-        #     ctrl_sum = np.zeros(self.act_dim)
-        #     for cv in self.ctrl_vecs:
-        #         ctrl_sum += np.abs(np.array(cv))
-        #     ctrl_dev = np.abs(ctrl_sum - ctrl_sum.mean()).mean()
-        #
-        #     r -= ctrl_dev * 3
-
         obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"]))
+        #
+        # self.rew_list[self.n_episodes % self.rew_len] = r
+        # rew_mean = sum(self.rew_list) / self.rew_len
+        # self.n_episodes += 1
+        #
+        # print(rew_mean)
 
-        return obs, r, done, obs_dict
+        return obs, r - rew_mean, done, obs_dict
 
 
     def reset(self):  #

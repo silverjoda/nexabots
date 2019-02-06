@@ -203,15 +203,15 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 
 
 if __name__=="__main__":
-    T.set_num_threads(1) #
+    T.set_num_threads(1)
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new
-    from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
-    env = centipede()
+    #from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
+    #env = centipede()
 
     # Ant Reach
     #from src.envs.ant_reach_mjc import ant_reach_mjc
@@ -225,8 +225,8 @@ if __name__=="__main__":
     #from src.envs.ant_feelers_mjc import ant_feelers_mjc
     #env = ant_feelers_mjc.AntFeelersMjc()
 
-    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    #env = hexapod_pd.Hexapod()
+    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    env = hexapod_pd.Hexapod()
 
     #from src.envs.quad_feelers_mjc import quad_feelers_mjc
     #env = quad_feelers_mjc.QuadFeelersMjc()
@@ -234,12 +234,12 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.PhasePolicy(env)
+        policy = policies.NN_PG(env)
         print(params, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_YBQ_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_IRM_pg.p')
         env.test(policy)
 
 

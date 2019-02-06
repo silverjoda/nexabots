@@ -206,7 +206,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+              "ppo_update_iters": 6, "animate": False, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new
@@ -228,11 +228,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    # from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    # env = hexapod_pd.Hexapod()
-
-    #from src.envs.quad_feelers_mjc import quad_feelers_mjc
-    #env = quad_feelers_mjc.QuadFeelersMjc()
+    #from src.envs.hexapod_terrain_env import hexapod_terrain
+    #env = hexapod_terrain.Hexapod()
 
     from src.envs.ant_feelers_mem_mjc import ant_feelers_mjc
     env = ant_feelers_mjc.AntFeelersMjc()

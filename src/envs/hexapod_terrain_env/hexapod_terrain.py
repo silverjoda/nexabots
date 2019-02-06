@@ -4,7 +4,8 @@ import src.my_utils as my_utils
 import time
 import os
 from math import sqrt, acos, fabs
-import queue
+from src.envs.hexapod_terrain_env.hf_gen import Gen
+
 
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
@@ -18,6 +19,8 @@ class Hexapod:
         self.joints_rads_low = np.array([-0.3, -1., 1.] * 6)
         self.joints_rads_high = np.array([0.3, 0, 2.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.filegen = Gen()
 
         # Initial methods
         if animate:
@@ -131,6 +134,8 @@ class Hexapod:
 
 
     def reset(self):
+        self.filegen.generate()
+
         self.model = mujoco_py.load_model_from_path(self.modelpath)
         self.sim = mujoco_py.MjSim(self.model)
 

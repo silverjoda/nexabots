@@ -75,7 +75,7 @@ def train(params):
                 sol_penalty = np.square(es.mean) * weight_decay
                 es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
 
-            X = es.ask(number=40)
+            X = es.ask(number=20)
             es.tell(X, [f(x) for x in X])
             es.disp()
 

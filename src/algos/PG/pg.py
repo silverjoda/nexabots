@@ -225,11 +225,20 @@ if __name__=="__main__":
     #from src.envs.ant_feelers_mjc import ant_feelers_mjc
     #env = ant_feelers_mjc.AntFeelersMjc()
 
-    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    env = hexapod_pd.Hexapod()
+    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    #env = hexapod_pd.Hexapod()
+
+    # from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    # env = hexapod_pd.Hexapod()
 
     #from src.envs.quad_feelers_mjc import quad_feelers_mjc
     #env = quad_feelers_mjc.QuadFeelersMjc()
+
+    from src.envs.ant_feelers_mem_mjc import ant_feelers_mjc
+    env = ant_feelers_mjc.AntFeelersMjc()
+
+    #from src.envs.memory_env import memory_env
+    #env = memory_env.MemoryEnv()
 
     # Test
     if params["train"]:

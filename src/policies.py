@@ -825,6 +825,37 @@ class NN_PG(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
+
+class NN_PG_D(nn.Module):
+    def __init__(self, env):
+        super(NN_PG_D, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.hid_dim = 8
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
+
+
+    def forward(self, x):
+        x = F.selu(self.fc1(x))
+        x = F.selu(self.fc2(x))
+        x = F.softmax(self.fc3(x))
+        return x
+
+
+    def sample_action(self, s):
+        x = self.forward(s)
+        return x.multinomial(1)
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_softmax = self.forward(batch_states)
+        return T.log(action_softmax.gather(1, batch_actions.long()))
+
+
 class NN_PG_F(nn.Module):
     def __init__(self, env):
         super(NN_PG_F, self).__init__()
@@ -1116,7 +1147,7 @@ class RNN_PG_D(nn.Module):
 
     def sample_action(self, s):
         x, h = self.forward(s)
-        return T.argmax(x, dim=1, keepdim=True), h
+        return x.multinomial(1), h
 
 
     def log_probs_batch(self, batch_states, batch_actions):

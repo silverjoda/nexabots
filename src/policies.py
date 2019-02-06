@@ -1034,7 +1034,7 @@ class RNN_PG(nn.Module):
 
 class RNN_PG_D(nn.Module):
     def __init__(self, env):
-        super(RNN_PG, self).__init__()
+        super(RNN_PG_D, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
         self.hid_dim = 8
@@ -1103,47 +1103,26 @@ class RNN_PG_D(nn.Module):
         x, h = input
         h_, c_ = self.rnn(x, h)
         x = F.selu(self.fc1(h_))
-        x = self.fc2(x)
+        x = F.softmax(self.fc2(x), 1)
         return x, (h_, c_)
 
 
     def forward_batch(self, batch_states):
         outputs, _ = self.batch_rnn(batch_states)
         x = F.selu(self.fc1(outputs))
-        x = self.fc2(x)
+        x = F.softmax(self.fc2(x), 1)
         return x
 
 
     def sample_action(self, s):
         x, h = self.forward(s)
-        return T.argmax(x) * 2 - 1, h
-
-
-    def log_probs(self, batch_states, batch_hiddens, batch_actions):
-        # Get action means from policy
-        action_logits, _ = self.forward(batch_states, batch_hiddens)
-
-        # TODO: continue here
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(1, keepdim=True)
+        return T.argmax(x, dim=1, keepdim=True), h
 
 
     def log_probs_batch(self, batch_states, batch_actions):
         # Get action means from policy
-        action_means = self.forward_batch(batch_states)
-
-        # Calculate probabilities
-        log_std_batch = self.log_std.expand_as(action_means)
-        std = T.exp(log_std_batch)
-        var = std.pow(2)
-        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
-
-        return log_density.sum(2, keepdim=True)
+        action_softmax = self.forward_batch(batch_states)
+        return T.log(action_softmax.gather(2, batch_actions.long()))
 
 
 class RNN(nn.Module):

@@ -161,7 +161,7 @@ class Hexapod:
         #
         # print(rew_mean)
 
-        return obs, r - rew_mean, done, obs_dict
+        return obs, r, done, obs_dict
 
 
     def reset(self):  #

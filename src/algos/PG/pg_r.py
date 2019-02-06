@@ -117,7 +117,7 @@ def update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, bat
         loss.backward()
 
         # Step policy update
-        policy.print_info()
+        #policy.print_info()
         policy.clip_grads()
         policy_optim.step()
         rnn_optim.step()
@@ -163,13 +163,13 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "rnn_lr": 0.01, "w_decay" : 0.005, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+    params = {"iters": 100000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "rnn_lr": 0.003, "w_decay" : 0.005, "ppo": True,
+              "ppo_update_iters": 6, "animate": False, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
-    from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    env = ant_feelers_mjc.AntFeelersMjc()
+    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
+    #env = ant_feelers_mjc.AntFeelersMjc()
 
     # Hexapod
     #from src.envs.hexapod_flat_mjc import hexapod
@@ -184,13 +184,15 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
+    from src.envs.memory_env import memory_env
+    env = memory_env.MemoryEnv()
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env)
+        policy = policies.RNN_PG_D(env)
         train(env, policy, params)
     else:
         print("Testing")

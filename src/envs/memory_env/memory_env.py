@@ -4,11 +4,12 @@ import src.my_utils as my_utils
 import time
 import os
 from copy import deepcopy
+import cv2
 
 class MemoryEnv:
     def __init__(self, animate=False):
         self.obs_dim = 3
-        self.act_dim = 1
+        self.act_dim = 2
 
         # Environent inner parameters
         self.env_size = 10
@@ -17,6 +18,15 @@ class MemoryEnv:
         self.max_steps = self.env_size * 2
 
         self.reset()
+
+        if animate:
+            cv2.namedWindow('image')
+
+
+    def render(self):
+        if self.render_episode:
+            cv2.imshow('image', self.get_env_img())
+            cv2.waitKey(50)
 
 
     def step(self, ctrl):
@@ -37,7 +47,7 @@ class MemoryEnv:
             else:
                 done = True
 
-        r = self.board[self.current_pos[0]]
+        r = self.board[self.current_pos[0],self.current_pos[1]]
         obs = self.get_obs()
 
         return obs, r, done, None
@@ -47,6 +57,8 @@ class MemoryEnv:
 
         # Reset env variables
         self.step_ctr = 0
+
+        self.render_episode = np.random.rand() < 0.01
 
         # Set up board
         self.board = np.zeros((self.env_size, 2))
@@ -63,11 +75,14 @@ class MemoryEnv:
 
     def get_obs(self):
         if self.stage == 0:
-            return [self.board[self.current_pos[0] + 1, 0],
+            if self.current_pos[0] == (self.env_size - 1):
+                return np.array([-1, -1, self.current_pos[1]])
+
+            return np.array([self.board[self.current_pos[0] + 1, 0],
                     self.board[self.current_pos[0] + 1, 1],
-                    self.current_pos[1]]
+                    self.current_pos[1]])
         else:
-            return [-1, -1, self.current_pos[1]]
+            return np.array([-1, -1, self.current_pos[1]])
 
 
     def get_env_img(self):

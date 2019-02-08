@@ -117,7 +117,7 @@ class AntFeelersMjc:
 
     def reset(self):
         # Goal pos
-        self.goal_pos = np.random.rand(2) * 12 - 6
+        self.goal_pos = (np.random.rand(2) * 4 + 2) * (np.sign(np.random.randn(2)))
 
         # Generate new environment
         self.xmlgen.generate(self.N_boxes, self.goal_pos)

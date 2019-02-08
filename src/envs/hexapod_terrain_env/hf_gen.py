@@ -5,6 +5,54 @@ import torch
 import torch as T
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
+import cma
+
+class EvoGen():
+    def __init__(self, noise_dim):
+        super(EvoGen, self).__init__()
+        self.noise_dim = noise_dim
+
+        self.convnet = ConvGen(self.noise_dim)
+
+        self.w = parameters_to_vector(self.convnet.parameters()).detach().numpy()
+        self.es = cma.CMAEvolutionStrategy(self.w, 0.5)
+
+
+    def normalize_map(self, X):
+        return X
+
+
+    def ask(self, N):
+        # Get parameter candidates
+        W = self.es.ask(number=N)
+
+        # Generate candidate phenotypes
+        solutions = []
+        for w in W:
+            with torch.no_grad():
+                vector_to_parameters(torch.from_numpy(w).float(), self.convnet.parameters())
+                sol = self.convnet(np.random.randn(self.noise_dim)).squeeze(0).numpy()
+                solutions.append(self.normalize_map(sol))
+
+        return W, solutions
+
+
+    def tell(self, X, F):
+        self.es.tell(X, F)
+
+
+    def disp(self):
+        self.es.disp()
+
+
+    def get_best(self):
+        with torch.no_grad():
+            vector_to_parameters(torch.from_numpy(self.es.result.xbest).float(), self.convnet.parameters())
+            sol = self.convnet(np.random.randn(self.noise_dim)).squeeze(0).numpy()
+            return self.normalize_map(sol)
+
+
 
 class ConvGen(nn.Module):
     def __init__(self, noise_dim):
@@ -53,9 +101,7 @@ class Gen:
 
 
     def gen_conv(self):
-
         mat = self.convgen(T.randn(1, self.noise_dim)).detach().squeeze(0).numpy()
-
         mat *= 255
 
         mat[0, :] = 255

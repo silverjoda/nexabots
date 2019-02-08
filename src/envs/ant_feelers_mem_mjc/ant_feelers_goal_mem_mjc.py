@@ -14,7 +14,9 @@ class AntFeelersMjc:
 
         # Environent inner parameters
         self.step_ctr = 0
-        self.N_boxes = 15
+        self.N_boxes = 5
+        self.max_steps = 1000
+        self.mem_dim = 6
 
         self.joints_rads_low = np.array([-0.7, 0.8] * 4 + [-1, -1, -1, -1])
         self.joints_rads_high = np.array([0.7, 1.4] * 4 + [1, 1, 1, 1])
@@ -80,7 +82,7 @@ class AntFeelersMjc:
 
 
     def step(self, ctrl):
-        goal_dist_pre = np.square(self.goal_pos - self.sim.get_state().qpos.tolist()[:2]).sum()
+        goal_dist_pre = np.abs(self.goal_pos - self.sim.get_state().qpos.tolist()[:2]).sum()
 
         mem = ctrl[-self.mem_dim:]
         act = ctrl[:-self.mem_dim]
@@ -90,7 +92,7 @@ class AntFeelersMjc:
         self.sim.step()
         self.step_ctr += 1
 
-        goal_dist_post = np.square(self.goal_pos - self.sim.get_state().qpos.tolist()[:2]).sum()
+        goal_dist_post = np.abs(self.goal_pos - self.sim.get_state().qpos.tolist()[:2]).sum()
 
         obs_c = self.get_obs()
         obs_dict = self.get_obs_dict()
@@ -105,6 +107,7 @@ class AntFeelersMjc:
 
         ctrl_effort = np.square(ctrl[0:8]).mean() * 0.00
         target_progress = (goal_dist_pre - goal_dist_post) * 50
+        #print(target_progress)
 
         obs = np.concatenate((self.goal_pos - obs_c[:2], obs_c[2:], obs_dict["contacts"], [obs_dict['torso_contact']], mem))
         r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.05 - angle * 0.0
@@ -114,7 +117,7 @@ class AntFeelersMjc:
 
     def reset(self):
         # Goal pos
-        self.goal_pos = np.random.rand(2) * 10 - 5
+        self.goal_pos = np.random.rand(2) * 12 - 6
 
         # Generate new environment
         self.xmlgen.generate(self.N_boxes, self.goal_pos)
@@ -124,13 +127,11 @@ class AntFeelersMjc:
         self.sim = mujoco_py.MjSim(self.model)
 
         self.model.opt.timestep = 0.04
-        self.max_steps = 600
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.mem_dim = 6
 
         self.obs_dim = self.q_dim + self.qvel_dim + 7 + self.mem_dim
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim

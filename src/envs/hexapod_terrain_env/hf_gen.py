@@ -12,11 +12,19 @@ class EvoGen():
     def __init__(self, noise_dim):
         super(EvoGen, self).__init__()
         self.noise_dim = noise_dim
+        self.pop_size = 20
 
         self.convnet = ConvGen(self.noise_dim)
 
         self.w = parameters_to_vector(self.convnet.parameters()).detach().numpy()
         self.es = cma.CMAEvolutionStrategy(self.w, 0.5)
+
+        self.candidates = []
+
+
+    def generate(self):
+        if len(self.candidates) == 0:
+            self.candidates = self.ask(self.pop_size)
 
 
     def normalize_map(self, X):

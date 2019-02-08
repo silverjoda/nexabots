@@ -205,8 +205,8 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 300000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True,
+    params = {"iters": 500000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+              "ppo_update_iters": 6, "animate": True, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new
@@ -231,8 +231,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
 
-    from src.envs.ant_feelers_mem_mjc import ant_feelers_mjc
-    env = ant_feelers_mjc.AntFeelersMjc()
+    from src.envs.ant_feelers_mem_mjc import ant_feelers_goal_mem_mjc
+    env = ant_feelers_goal_mem_mjc.AntFeelersMjc()
 
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
@@ -241,11 +241,9 @@ if __name__=="__main__":
     if params["train"]:
         print("Training")
         policy = policies.NN_PG(env)
-        print(params, env.__class__.__name__, policy.__class__.__name__)
+        print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_IRM_pg.p')
+        policy = T.load('agents/AntFeelersMjc_NN_PG_WMJ_pg.p')
         env.test(policy)
-
-

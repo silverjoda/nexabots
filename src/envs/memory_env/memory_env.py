@@ -8,8 +8,9 @@ import cv2
 
 class MemoryEnv:
     def __init__(self, animate=False):
-        self.obs_dim = 3
-        self.act_dim = 2
+        self.mem_dim = 1
+        self.obs_dim = 3 + self.mem_dim
+        self.act_dim = 1 + self.mem_dim
 
         # Environent inner parameters
         self.env_size = 10
@@ -30,9 +31,13 @@ class MemoryEnv:
 
 
     def step(self, ctrl):
+        mem = ctrl[-self.mem_dim:]
+        act = ctrl[:-self.mem_dim]
+
+        act = 1 if act > 0 else 0
         done = False
 
-        if ctrl == 1:
+        if act == 1:
             self.current_pos[1] = 1 - self.current_pos[1]
 
         if self.stage == 0:
@@ -48,7 +53,7 @@ class MemoryEnv:
                 done = True
 
         r = self.board[self.current_pos[0],self.current_pos[1]]
-        obs = self.get_obs()
+        obs = np.concatenate((self.get_obs(), mem))
 
         return obs, r, done, None
 
@@ -70,7 +75,7 @@ class MemoryEnv:
         for p in pts:
             self.board[p, np.random.randint(0,2)] = 1
 
-        return self.get_obs()
+        return np.concatenate((self.get_obs(), np.zeros(self.mem_dim)))
 
 
     def get_obs(self):
@@ -89,6 +94,29 @@ class MemoryEnv:
         img = np.tile(np.expand_dims(self.board, 2), (1,1,3))
         img[self.current_pos[0], self.current_pos[1], 0] = 1
         return img
+
+
+    def test(self, policy):
+        import cv2
+
+        self.reset()
+        for i in range(100):
+            done = False
+            obs = self.reset()
+            cr = 0
+            cv2.namedWindow('image')
+            while not done:
+                action = policy((my_utils.to_tensor(obs, True)))
+                obs, r, done, od, = self.step(action.detach().numpy())
+                cr += r
+                time.sleep(0.4)
+
+                cv2.imshow('image', self.get_env_img())
+                if cv2.waitKey(20) & 0xFF == 27:
+                    break
+
+            print("Total episode reward: {}".format(cr))
+        cv2.destroyAllWindows()
 
 
     def test_recurrent(self, policy):

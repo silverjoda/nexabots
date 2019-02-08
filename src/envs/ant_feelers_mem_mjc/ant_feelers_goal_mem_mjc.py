@@ -3,40 +3,22 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
+import src.envs.ant_feelers_mem_mjc.xml_gen as xml_gen
 
 class AntFeelersMjc:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "ant_feelers.xml")
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "afgm_env.xml")
     def __init__(self, animate=False):
-
+        self.animate = animate
         self.modelpath = AntFeelersMjc.MODELPATH
-        self.model = mujoco_py.load_model_from_path(self.modelpath)
-        self.sim = mujoco_py.MjSim(self.model)
-
-        self.model.opt.timestep = 0.04
-        self.N_boxes = 4
-
-        self.max_steps = 600
-
-        # Environment dimensions
-        self.q_dim = self.sim.get_state().qpos.shape[0]
-        self.qvel_dim = self.sim.get_state().qvel.shape[0]
-
-        self.mem_dim = 6
-
-        self.obs_dim = self.q_dim + self.qvel_dim - 7 * self.N_boxes - 6 * self.N_boxes + 7 - 2 + self.mem_dim
-        self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
+        self.xmlgen = xml_gen.Gen()
 
         # Environent inner parameters
-        self.viewer = None
         self.step_ctr = 0
+        self.N_boxes = 15
 
         self.joints_rads_low = np.array([-0.7, 0.8] * 4 + [-1, -1, -1, -1])
         self.joints_rads_high = np.array([0.7, 1.4] * 4 + [1, 1, 1, 1])
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
-
-        # Initial methods
-        if animate:
-            self.setupcam()
 
         self.reset()
 
@@ -59,13 +41,6 @@ class AntFeelersMjc:
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        a = qpos + qvel
-        return np.asarray(a, dtype=np.float32)
-
-
-    def get_robot_obs(self):
-        qpos = self.sim.get_state().qpos.tolist()[: - 7 * self.N_boxes]
-        qvel = self.sim.get_state().qvel.tolist()[: - 6 * self.N_boxes]
         a = qpos + qvel
         return np.asarray(a, dtype=np.float32)
 
@@ -105,6 +80,8 @@ class AntFeelersMjc:
 
 
     def step(self, ctrl):
+        goal_dist_pre = np.square(self.goal_pos - self.sim.get_state().qpos.tolist()[:2]).sum()
+
         mem = ctrl[-self.mem_dim:]
         act = ctrl[:-self.mem_dim]
         sact = self.scale_action(act)
@@ -113,8 +90,9 @@ class AntFeelersMjc:
         self.sim.step()
         self.step_ctr += 1
 
-        #print(self.sim.data.ncon) # Prints amount of current contacts
-        obs_c = self.get_robot_obs()
+        goal_dist_post = np.square(self.goal_pos - self.sim.get_state().qpos.tolist()[:2]).sum()
+
+        obs_c = self.get_obs()
         obs_dict = self.get_obs_dict()
 
         x, y, z, qw, qx, qy, qz = obs_c[:7]
@@ -126,18 +104,40 @@ class AntFeelersMjc:
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
         ctrl_effort = np.square(ctrl[0:8]).mean() * 0.00
-        target_progress = xd * 1.
+        target_progress = (goal_dist_pre - goal_dist_post) * 50
 
-        obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']], mem))
+        obs = np.concatenate((self.goal_pos - obs_c[:2], obs_c[2:], obs_dict["contacts"], [obs_dict['torso_contact']], mem))
         r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.05 - angle * 0.0
 
         return obs, r, done, obs_dict
 
 
     def reset(self):
+        # Goal pos
+        self.goal_pos = np.random.rand(2) * 10 - 5
+
+        # Generate new environment
+        self.xmlgen.generate(self.N_boxes, self.goal_pos)
+
+        # Reset the model
+        self.model = mujoco_py.load_model_from_path(self.modelpath)
+        self.sim = mujoco_py.MjSim(self.model)
+
+        self.model.opt.timestep = 0.04
+        self.max_steps = 600
+
+        # Environment dimensions
+        self.q_dim = self.sim.get_state().qpos.shape[0]
+        self.qvel_dim = self.sim.get_state().qvel.shape[0]
+
+        self.mem_dim = 6
+
+        self.obs_dim = self.q_dim + self.qvel_dim + 7 + self.mem_dim
+        self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Reset env variables
         self.step_ctr = 0
+        self.viewer = None
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
@@ -146,16 +146,12 @@ class AntFeelersMjc:
         init_q[2] = 0.80 + np.random.rand() * 0.1
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
-        r = self.q_dim - self.N_boxes * 7
-        for i in range(self.N_boxes):
-            init_q[r + i * 7 :r + i * 7 + 3] = [i * 2.2 + 1.7, np.clip(np.random.randn() * 1.0, -1.8, 1.8), 0.6]
-
         # Set environment state
         self.set_state(init_q, init_qvel)
-        obs = np.concatenate((init_q[: - 7 * self.N_boxes], init_qvel[: - 6 * self.N_boxes])).astype(np.float32)
+        obs = np.concatenate((init_q, init_qvel)).astype(np.float32)
 
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs[2:], obs_dict["contacts"], [obs_dict["torso_contact"]], np.zeros(self.mem_dim)))
+        obs = np.concatenate((self.goal_pos - obs[:2], obs[2:], obs_dict["contacts"], [obs_dict["torso_contact"]], np.zeros(self.mem_dim)))
 
         return obs
 
@@ -213,30 +209,7 @@ class AntFeelersMjc:
                 time.sleep(0.001)
                 self.render()
 
-
-            # plt.subplot(4, 1, 1)
-            # plt.plot(range(len(acts)), [a[8] for a in acts], 'r')
-            # plt.title('lf1')
-            #
-            # plt.subplot(4, 1,2)
-            # plt.plot(range(len(acts)), [a[9] for a in acts], 'g')
-            # plt.xlabel('lf2')
-            #
-            # plt.subplot(4, 1, 3)
-            # plt.plot(range(len(acts)), [a[10] for a in acts], 'b')
-            # plt.xlabel('rf1')
-
-            #
-            # plt.subplot(4, 1, 4)
-            # plt.plot(range(len(acts)), [a[11] for a in acts], 'k')
-            # plt.xlabel('rf2')
-            #
-            # plt.show()
-
             print("Total episode reward: {}".format(cr))
-
-
-
 
 if __name__ == "__main__":
     ant = AntFeelersMjc(animate=True)

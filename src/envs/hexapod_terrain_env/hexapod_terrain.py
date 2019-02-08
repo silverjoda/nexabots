@@ -15,6 +15,7 @@ class Hexapod:
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 600
+        self.mem_dim = 1
 
         self.joints_rads_low = np.array([-0.3, -1., 1.] * 6)
         self.joints_rads_high = np.array([0.3, 0, 2.] * 6)
@@ -85,7 +86,9 @@ class Hexapod:
 
 
     def step(self, ctrl):
-        ctrl = self.scale_action(ctrl)
+        mem = ctrl[-self.mem_dim:]
+        act = ctrl[:-self.mem_dim]
+        ctrl = self.scale_action(act)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -128,7 +131,7 @@ class Hexapod:
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps or (abs(angle) > 1.4 and self.step_ctr > 30) or abs(y) > 1.2
-        obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"]))
+        obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
         return obs, r, done, obs_dict
 
@@ -145,12 +148,11 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6
-        self.act_dim = self.sim.data.actuator_length.shape[0]
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim
+        self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
         self.viewer = None
-        self.step_ctr = 0
 
         # Reset env variables
         self.step_ctr = 0
@@ -171,7 +173,7 @@ class Hexapod:
         self.set_state(init_q, init_qvel)
 
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs, obs_dict["contacts"]))
+        obs = np.concatenate((obs, obs_dict["contacts"], np.zeros(self.mem_dim)))
 
         return obs
 

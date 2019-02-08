@@ -41,7 +41,9 @@ def f_wrapper(env, policy, animate):
                     act, h_1 = policy((my_utils.to_tensor(obs, True), h_0))
 
                 # Step environment
-                obs, rew, done, _ = env.step(act.squeeze(0).numpy())
+                act = act.squeeze(0).numpy()
+                #act = np.array([-1,0])
+                obs, rew, done, _ = env.step(act)
 
                 if animate:
                     env.render()
@@ -108,8 +110,11 @@ def train(params):
 #from src.envs.quad_feelers_mjc import quad_feelers_mjc
 #env = quad_feelers_mjc.QuadFeelersMjc()
 
-from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-env = hexapod_pd.Hexapod()
+#from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+#env = hexapod_pd.Hexapod()
+
+from src.envs.memory_env import memory_env
+env = memory_env.MemoryEnv()
 
 policy = policies.RNN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))

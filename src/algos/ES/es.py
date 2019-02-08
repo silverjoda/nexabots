@@ -75,7 +75,7 @@ def train(params):
                 sol_penalty = np.square(es.mean) * weight_decay
                 es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
 
-            X = es.ask(number=20)
+            X = es.ask()
             es.tell(X, [f(x) for x in X])
             es.disp()
 
@@ -89,22 +89,25 @@ def train(params):
 #env = hexapod_pd.Hexapod()
 
 # Centipede new
-from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
-env = centipede()
+#from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
+#env = centipede()
 
-policy = policies.StatePolicy(env)
+from src.envs.memory_env import memory_env
+env = memory_env.MemoryEnv()
+
+policy = policies.NN_D(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 100000, True, ID))
+    train((env, policy, 300, True, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/Hexapod_FB_RNN_TQV_es.p")
-    print(policy.wstats())
+    policy = T.load("agents/MemoryEnv_NN_D_RE9_es.p")
+    #print(policy.wstats())
     env.test(policy)
 
 print("Done.")

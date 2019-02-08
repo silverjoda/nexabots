@@ -33,6 +33,40 @@ class NN(nn.Module):
         return x
 
 
+class NN_D(nn.Module):
+    def __init__(self, env):
+        super(NN_D, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = 12
+
+        self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
+
+
+    def forward(self, x):
+        x = T.tanh(self.fc1(x))
+        x = T.tanh(self.fc2(x))
+        x = F.softmax(self.fc3(x))
+        x = T.argmax(x, 1, keepdim=True)
+        return x
+
+
+class RND_D(nn.Module):
+    def __init__(self, env):
+        super(RND_D, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.dummy = nn.Linear(1,1)
+
+
+    def forward(self, _):
+        x = T.randn(1, self.act_dim)
+        return T.argmax(x, 1, keepdim=True)
+
+
 class ConvPolicy14(nn.Module):
     def __init__(self, N):
         super(ConvPolicy14, self).__init__()
@@ -808,6 +842,7 @@ class NN_PG(nn.Module):
         x = self.fc3(x)
         return x
 
+
     def sample_action(self, s):
         return T.normal(self.forward(s), T.exp(self.log_std))
 
@@ -823,7 +858,6 @@ class NN_PG(nn.Module):
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
         return log_density.sum(1, keepdim=True)
-
 
 
 class NN_PG_D(nn.Module):
@@ -1161,7 +1195,7 @@ class RNN(nn.Module):
         super(RNN, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = 32
+        self.hid_dim = 8
 
         self.rnn = nn.RNNCell(self.hid_dim, self.hid_dim)
         self.fc1 = nn.Linear(self.obs_dim, self.hid_dim)

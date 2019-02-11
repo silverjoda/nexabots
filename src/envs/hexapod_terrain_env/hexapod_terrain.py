@@ -16,7 +16,7 @@ class Hexapod:
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 800
         self.mem_dim = 8
-        self.cumulative_environment_reward = 0
+        self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.3, -1., 1.] * 6)
         self.joints_rads_high = np.array([0.3, 0, 2.] * 6)

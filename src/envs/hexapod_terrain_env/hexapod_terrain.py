@@ -4,7 +4,7 @@ import src.my_utils as my_utils
 import time
 import os
 from math import sqrt, acos, fabs
-from src.envs.hexapod_terrain_env.hf_gen import Gen, EvoGen
+from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen
 
 
 class Hexapod:
@@ -14,13 +14,15 @@ class Hexapod:
         print([sqrt(l**2 + l**2) for l in [0.1, 0.3, 0.4]])
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 600
-        self.mem_dim = 1
+        self.max_steps = 800
+        self.mem_dim = 8
+        self.cumulative_environment_reward = 0
 
         self.joints_rads_low = np.array([-0.3, -1., 1.] * 6)
         self.joints_rads_high = np.array([0.3, 0, 2.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
+        #self.envgen = ManualGen(12)
         self.envgen = EvoGen(12)
 
         # Initial methods
@@ -123,11 +125,10 @@ class Hexapod:
               - contact_cost * 0.0,
               - height_pen * 0.05)
 
-        # 1.0 with 0.1 pens # 1.4 with 0.3 pens # 1.2 with 0.9 pens
-        #print(rV)
 
         r = sum(rV)
         obs_dict['rV'] = rV
+        self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 2
@@ -137,7 +138,9 @@ class Hexapod:
 
 
     def reset(self):
+        self.envgen.feedback(self.cumulative_environment_reward)
         self.envgen.generate()
+        self.cumulative_environment_reward = 0
 
         self.model = mujoco_py.load_model_from_path(self.modelpath)
         self.sim = mujoco_py.MjSim(self.model)

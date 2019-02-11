@@ -11,47 +11,62 @@ import cma
 class EvoGen():
     def __init__(self, noise_dim):
         super(EvoGen, self).__init__()
+        self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                     "assets/hf_gen.png")
+
         self.noise_dim = noise_dim
         self.pop_size = 20
+        self.weight_decay = 0.01
 
         self.convnet = ConvGen(self.noise_dim)
 
         self.w = parameters_to_vector(self.convnet.parameters()).detach().numpy()
+        print("N_conv params: {}".format(len(self.w)))
         self.es = cma.CMAEvolutionStrategy(self.w, 0.5)
 
         self.candidates = []
+        self.candidate_scores = []
+        self.candidate_idx = -1
 
 
     def generate(self):
-        if len(self.candidates) == 0:
-            self.candidates = self.ask(self.pop_size)
+        if self.candidate_idx == -1:
+            self.candidates = self.es.ask(self.pop_size)
+            self.candidate_scores = []
+            self.candidate_idx = 0
+
+        if self.candidate_idx == self.pop_size:
+            # Tell candidate scores
+            self.es.tell(self.candidates, self.candidate_scores)
+            self.candidates = self.es.ask(self.pop_size)
+            if self.weight_decay > 0:
+                self.candidates = [self.decay(c, self.weight_decay) for c in self.candidates]
+            self.candidate_scores = []
+            self.candidate_idx = 0
+            self.es.disp()
+
+        candidate = self.candidates[self.candidate_idx]
+        self.candidate_idx += 1
+        vector_to_parameters(torch.from_numpy(candidate).float(), self.convnet.parameters())
+        seed_noise = T.randn(1, self.noise_dim)
+        with T.no_grad():
+            mat = self.convnet(seed_noise)[0].numpy()
+        mat = self.normalize_map(mat)
+
+        mat[0, :] = 255
+        mat[:, 0] = 255
+        mat[-1, :] = 255
+        mat[:, -1] = 255
+
+        cv2.imwrite(self.filename, mat)
+
+
+    def feedback(self, r):
+        self.candidate_scores.append(-r - np.abs(cv2.imread(self.filename)) * 0.0001)
 
 
     def normalize_map(self, X):
         return X
-
-
-    def ask(self, N):
-        # Get parameter candidates
-        W = self.es.ask(number=N)
-
-        # Generate candidate phenotypes
-        solutions = []
-        for w in W:
-            with torch.no_grad():
-                vector_to_parameters(torch.from_numpy(w).float(), self.convnet.parameters())
-                sol = self.convnet(np.random.randn(self.noise_dim)).squeeze(0).numpy()
-                solutions.append(self.normalize_map(sol))
-
-        return W, solutions
-
-
-    def tell(self, X, F):
-        self.es.tell(X, F)
-
-
-    def disp(self):
-        self.es.disp()
 
 
     def get_best(self):
@@ -61,6 +76,10 @@ class EvoGen():
             return self.normalize_map(sol)
 
 
+    def decay(self, w, l):
+        wpen = np.square(w) * l
+        return w - wpen * (w > 0) + wpen * (w < 0)
+
 
 class ConvGen(nn.Module):
     def __init__(self, noise_dim):
@@ -69,7 +88,14 @@ class ConvGen(nn.Module):
 
         self.c1 = nn.ConvTranspose2d(self.noise_dim, 4, kernel_size=(3,5), stride=(1,2))
         self.c2 = nn.ConvTranspose2d(4, 3, kernel_size=(3,5), stride=(1,2))
-        self.c3 = nn.ConvTranspose2d(3, 1, kernel_size=(3,5), stride=(1,2))
+        self.c3 = nn.ConvTranspose2d(3, 4, kernel_size=(3,5), stride=(1,2))
+
+        T.nn.init.xavier_normal(self.c1.weight)
+        self.c1.bias.data.fill_(0.01)
+        T.nn.init.xavier_normal(self.c2.weight)
+        self.c2.bias.data.fill_(0.01)
+        T.nn.init.xavier_normal(self.c3.weight)
+        self.c3.bias.data.fill_(0.01)
 
 
     def forward(self, z):
@@ -81,13 +107,14 @@ class ConvGen(nn.Module):
         out = F.leaky_relu(self.c2(out))
         out = F.upsample(out, scale_factor=2)
 
-        out = F.sigmoid(self.c3(out))
-        out = F.upsample(out, size=(30, 120))
+        out = F.tanh(self.c3(out))
+        out = F.upsample(out, size=(30, 30))
 
-        return out.view(-1, 30, 120)
+        return out.view(-1, 30, 120) * 70 + 70
 
-class Gen:
-    def __init__(self):
+
+class ManualGen:
+    def __init__(self, noise_dim):
         self.N = 120
         self.M = 30
         self.div = 5
@@ -95,10 +122,17 @@ class Gen:
         self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "assets/hf_gen.png")
 
-        self.noise_dim = 8
+        self.noise_dim = noise_dim
         self.convgen = ConvGen(self.noise_dim)
 
+        self.genfun = self.gen_conv
+
+
     def generate(self):
+        self.genfun()
+
+
+    def gen_manual(self):
         mat = np.random.randint(0, 70, size=(self.M // self.div, self.N // self.div), dtype=np.uint8).repeat(self.div, axis=0).repeat(self.div,
                                                                                                              axis=1)
         mat[0, :] = 255
@@ -110,7 +144,6 @@ class Gen:
 
     def gen_conv(self):
         mat = self.convgen(T.randn(1, self.noise_dim)).detach().squeeze(0).numpy()
-        mat *= 255
 
         mat[0, :] = 255
         mat[:, 0] = 255
@@ -119,5 +152,5 @@ class Gen:
         cv2.imwrite(self.filename, mat)
 
 if __name__ == "__main__":
-    gen = Gen()
+    gen = ManualGen(12)
     gen.gen_conv()

@@ -50,7 +50,7 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    weight_decay = 0.00
+    weight_decay = 0.01
 
     print("Env: {}, Policy: {}, Action space: {}, observation space: {},"
           " N_params: {}, ID: {}, wd = {}, comments: ...".format(
@@ -70,12 +70,15 @@ def train(params):
                 T.save(policy, sdir)
                 print("Saved checkpoint, {}".format(sdir))
 
-            if weight_decay > 0:
-                sol = es.mean
-                sol_penalty = np.square(es.mean) * weight_decay
-                es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
+            # if weight_decay > 0:
+            #     sol = es.mean
+            #     sol_penalty = np.square(es.mean) * weight_decay
+            #     es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
 
+            print(es.mean.min(), es.mean.max())
             X = es.ask()
+            if weight_decay > 0:
+                X = [decay(x, weight_decay) for x in X]
             es.tell(X, [f(x) for x in X])
             es.disp()
 
@@ -85,24 +88,29 @@ def train(params):
     return es.result.fbest
 
 
-#from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-#env = hexapod_pd.Hexapod()
+def decay(w, l):
+    wpen = np.square(w) * l
+    return w - wpen * (w > 0) + wpen * (w < 0)
+
+
+from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+env = hexapod_pd.Hexapod()
 
 # Centipede new
 #from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
 #env = centipede()
 
-from src.envs.memory_env import memory_env
-env = memory_env.MemoryEnv()
+#from src.envs.memory_env import memory_env
+#env = memory_env.MemoryEnv()
 
-policy = policies.NN_D(env)
+policy = policies.NN(env)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 300, True, ID))
+    train((env, policy, 300, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:

@@ -228,11 +228,11 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    #from src.envs.hexapod_terrain_env import hexapod_terrain
-    #env = hexapod_terrain.Hexapod()
+    from src.envs.hexapod_terrain_env import hexapod_terrain
+    env = hexapod_terrain.Hexapod()
 
-    from src.envs.ant_feelers_mem_mjc import ant_feelers_goal_mem_mjc
-    env = ant_feelers_goal_mem_mjc.AntFeelersMjc()
+    #from src.envs.ant_feelers_mem_mjc import ant_feelers_goal_mem_mjc
+    #env = ant_feelers_goal_mem_mjc.AntFeelersMjc()
 
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()

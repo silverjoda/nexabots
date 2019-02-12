@@ -14,9 +14,11 @@ class EvoGen():
         self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                      "assets/hf_gen.png")
 
+        self.sdir = "terrain_evogen_es.p".format()
+
         self.noise_dim = noise_dim
         self.pop_size = 24
-        self.weight_decay = 0.0
+        self.weight_decay = 0.01
 
         self.convnet = ConvGen(self.noise_dim)
 
@@ -28,6 +30,32 @@ class EvoGen():
 #        self.es.tell(self.candidates, [0.] * self.pop_size)
         self.candidate_scores = []
         self.candidate_idx = 0
+
+
+    def save(self):
+        vector_to_parameters(torch.from_numpy(self.es.result.xbest).float(), self.convnet.parameters())
+        T.save(self.convnet, self.sdir)
+        print("Saved checkpoint, {}".format(self.sdir))
+
+
+    def load(self):
+        self.convnet = T.load(self.sdir)
+        print("Loaded checkpoint, {}".format(self.sdir))
+
+
+    def test_generate(self):
+        print("Generating from loaded net")
+        seed_noise = T.randn(1, self.noise_dim)
+        with T.no_grad():
+            mat = self.convnet(seed_noise)[0].numpy()
+        mat = self.normalize_map(mat)
+
+        mat[0, :] = 255
+        mat[:, 0] = 255
+        mat[-1, :] = 255
+        mat[:, -1] = 255
+
+        cv2.imwrite(self.filename, mat)
 
 
     def generate(self):
@@ -107,7 +135,7 @@ class ConvGen(nn.Module):
         out = T.tanh(self.c3(out))
         out = F.interpolate(out, size=(30, 30))
 
-        return out.view(-1, 30, 120) * 70 + 70
+        return out.view(-1, 30, 120) * 50 + 50
 
 
 class ManualGen:
@@ -147,6 +175,35 @@ class ManualGen:
         mat[-1, :] = 255
         mat[:, -1] = 255
         cv2.imwrite(self.filename, mat)
+
+
+class HMGen:
+    def __init__(self):
+        self.N = 30
+        self.M = 30
+
+        self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                "assets/hf_gen.png")
+
+
+    def generate(self):
+        mat = cv2.imread(self.filename)
+        mat -= mat.min()
+
+        cv2.imwrite(self.filename, mat)
+
+    def test_generate(self):
+        mat = cv2.imread(self.filename)
+        mat -= mat.min()
+        cv2.imwrite(self.filename, mat)
+
+
+    def load(self):
+        pass
+
+    def feedback(self, _):
+        pass
+
 
 if __name__ == "__main__":
     gen = EvoGen(12)

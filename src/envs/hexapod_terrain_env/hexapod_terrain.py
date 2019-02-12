@@ -4,8 +4,9 @@ import src.my_utils as my_utils
 import time
 import os
 from math import sqrt, acos, fabs
-from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen
-
+from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
+import random
+import string
 
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
@@ -23,7 +24,9 @@ class Hexapod:
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         #self.envgen = ManualGen(12)
+        #self.envgen = HMGen()
         self.envgen = EvoGen(12)
+        self.episodes = 0
 
         # Initial methods
         if animate:
@@ -137,9 +140,16 @@ class Hexapod:
         return obs, r, done, obs_dict
 
 
-    def reset(self):
-        self.envgen.feedback(self.cumulative_environment_reward)
-        self.envgen.generate()
+    def reset(self, test=False):
+        if self.episodes % 1000 == 0 and self.episodes > 0:
+            self.envgen.save()
+
+        if not test:
+            self.envgen.feedback(self.cumulative_environment_reward)
+            self.envgen.generate()
+        else:
+            self.envgen.test_generate()
+
         self.cumulative_environment_reward = 0
 
         self.model = mujoco_py.load_model_from_path(self.modelpath)
@@ -159,6 +169,7 @@ class Hexapod:
 
         # Reset env variables
         self.step_ctr = 0
+        self.episodes += 1
         self.ctrl_vecs = []
         self.dead_joint_idx = np.random.randint(0, self.act_dim)
         self.dead_leg_idx = np.random.randint(0, self.act_dim / 3)
@@ -200,33 +211,19 @@ class Hexapod:
 
 
     def test(self, policy):
-        self.reset()
+        self.envgen.load()
         for i in range(100):
-            obs = self.reset()
+            obs = self.reset(test=True)
             cr = 0
             for j in range(self.max_steps):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
+                #print(action[0, :-self.mem_dim])
                 obs, r, done, od, = self.step(action[0])
                 cr += r
                 time.sleep(0.001)
                 self.render()
             print("Total episode reward: {}".format(cr))
 
-
-    def test_recurrent(self, policy):
-        self.reset()
-        for i in range(100):
-            obs = self.reset()
-            h = None
-            cr = 0
-            for j in range(self.max_steps):
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                h = h_
-                obs, r, done, od, = self.step(action[0].detach())
-                cr += r
-                time.sleep(0.001)
-                self.render()
-            print("Total episode reward: {}".format(cr))
 
 
 if __name__ == "__main__":

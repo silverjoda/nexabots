@@ -110,7 +110,7 @@ class AntFeelersMjc:
         #print(target_progress)
 
         obs = np.concatenate((self.goal_pos - obs_c[:2], obs_c[2:], obs_dict["contacts"], [obs_dict['torso_contact']], mem))
-        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.05 - angle * 0.0
+        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.05 - obs_dict['torso_contact'] * 0.5 - angle * 0.0
 
         return obs, r, done, obs_dict
 

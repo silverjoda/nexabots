@@ -8,7 +8,7 @@ import cv2
 
 class MemoryEnv:
     def __init__(self, animate=False):
-        self.mem_dim = 1
+        self.mem_dim = 0
         self.obs_dim = 3 + self.mem_dim
         self.act_dim = 1 + self.mem_dim
 

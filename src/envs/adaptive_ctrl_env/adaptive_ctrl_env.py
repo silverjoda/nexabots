@@ -6,7 +6,7 @@ class AdaptiveSliderEnv:
         self.mass_variety = 0.
         self.target = 0
         self.target_change_prob = 0.02
-        self.render_prob = 0.2
+        self.render_prob = 0.02
         self.mem_dim = 0
         self.dt = 0.05
         self.max_steps = 700
@@ -65,7 +65,7 @@ class AdaptiveSliderEnv:
         done = (self.step_ctr >= self.max_steps) or np.abs(self.x) > 6
 
         curr_dist = np.square(self.x - self.target)
-        r = (prev_dist - curr_dist)[0]
+        r = (prev_dist - curr_dist)[0] - np.square(act) * 0.1
 
         if np.random.rand() < self.target_change_prob:
             self.target = np.random.randn()

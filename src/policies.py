@@ -860,6 +860,43 @@ class NN_PG(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
+class NN_PG_MICRO(nn.Module):
+    def __init__(self, env):
+        super(NN_PG_MICRO, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.fc1 = nn.Linear(self.obs_dim, 8)
+        self.fc2 = nn.Linear(8, self.act_dim)
+
+        self.log_std = T.zeros(1, self.act_dim)
+
+
+    def forward(self, x):
+        x = F.selu(self.fc1(x))
+        x = self.fc2(x)
+        return x
+
+
+    def sample_action(self, s):
+        return T.normal(self.forward(s), T.exp(self.log_std))
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+
+
+
 class NN_PG_D(nn.Module):
     def __init__(self, env):
         super(NN_PG_D, self).__init__()

@@ -21,8 +21,8 @@ def train(env, policy, params):
     batch_rewards = []
     batch_terminals = []
 
-    batch_ctr = 0
-    batch_rew = 0
+    episode_ctr = 0
+    episode_rew = 0
 
     for i in range(params["iters"]):
         s_0 = env.reset()
@@ -45,10 +45,9 @@ def train(env, policy, params):
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
             r = np.clip(r, -1, 1)
-            assert r < 20, print("Large rew {}, step: {}".format(r, step_ctr))
-            step_ctr += 1
 
-            batch_rew += r
+            step_ctr += 1
+            episode_rew += r
 
             if params["animate"]:
                 env.render()
@@ -63,14 +62,14 @@ def train(env, policy, params):
             h_0 = h_1
 
         # Just completed an episode
-        batch_ctr += 1
+        episode_ctr += 1
 
         batch_states.append(T.cat(episode_states))
         batch_actions.append(T.cat(episode_actions))
 
 
         # If enough data gathered, then perform update
-        if batch_ctr == params["batchsize"]:
+        if episode_ctr == params["batchsize"]:
             batch_states = T.stack(batch_states)
             batch_actions = T.stack(batch_actions)
             batch_rewards = T.cat(batch_rewards)
@@ -84,11 +83,11 @@ def train(env, policy, params):
                 update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
-                  format(i, params["iters"], None, None, batch_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
+                  format(i, params["iters"], None, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
 
             # Finally reset all batch lists
-            batch_ctr = 0
-            batch_rew = 0
+            episode_ctr = 0
+            episode_rew = 0
 
             batch_states = []
             batch_actions = []
@@ -163,7 +162,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.005, "rnn_lr": 0.003, "w_decay" : 0.005, "ppo": True,
+    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.005, "rnn_lr": 0.003, "w_decay" : 0.005, "ppo": False,
               "ppo_update_iters": 6, "animate": False, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 

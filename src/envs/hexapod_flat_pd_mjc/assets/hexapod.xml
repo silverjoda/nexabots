@@ -5,16 +5,16 @@
 
   <default>
     <joint armature="1" damping="1" limited="true"/>
-    <geom conaffinity="0" condim="3" density="5.0" friction="1 0.5 0.5" margin="0.01" rgba="0.0 0.6 0.4 1"/>
+    <geom conaffinity="0" condim="3" density="5.0" friction="0.1 0.5 0.5" margin="0.01" rgba="0.5 0.0 0.0 0.9"/>
   </default>
 
   <asset>
     <texture type="skybox" builtin="gradient" width="100" height="100" rgb1="1 1 1" rgb2="0 0 0" />
-    <texture name="texgeom" type="cube" builtin="flat" mark="cross" width="127" height="1278" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1" random="0.01" />
-    <texture name="texplane" type="2d" width="1" height="1" file="wood2.png"/>
-    <material name="MatPlane" reflectance="0.0" shininess="1" specular="1" texrepeat="10 10" texture="texplane"/>
-    <material name='geom' texture="texgeom" texuniform="true" />
-    <hfield name="hill" file="hf2.png" size="12 3 1.40 0.1"/>
+    <texture name="texgeom" type="2d" width="1" height="1" file="wood2.png"/>
+    <texture name="texplane" type="2d" width="1" height="1" file="glass1.png"/>
+    <material name="MatPlane" reflectance="0.0" shininess="1" specular="1" texrepeat="1 1" texture="texplane"/>
+    <material name='geom' reflectance="0.1" shininess="1" specular="1" texrepeat="10 10" texture="texgeom" />
+    <hfield name="hill" file="hf3.png" size="12 3 0.40 0.1"/>
   </asset>
 
   <worldbody>
@@ -22,7 +22,7 @@
     <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="10.5 0 -0.3" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>
     <body name="torso" pos="0 0 0.75">
       <camera name="track" mode="track" pos="1 -7 3.2" xyaxes="1 0 0 0 0.5 1"/>
-      <geom name="torso_geom" pos="0 0 0" size="0.35 0.22 0.15" type="ellipsoid"/>
+      <geom name="torso_geom" material="MatPlane"  pos="0 0 0" size="0.35 0.22 0.15" type="ellipsoid"/>
       <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
 
       <body name="front_left_leg" pos="0.2 0.2 0">

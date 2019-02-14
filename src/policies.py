@@ -895,8 +895,6 @@ class NN_PG_MICRO(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
-
-
 class NN_PG_D(nn.Module):
     def __init__(self, env):
         super(NN_PG_D, self).__init__()
@@ -1091,14 +1089,14 @@ class RNN_PG(nn.Module):
     def forward(self, input):
         x, h = input
         h_, c_ = self.rnn(x, h)
-        x = F.selu(self.fc1(h_))
+        x = F.relu(self.fc1(h_))
         x = self.fc2(x)
         return x, (h_, c_)
 
 
     def forward_batch(self, batch_states):
         outputs, _ = self.batch_rnn(batch_states)
-        x = F.selu(self.fc1(outputs))
+        x = F.relu(self.fc1(outputs))
         x = self.fc2(x)
         return x
 

@@ -211,6 +211,7 @@ class Hexapod:
         for i in range(100):
             done = False
             obs = self.reset()
+            self.max_steps = 800
             cr = 0
             for j in range(self.max_steps):
                 action = policy(my_utils.to_tensor(obs, True)).detach()

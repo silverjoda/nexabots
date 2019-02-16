@@ -67,6 +67,23 @@ class RND_D(nn.Module):
         return T.argmax(x, 1, keepdim=True)
 
 
+class RND(nn.Module):
+    def __init__(self, env):
+        super(RND, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+
+        self.dummy = nn.Linear(1,1)
+
+
+    def forward(self, _):
+        return T.randn(1, self.act_dim)
+
+
+    def sample_action(self, _):
+        return self.forward(None)
+
+
 class ConvPolicy14(nn.Module):
     def __init__(self, N):
         super(ConvPolicy14, self).__init__()
@@ -866,15 +883,15 @@ class NN_PG_MICRO(nn.Module):
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.fc1 = nn.Linear(self.obs_dim, 8)
-        self.fc2 = nn.Linear(8, self.act_dim)
+        self.fc1 = nn.Linear(self.obs_dim, 24)
+        self.fc2 = nn.Linear(24, self.act_dim)
 
         self.log_std = T.zeros(1, self.act_dim)
 
 
     def forward(self, x):
-        x = F.selu(self.fc1(x))
-        x = self.fc2(x)
+        x = T.tanh(self.fc1(x))
+        x = T.tanh(self.fc2(x))
         return x
 
 
@@ -1024,7 +1041,7 @@ class RNN_PG(nn.Module):
         super(RNN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = 64
+        self.hid_dim = 16
 
         self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
         self.batch_rnn = nn.LSTM(input_size=self.obs_dim,
@@ -1032,8 +1049,8 @@ class RNN_PG(nn.Module):
                                 batch_first=True)
 
 
-        self.fc1 = nn.Linear(self.hid_dim, 64)
-        self.fc2 = nn.Linear(64, self.act_dim)
+        self.fc1 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.act_dim)
 
         self.log_std = T.zeros(1, self.act_dim)
 

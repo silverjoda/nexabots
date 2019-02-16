@@ -36,9 +36,10 @@ def f_wrapper(env, policy, animate):
 
             reward += rew
 
-        return -reward
-    return f
+        wpen = np.square(w).mean()
 
+        return wpen
+    return f
 
 
 def train(params):
@@ -70,15 +71,9 @@ def train(params):
                 T.save(policy, sdir)
                 print("Saved checkpoint, {}".format(sdir))
 
-            # if weight_decay > 0:
-            #     sol = es.mean
-            #     sol_penalty = np.square(es.mean) * weight_decay
-            #     es.mean = sol - sol_penalty * (sol > 0) + sol_penalty * (sol < 0)
-
             print(es.mean.min(), es.mean.max())
             X = es.ask()
-            if weight_decay > 0:
-                X = [decay(x, weight_decay) for x in X]
+
             es.tell(X, [f(x) for x in X])
             es.disp()
 
@@ -86,11 +81,6 @@ def train(params):
         print("User interrupted process.")
 
     return es.result.fbest
-
-
-def decay(w, l):
-    wpen = np.square(w) * l
-    return w - wpen * (w > 0) + wpen * (w < 0)
 
 
 from src.envs.hexapod_flat_pd_mjc import hexapod_pd
@@ -110,7 +100,7 @@ TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 300, False, ID))
+    train((env, policy, 300, True, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:

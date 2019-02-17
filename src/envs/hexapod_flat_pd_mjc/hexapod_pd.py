@@ -32,7 +32,7 @@ class Hexapod:
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
-        self.max_steps = 600
+        self.max_steps = 400
 
         self.ctrl_vecs = []
         self.dead_joint_idx = 0

@@ -99,16 +99,19 @@ class TestEnv:
 
     def demo(self):
         while True:
+            print("A")
             for i in range(100):
                 act = 1
                 self.step(act)
                 self.render()
 
+            print("B")
             for i in range(100):
                 act = 0
                 self.step(act)
                 self.render()
 
+            print("C")
             for i in range(100):
                 act = -1
                 self.step(act)

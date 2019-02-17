@@ -6,7 +6,7 @@
     <numeric data="0.0 0.0 0.55 1.0 0.0 0.0 0.0 0.0 1.0 0.0 -1.0 0.0 -1.0 0.0 1.0" name="init_qpos"/>
   </custom>
   <default>
-    <joint armature="1" damping="1" limited="true"/>
+    <joint armature="0.1" damping="5" limited="true"/>
     <geom conaffinity="0" condim="3" density="5.0" friction="1 0.5 0.5" margin="0.01" rgba="0.8 0.6 0.4 1"/>
   </default>
   <asset>
@@ -23,17 +23,17 @@
 
     <body name="torso" pos="0 0 0.75">
       <camera name="track" mode="trackcom" pos="0 -3 0.3" xyaxes="1 0 0 0 0 1"/>
-      <geom fromto="0.0 0.0 0.0 0.0 0.0 0.5" name="torso_geom" size="0.06" rgba="0 0 0 1" type="capsule"/>
+      <geom fromto="0.0 0.0 0.0 0.0 0.0 0.5" name="torso_geom" size="0.06" rgba="0 0 0 1" mass="0.001" type="capsule"/>
 
-       <body name="front_left_leg" pos="0.0 0.0 0.5">
+       <body name="leg" pos="0.0 0.0 0.5">
           <joint axis="0 0 1" name="j_1" pos="0.0 0.0 0.0" range="-2 2" type="hinge"/>
-          <geom fromto="0.0 0.0 0.0 0.3 0.0 0.0" name="coxa_fl_geom" size="0.06" rgba="1 0 0 1" type="capsule"/>
+          <geom fromto="0.0 0.0 0.0 0.3 0.0 0.0" name="leg_geom" size="0.06" rgba="1 0 0 1" mass="0.001" type="capsule"/>
        </body>
 
     </body>
   </worldbody>
 
   <actuator>
-    <position joint="j_1" kp="100"/>
+    <position joint="j_1" kp="50"/>
   </actuator>
 </mujoco>

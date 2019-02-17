@@ -8,6 +8,8 @@ from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
 import string
 
+# TODO: Make wrapper for hexapod
+
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen.xml")
     def __init__(self, animate=False):

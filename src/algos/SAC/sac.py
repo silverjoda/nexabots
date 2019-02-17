@@ -15,7 +15,6 @@ import os
 
 device   = torch.device("cpu")
 
-
 class ReplayBuffer:
     def __init__(self, capacity):
         self.capacity = capacity
@@ -257,17 +256,17 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"max_frames": 800000,
-              "max_steps" : 800,
-              "batch_size": 128,
+              "max_steps" : 600,
+              "batch_size": 64,
               "hidden_dim": 64,
-              "gamma": 0.99,
-              "mean_lambda" : 1e-3,
-              "std_lambda" : 1e-3,
-              "z_lambda" : 0.00,
+              "gamma": 0.98,
+              "mean_lambda" : 1e-4,
+              "std_lambda" : 1e-4,
+              "z_lambda" : 0.000,
               "soft_tau" : 1e-3,
               "value_lr": 1e-4,
               "soft_q_lr": 1e-4,
-              "policy_lr": 1e-4,
+              "policy_lr": 1e-5,
               "replay_buffer_size" : 1000000,
               "render": True,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
@@ -276,12 +275,10 @@ if __name__=="__main__":
     #import gym
     #env = gym.make("HalfCheetah-v2")
 
-    # Centipede new
-    from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    env = centipede()
+    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    env = hexapod_pd.Hexapod()
 
-    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    #env = hexapod_pd.Hexapod()
+    print(params, env.__class__.__name__)
 
     #from src.envs.ant_feelers_mjc import ant_feelers_mjc
     #env = ant_feelers_mjc.AntFeelersMjc()

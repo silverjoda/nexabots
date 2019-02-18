@@ -153,7 +153,7 @@ class ManualGen:
         self.genfun = self.gen_manual
 
 
-    def testgenerate(self):
+    def test_generate(self):
         self.genfun()
 
 

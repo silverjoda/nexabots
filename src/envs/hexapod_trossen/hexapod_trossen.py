@@ -21,8 +21,8 @@ class Hexapod:
         self.mem_dim = 0
         self.cumulative_environment_reward = None
 
-        self.joints_rads_low = np.array([-1, -1., -1.] * 6)
-        self.joints_rads_high = np.array([1, 0, 1.] * 6)
+        self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
+        self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.model = mujoco_py.load_model_from_path(self.modelpath)
@@ -53,7 +53,6 @@ class Hexapod:
         # Initial methods
         if animate:
             self.setupcam()
-
 
 
 
@@ -184,7 +183,7 @@ class Hexapod:
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = np.random.randn() * 0.1
         init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.00 + np.random.rand() * 0.05
+        init_q[2] = 0.10 + np.random.rand() * 0.05
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)

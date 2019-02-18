@@ -122,11 +122,11 @@ class Hexapod:
 
         rV = (target_progress * 0.0,
               velocity_rew * 3.0,
-              - ctrl_effort * 0.001,
-              - np.square(angle) * 0.1,
+              - ctrl_effort * 0.003,
+              - np.square(angle) * 0.4,
               - abs(yd) * 0.0,
               - contact_cost * 0.0,
-              - height_pen * 0.1 * int(self.step_ctr > 30))
+              - height_pen * 0.4 * int(self.step_ctr > 30))
 
 
         r = sum(rV)
@@ -134,7 +134,7 @@ class Hexapod:
         self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps #or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 2 or x < -1.0
+        done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 2 or x < -1.0
         obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
         return obs, r, done, obs_dict

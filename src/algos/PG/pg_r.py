@@ -117,7 +117,7 @@ def update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, bat
         loss.backward()
 
         # Step policy update
-        #policy.print_info()
+        policy.print_info()
         policy.clip_grads()
         policy_optim.step()
         rnn_optim.step()
@@ -137,7 +137,7 @@ def update_policy(policy, policy_optim, rnn_optim, batch_states, batch_actions, 
     loss.backward()
 
     # Step policy update
-    #policy.print_info()
+    policy.print_info()
     policy.clip_grads()
     policy_optim.step()
     rnn_optim.step()
@@ -165,7 +165,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(2)
 
-    params = {"iters": 100000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.0005, "rnn_lr": 0.0005, "w_decay" : 0.001, "ppo": True,
+    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "rnn_lr": 0.0005, "w_decay" : 0.001, "ppo": False,
               "ppo_update_iters": 6, "animate": False, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 

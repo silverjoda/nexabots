@@ -1,7 +1,7 @@
 <mujoco model="hexapod">
   <compiler angle="radian" coordinate="local" inertiafromgeom="true"/>
   <option integrator="RK4" timestep="0.01"/>
-  <size nconmax="100"/>
+  <size nconmax="300"/>
 
   <default>
     <joint armature="0.5" damping="3" limited="true"/>
@@ -27,10 +27,10 @@
       <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
 
       <body name="front_left_leg" pos="0.12 0.06 0">
-        <joint axis="0 0 1" name="coxa_fl" pos="0.0 0.0 0.0" range="-1.0 1.0" type="hinge"/>
+        <joint axis="0 0 1" name="coxa_fl" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.03676 0.03676 0.0" name="coxa_fl_geom" size="0.015"  type="capsule"/>
           <body pos="0.03676 0.03676 0">
-            <joint axis="-1 1 0" name="femur_fl" pos="0.0 0.0 0.0" range="-1 0" type="hinge"/>
+            <joint axis="-1 1 0" name="femur_fl" pos="0.0 0.0 0.0" range="-1 0.3" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 0.0466 0.0466 0.0" name="femur_fl_geom" size="0.015" type="capsule"/>
              <body pos="0.0466 0.0466 0.0">
                 <joint axis="-1 1 0" name="tibia_fl" pos="0.0 0.0 0.0" range="-1 1" type="hinge"/>
@@ -41,10 +41,10 @@
 
 
       <body name="mid_left_leg" pos="0.0 0.1 0">
-        <joint axis="0 0 1" name="coxa_ml" pos="0.0 0.0 0.0" range="-1.0 1.0" type="hinge"/>
+        <joint axis="0 0 1" name="coxa_ml" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.0 0.052 0.0" name="coxa_ml_geom" size="0.015" type="capsule"/>
           <body pos="0.0 0.052 0">
-            <joint axis="-1 0 0" name="femur_ml" pos="0.0 0.0 0.0" range="-1 0" type="hinge"/>
+            <joint axis="-1 0 0" name="femur_ml" pos="0.0 0.0 0.0" range="-1 0.3" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 0.0 0.066 0.0" name="femur_ml_geom" size="0.015" type="capsule"/>
              <body pos="0.0 0.066 0">
                 <joint axis="-1 0 0" name="tibia_ml" pos="0.0 0.0 0.0" range="-1 1" type="hinge"/>
@@ -55,10 +55,10 @@
 
 
       <body name="front_right_leg" pos="0.12 -0.06 0">
-        <joint axis="0 0 1" name="coxa_fr" pos="0.0 0.0 0.0" range="-1.0 1.0" type="hinge"/>
+        <joint axis="0 0 1" name="coxa_fr" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.03676 -0.03676 0.0" name="coxa_fr_geom" size="0.015" type="capsule"/>
           <body pos="0.03676 -0.03676 0">
-            <joint axis="1 1 0" name="femur_fr" pos="0.0 0.0 0.0" range="-1 0" type="hinge"/>
+            <joint axis="1 1 0" name="femur_fr" pos="0.0 0.0 0.0" range="-1 0.3" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 0.0466 -0.0466 0.0" name="femur_fr_geom" size="0.015" type="capsule"/>
              <body pos="0.0466 -0.0466 0">
                 <joint axis="1 1 0" name="tibia_fr" pos="0.0 0.0 0.0" range="-1 1" type="hinge"/>
@@ -69,10 +69,10 @@
 
 
       <body name="mid_right_leg" pos="0.0 -0.1 0">
-        <joint axis="0 0 1" name="coxa_mr" pos="0.0 0.0 0.0" range="-1.0 1.0" type="hinge"/>
+        <joint axis="0 0 1" name="coxa_mr" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 0.0 -0.052 0.0" name="coxa_mr_geom" size="0.015" type="capsule"/>
           <body pos="0.0 -0.052 0">
-            <joint axis="1 0 0" name="femur_mr" pos="0.0 0.0 0.0" range="-1 0" type="hinge"/>
+            <joint axis="1 0 0" name="femur_mr" pos="0.0 0.0 0.0" range="-1 0.3" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 0.0 -0.066 0.0" name="femur_mr_geom" size="0.015" type="capsule"/>
              <body pos="0.0 -0.066 0">
                 <joint axis="1 0 0" name="tibia_mr" pos="0.0 0.0 0.0" range="-1 1" type="hinge"/>
@@ -83,10 +83,10 @@
 
 
       <body name="back_right_leg" pos="-0.12 -0.06 0">
-        <joint axis="0 0 1" name="coxa_rr" pos="0.0 0.0 0.0" range="-1.0 1.0" type="hinge"/>
+        <joint axis="0 0 1" name="coxa_rr" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 -0.03676 -0.03676 0.0" name="coxa_rr_geom" size="0.015" type="capsule"/>
           <body pos="-0.03676 -0.03676 0">
-            <joint axis="1 -1 0" name="femur_rr" pos="0.0 0.0 0.0" range="-1 0" type="hinge"/>
+            <joint axis="1 -1 0" name="femur_rr" pos="0.0 0.0 0.0" range="-1 0.3" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 -0.0466 -0.0466 0.0" name="femur_rr_geom" size="0.015" type="capsule"/>
              <body pos="-0.0466 -0.0466 0">
                 <joint axis="1 -1 0" name="tibia_rr" pos="0.0 0.0 0.0" range="-1 1" type="hinge"/>
@@ -97,10 +97,10 @@
 
 
       <body name="back_left_leg" pos="-0.12 0.06 0">
-        <joint axis="0 0 1" name="coxa_rl" pos="0.0 0.0 0.0" range="-1.0 1.0" type="hinge"/>
+        <joint axis="0 0 1" name="coxa_rl" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
           <geom fromto="0.0 0.0 0.0 -0.03676 0.03676 0.0" name="coxa_rl_geom" size="0.015" type="capsule"/>
           <body pos="-0.03676 0.03676 0">
-            <joint axis="-1 -1 0" name="femur_rl" pos="0.0 0.0 0.0" range="-1 0" type="hinge"/>
+            <joint axis="-1 -1 0" name="femur_rl" pos="0.0 0.0 0.0" range="-1 0.3" type="hinge"/>
             <geom fromto="0.0 0.0 0.0 -0.0466 0.0466 0.0" name="femur_rl_geom" size="0.015" type="capsule"/>
              <body pos="-0.0466 0.04660 0">
                 <joint axis="-1 -1 0" name="tibia_rl" pos="0.0 0.0 0.0" range="-1 1" type="hinge"/>

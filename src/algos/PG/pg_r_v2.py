@@ -13,7 +13,7 @@ import string
 
 def train(env, policy, params):
 
-    policy_optim = T.optim.Adam(policy.policy_params(), lr=params["policy_lr"], weight_decay=params["w_decay"])
+    policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["w_decay"])
 
     batch_states = []
     batch_actions = []
@@ -131,8 +131,8 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     loss.backward()
 
     # Step policy update
-    #policy.print_info()
-    policy.clip_grads()
+    policy.print_info()
+    #policy.clip_grads()
     policy_optim.step()
 
     return loss.data

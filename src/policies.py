@@ -1085,15 +1085,15 @@ class RNN_PG(nn.Module):
         return list(self.fc1.parameters()) + list(self.fc2.parameters())
 
 
-    def clip_grads(self):
-        self.batch_rnn.weight_hh_l0.grad.clamp_(-0.5, 0.5)
-        self.batch_rnn.weight_ih_l0.grad.clamp_(-0.5, 0.5)
-        self.batch_rnn.bias_hh_l0.grad.clamp_(-0.5, 0.5)
-        self.batch_rnn.bias_ih_l0.grad.clamp_(-0.5, 0.5)
-        self.fc1.weight.grad.clamp_(-0.5, 0.5)
-        self.fc1.bias.grad.clamp_(-0.5, 0.5)
-        self.fc2.weight.grad.clamp_(-0.5, 0.5)
-        self.fc2.bias.grad.clamp_(-0.5, 0.5)
+    def clip_grads(self, bnd=1):
+        self.batch_rnn.weight_hh_l0.grad.clamp_(-bnd, bnd)
+        self.batch_rnn.weight_ih_l0.grad.clamp_(-bnd, bnd)
+        self.batch_rnn.bias_hh_l0.grad.clamp_(-bnd, bnd)
+        self.batch_rnn.bias_ih_l0.grad.clamp_(-bnd, bnd)
+        self.fc1.weight.grad.clamp_(-bnd, bnd)
+        self.fc1.bias.grad.clamp_(-bnd, bnd)
+        self.fc2.weight.grad.clamp_(-bnd, bnd)
+        self.fc2.bias.grad.clamp_(-bnd, bnd)
 
 
     def clone_params(self):

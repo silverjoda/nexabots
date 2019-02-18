@@ -140,7 +140,7 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 0.2
+        target_vel = 0.1
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 

@@ -8,12 +8,12 @@ import cv2
 
 class MemoryEnv:
     def __init__(self, animate=False):
-        self.mem_dim = 1
+        self.mem_dim = 5
         self.obs_dim = 2 + self.mem_dim
         self.act_dim = 1 + self.mem_dim
 
         # Environent inner parameters
-        self.env_size = 4
+        self.env_size = 10
         self.half_way = int(self.env_size / 2) + 1
         self.N_points = int(self.env_size / 2)
         self.step_ctr = 0
@@ -121,11 +121,11 @@ class MemoryEnv:
             cr = 0
             cv2.namedWindow('image')
             while not done:
-                action_dist, h = policy((my_utils.to_tensor(obs, True), h))
-                action = np.argmax(action[0].detach().numpy())
+                action, h = policy((my_utils.to_tensor(obs, True), h))
+                action = action[0].detach().numpy()
                 obs, r, done, od, = self.step(action)
                 cr += r
-                time.sleep(0.001)
+                time.sleep(0.4)
 
                 cv2.imshow('image', self.get_env_img())
                 if cv2.waitKey(20) & 0xFF == 27:

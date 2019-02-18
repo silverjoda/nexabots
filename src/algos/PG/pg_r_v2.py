@@ -13,8 +13,7 @@ import string
 
 def train(env, policy, params):
 
-    policy_optim = T.optim.Adam(policy.policy_params(), lr=params["policy_lr"], weight_decay=0.001)
-    rnn_optim = T.optim.Adam(policy.rnn_params(), lr=params["rnn_lr"], weight_decay=0.003)
+    policy_optim = T.optim.Adam(policy.policy_params(), lr=params["policy_lr"], weight_decay=params["w_decay"])
 
     batch_states = []
     batch_actions = []
@@ -34,7 +33,6 @@ def train(env, policy, params):
         episode_states = []
         episode_actions = []
 
-        # Set sampling parameters to currently trained ones
         policy.clone_params()
 
         while not done:
@@ -67,7 +65,6 @@ def train(env, policy, params):
         batch_states.append(T.cat(episode_states))
         batch_actions.append(T.cat(episode_actions))
 
-
         # If enough data gathered, then perform update
         if episode_ctr == params["batchsize"]:
             batch_states = T.stack(batch_states)
@@ -78,9 +75,9 @@ def train(env, policy, params):
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
             if params["ppo"]:
-                update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+                update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             else:
-                update_policy(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages)
+                update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
                   format(i, params["iters"], None, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
@@ -101,7 +98,7 @@ def train(env, policy, params):
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 
-def update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages, update_iters):
+def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
     # Call logprobs on hidden states
     log_probs_old = policy.log_probs_batch(batch_states, batch_actions).detach()
 
@@ -113,17 +110,15 @@ def update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, bat
         r = T.exp(log_probs_new - log_probs_old).view((-1, 1))
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
-        rnn_optim.zero_grad()
         loss.backward()
 
         # Step policy update
         #policy.print_info()
         policy.clip_grads()
         policy_optim.step()
-        rnn_optim.step()
 
 
-def update_policy(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages):
+def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
 
     # Get action log probabilities
     log_probs = policy.log_probs_batch(batch_states, batch_actions)
@@ -133,14 +128,12 @@ def update_policy(policy, policy_optim, rnn_optim, batch_states, batch_actions, 
 
     # Backward pass on policy
     policy_optim.zero_grad()
-    rnn_optim.zero_grad()
     loss.backward()
 
     # Step policy update
     #policy.print_info()
     policy.clip_grads()
     policy_optim.step()
-    rnn_optim.step()
 
     return loss.data
 
@@ -162,11 +155,12 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 
-if __name__=="__main__":
-    T.set_num_threads(2)
 
-    params = {"iters": 100000, "batchsize": 32, "gamma": 0.98, "policy_lr": 0.0005, "rnn_lr": 0.0005, "w_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True,
+if __name__=="__main__":
+    T.set_num_threads(1)
+
+    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "rnn_lr": 0.001, "w_decay" : 0.001, "ppo": False,
+              "ppo_update_iters": 6, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
@@ -186,11 +180,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    #from src.envs.memory_env import memory_env
-    #env = memory_env.MemoryEnv()
-
-    from src.envs.hexapod_terrain_env import hexapod_terrain
-    env = hexapod_terrain.Hexapod()
+    from src.envs.memory_env import memory_env
+    env = memory_env.MemoryEnv()
 
     print(params, env.__class__.__name__)
 
@@ -201,7 +192,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AntFeelersMjc_RNN_PG_YFD_pg.p')
+        policy = T.load('agents/MemoryEnv_RNN_PG_CLW_pg.p')
         env.test_recurrent(policy)
 
 

@@ -249,6 +249,6 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_JEK_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_8PV_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

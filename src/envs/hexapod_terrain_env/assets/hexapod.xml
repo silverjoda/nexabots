@@ -1,7 +1,7 @@
 <mujoco model="hexapod">
   <compiler angle="radian" coordinate="local" inertiafromgeom="true"/>
   <option integrator="RK4" timestep="0.01"/>
-  <size nconmax="100"/>
+  <size nconmax="200"/>
 
   <default>
     <joint armature="1" damping="1" limited="true"/>
@@ -14,7 +14,7 @@
     <texture name="texplane" type="2d" width="1" height="1" file="wood2.png"/>
     <material name="MatPlane" reflectance="0.0" shininess="1" specular="1" texrepeat="10 10" texture="texplane"/>
     <material name='geom' texture="texgeom" texuniform="true" />
-    <hfield name="hill" file="hf_gen.png" size="12 3 1.00 0.1"/>
+    <hfield name="hill" file="hf_gen.png" size="12 3 2.50 0.1"/>
   </asset>
 
   <worldbody>

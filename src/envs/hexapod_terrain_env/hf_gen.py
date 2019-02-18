@@ -153,6 +153,10 @@ class ManualGen:
         self.genfun = self.gen_manual
 
 
+    def testgenerate(self):
+        self.genfun()
+
+
     def generate(self):
         self.genfun()
 
@@ -162,16 +166,16 @@ class ManualGen:
 
 
     def gen_manual(self):
-        maxheight = 255
+        maxheight = 100
         mat = np.random.randint(0, 3, size=(self.M // self.div, self.N // self.div), dtype=np.uint8).repeat(self.div, axis=0).repeat(self.div,
                                                                                                              axis=1)
-        mat[mat > 0] = 255
+        mat[mat > 0] = maxheight
 
         mat[:,:16] = maxheight
-        # mat[0, :] = maxheight
-        # mat[:, 0] = maxheight
-        # mat[-1, :] = maxheight
-        # mat[:, -1] = maxheight
+        mat[0, :] = 255
+        mat[:, 0] = 255
+        mat[-1, :] = 255
+        mat[:, -1] = 255
         cv2.imwrite(self.filename, mat)
 
 
@@ -183,6 +187,18 @@ class ManualGen:
         mat[-1, :] = 255
         mat[:, -1] = 255
         cv2.imwrite(self.filename, mat)
+
+
+    def load(self):
+        pass
+
+
+    def feedback(self, _):
+        pass
+
+
+    def save(self):
+        pass
 
 
 class HMGen:

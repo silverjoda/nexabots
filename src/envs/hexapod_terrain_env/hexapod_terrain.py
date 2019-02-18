@@ -134,7 +134,7 @@ class Hexapod:
         self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 2 or x < -1.0
+        done = self.step_ctr > self.max_steps #or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 2 or x < -1.0
         obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
         return obs, r, done, obs_dict

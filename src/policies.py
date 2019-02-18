@@ -1041,7 +1041,7 @@ class RNN_PG(nn.Module):
         super(RNN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = 16
+        self.hid_dim = 64
 
         self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
         self.batch_rnn = nn.LSTM(input_size=self.obs_dim,
@@ -1049,7 +1049,7 @@ class RNN_PG(nn.Module):
                                 batch_first=True)
 
 
-        self.fc1 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
         self.fc2 = nn.Linear(self.hid_dim, self.act_dim)
 
         self.log_std = T.zeros(1, self.act_dim)
@@ -1105,15 +1105,15 @@ class RNN_PG(nn.Module):
 
     def forward(self, input):
         x, h = input
+        x = F.relu(self.fc1(x))
         h_, c_ = self.rnn(x, h)
-        x = F.relu(self.fc1(h_))
-        x = self.fc2(x)
+        x = self.fc2(h_)
         return x, (h_, c_)
 
 
     def forward_batch(self, batch_states):
-        outputs, _ = self.batch_rnn(batch_states)
-        x = F.relu(self.fc1(outputs))
+        x = F.relu(self.fc1(batch_states))
+        x, _ = self.batch_rnn(x)
         x = self.fc2(x)
         return x
 
@@ -1139,6 +1139,94 @@ class RNN_PG(nn.Module):
     def log_probs_batch(self, batch_states, batch_actions):
         # Get action means from policy
         action_means = self.forward_batch(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(2, keepdim=True)
+
+
+class RNN_PG_CELL(nn.Module):
+    def __init__(self, env):
+        super(RNN_PG_CELL, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = 16
+
+        self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
+
+        self.fc1 = nn.Linear(self.hid_dim, self.hid_dim)
+        self.fc2 = nn.Linear(self.hid_dim, self.act_dim)
+
+        self.log_std = T.zeros(1, self.act_dim)
+
+
+    def print_info(self):
+        print("-------------------------------")
+        print("w_hh", self.rnn.weight_hh.data.max(), self.rnn.weight_hh.data.min())
+        print("w_ih", self.rnn.weight_ih.data.max(), self.rnn.weight_ih.data.min())
+        print("b_hh", self.rnn.bias_hh.data.max(), self.rnn.bias_hh.data.min())
+        print("b_ih", self.rnn.bias_ih.data.max(), self.rnn.bias_ih.data.min())
+        print("w_fc1", self.fc1.weight.data.max(), self.fc1.weight.data.min())
+        print("b_fc1", self.fc1.bias.data.max(), self.fc1.weight.data.min())
+        print("w_fc2", self.fc2.weight.data.max(), self.fc2.weight.data.min())
+        print("b_fc2", self.fc2.bias.data.max(), self.fc1.weight.data.min())
+        print("---")
+        print("w_hh grad", self.rnn.weight_hh.grad.max(), self.rnn.weight_hh.grad.min())
+        print("w_ih grad", self.rnn.weight_ih.grad.max(), self.rnn.weight_ih.grad.min())
+        print("b_hh grad", self.rnn.bias_hh.grad.max(), self.rnn.bias_hh.grad.min())
+        print("b_ih grad", self.rnn.bias_ih.grad.max(), self.rnn.bias_ih.grad.min())
+        print("w_fc1 grad", self.fc1.weight.grad.max(), self.fc1.weight.grad.min())
+        print("b_fc1 grad", self.fc1.bias.grad.max(), self.fc1.bias.grad.min())
+        print("w_fc2 grad", self.fc2.weight.grad.max(), self.fc2.weight.grad.min())
+        print("b_fc2 grad", self.fc2.bias.grad.max(), self.fc2.bias.grad.min())
+        print("-------------------------------")
+
+
+    def rnn_params(self):
+        return self.rnn.parameters()
+
+
+    def policy_params(self):
+        return list(self.fc1.parameters()) + list(self.fc2.parameters())
+
+
+    def clip_grads(self):
+        self.rnn.weight_hh.grad.clamp_(-0.5, 0.5)
+        self.rnn.weight_ih.grad.clamp_(-0.5, 0.5)
+        self.rnn.bias_hh.grad.clamp_(-0.5, 0.5)
+        self.rnn.bias_ih.grad.clamp_(-0.5, 0.5)
+        self.fc1.weight.grad.clamp_(-0.5, 0.5)
+        self.fc1.bias.grad.clamp_(-0.5, 0.5)
+        self.fc2.weight.grad.clamp_(-0.5, 0.5)
+        self.fc2.bias.grad.clamp_(-0.5, 0.5)
+
+
+    def forward(self, input):
+        x, h = input
+        h_, c_ = self.rnn(x, h)
+        x = F.relu(self.fc1(h_))
+        x = self.fc2(x)
+        return x, (h_, c_)
+
+
+    def sample_action(self, s):
+        x, h = self.forward(s)
+        return T.normal(x, T.exp(self.log_std)), h
+
+
+    def log_probs_batch(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = []
+        h = None
+        for b in batch_states:
+            a_mean, h = self.forward((b, h))
+            action_means.append(a_mean)
+
+        action_means = T.stack(action_means)
 
         # Calculate probabilities
         log_std_batch = self.log_std.expand_as(action_means)

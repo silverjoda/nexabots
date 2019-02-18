@@ -17,13 +17,31 @@ class Hexapod:
         print([sqrt(l**2 + l**2) for l in [0.1, 0.3, 0.4]])
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 800
-        self.mem_dim = 8
+        self.max_steps = 400
+        self.mem_dim = 0
         self.cumulative_environment_reward = None
 
-        self.joints_rads_low = np.array([-0.3, -1., -1.] * 6)
-        self.joints_rads_high = np.array([0.3, 0, 1.] * 6)
+        self.joints_rads_low = np.array([-1, -1., -1.] * 6)
+        self.joints_rads_high = np.array([1, 0, 1.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.model = mujoco_py.load_model_from_path(self.modelpath)
+        self.sim = mujoco_py.MjSim(self.model)
+
+        self.model.opt.timestep = 0.02
+
+        # Environment dimensions
+        self.q_dim = self.sim.get_state().qpos.shape[0]
+        self.qvel_dim = self.sim.get_state().qvel.shape[0]
+
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim
+        self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
+
+        # Environent inner parameters
+        self.viewer = None
+
+        # Reset env variables
+        self.step_ctr = 0
 
         #self.envgen = ManualGen(12)
         #self.envgen = HMGen()
@@ -69,7 +87,8 @@ class Hexapod:
             od[j + "_vel"] = self.sim.data.get_joint_qvel(j)
 
         # Contacts:
-        od['contacts'] = np.clip(np.square(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1), 0, 1)
+        od['contacts'] = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
+        #print(od['contacts'])
         #od['contacts'] = np.zeros(6)
         return od
 
@@ -95,16 +114,19 @@ class Hexapod:
 
 
     def step(self, ctrl):
-        mem = ctrl[-self.mem_dim:]
-        act = ctrl[:-self.mem_dim]
-        ctrl = self.scale_action(act)
+        if self.mem_dim == 0:
+            mem = np.zeros(0)
+            act = ctrl
+            ctrl = self.scale_action(act)
+        else:
+            mem = ctrl[-self.mem_dim:]
+            act = ctrl[:-self.mem_dim]
+            ctrl = self.scale_action(act)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
         self.sim.step()
         self.step_ctr += 1
-
-        self.ctrl_vecs.append(ctrl)
 
         obs = self.get_obs()
         obs_dict = self.get_obs_dict()
@@ -118,27 +140,27 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 1.0
+        target_vel = 0.2
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
         contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
         rV = (target_progress * 0.0,
-              velocity_rew * 3.0,
-              - ctrl_effort * 0.001,
-              - np.square(angle) * 0.0,
+              velocity_rew * 10.0,
+              - ctrl_effort * 0.01,
+              - np.square(angle) * 0.3,
               - abs(yd) * 0.0,
               - contact_cost * 0.0,
-              - height_pen * 0.05)
-
+              - height_pen * 0.3 * int(self.step_ctr > 30))
 
         r = sum(rV)
+        r = np.clip(r, -3, 3)
         obs_dict['rV'] = rV
         self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 2
+        done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
         obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
         return obs, r, done, obs_dict
@@ -156,33 +178,13 @@ class Hexapod:
 
         self.cumulative_environment_reward = 0
 
-        self.model = mujoco_py.load_model_from_path(self.modelpath)
-        self.sim = mujoco_py.MjSim(self.model)
-
-        self.model.opt.timestep = 0.02
-
-        # Environment dimensions
-        self.q_dim = self.sim.get_state().qpos.shape[0]
-        self.qvel_dim = self.sim.get_state().qvel.shape[0]
-
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim
-        self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
-
-        # Environent inner parameters
-        self.viewer = None
-
-        # Reset env variables
         self.step_ctr = 0
-        self.episodes += 1
-        self.ctrl_vecs = []
-        self.dead_joint_idx = np.random.randint(0, self.act_dim)
-        self.dead_leg_idx = np.random.randint(0, self.act_dim / 3)
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = np.random.randn() * 0.1
         init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.80 + np.random.rand() * 0.1
+        init_q[2] = 0.00 + np.random.rand() * 0.05
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
@@ -201,21 +203,21 @@ class Hexapod:
         for i in range(1000):
             #self.step(np.random.randn(self.act_dim))
             for i in range(100):
-                self.step(np.ones((self.act_dim)) * 0)
+                self.step(np.zeros((self.act_dim)))
                 self.render()
-            # for i in range(100):
-            #     self.step(np.array([0, -1, 1] * 6))
-            #     self.render()
-            # for i in range(100):
-            #     self.step(np.ones((self.act_dim)) * 1)
-            #     self.render()
-            # for i in range(100):
-            #     self.step(np.ones((self.act_dim)) * -1)
-            #     self.render()
+            for i in range(100):
+                self.step(np.array([0, -1, 1] * 6))
+                self.render()
+            for i in range(100):
+                self.step(np.ones((self.act_dim)) * 1)
+                self.render()
+            for i in range(100):
+                self.step(np.ones((self.act_dim)) * -1)
+                self.render()
 
 
     def test(self, policy):
-        self.envgen.load()
+        #self.envgen.load()
         for i in range(100):
             obs = self.reset(test=True)
             cr = 0

@@ -54,7 +54,8 @@ def train(env, policy, params):
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
-            assert r < 20, print("Large rew {}, step: {}".format(r, step_ctr))
+            assert r < 10, print("Large rew {}, step: {}".format(r, step_ctr))
+            r = np.clip(r, -3, 3)
             step_ctr += 1
 
             batch_rew += r
@@ -204,7 +205,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+              "ppo_update_iters": 6, "animate": False, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new
@@ -219,11 +220,11 @@ if __name__=="__main__":
     #from src.envs.ant_terrain_mjc import ant_terrain_mjc
     #env = ant_terrain_mjc.AntTerrainMjc(camera=True, heightfield=True)
 
-    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    env = hexapod_pd.Hexapod()
+    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    #env = hexapod_pd.Hexapod()
 
-    #from src.envs.hexapod_terrain_env import hexapod_terrain
-    #env = hexapod_terrain.Hexapod()
+    from src.envs.hexapod_terrain_env import hexapod_terrain
+    env = hexapod_terrain.Hexapod()
 
     #from src.envs.hexapod_trossen import hexapod_trossen
     #env = hexapod_trossen.Hexapod()
@@ -248,6 +249,6 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/MemoryEnv_NN_PG_MICRO_DME_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_JEK_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

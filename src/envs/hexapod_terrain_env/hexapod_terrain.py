@@ -23,9 +23,9 @@ class Hexapod:
         self.joints_rads_high = np.array([0.3, 0, 2.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        #self.envgen = ManualGen(12)
+        self.envgen = ManualGen(12)
         #self.envgen = HMGen()
-        self.envgen = EvoGen(12)
+        #self.envgen = EvoGen(12)
         self.episodes = 0
 
         # Initial methods
@@ -123,10 +123,10 @@ class Hexapod:
         rV = (target_progress * 0.0,
               velocity_rew * 3.0,
               - ctrl_effort * 0.001,
-              - np.square(angle) * 0.0,
+              - np.square(angle) * 0.1,
               - abs(yd) * 0.0,
               - contact_cost * 0.0,
-              - height_pen * 0.05)
+              - height_pen * 0.1 * int(self.step_ctr > 30))
 
 
         r = sum(rV)
@@ -134,7 +134,7 @@ class Hexapod:
         self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 2
+        done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 2 or x < -1.0
         obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
         return obs, r, done, obs_dict
@@ -178,7 +178,7 @@ class Hexapod:
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = np.random.randn() * 0.1
         init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.80 + np.random.rand() * 0.1
+        init_q[2] = 1.40 + np.random.rand() * 0.1
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)

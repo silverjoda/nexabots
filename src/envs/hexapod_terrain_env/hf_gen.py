@@ -142,7 +142,7 @@ class ManualGen:
     def __init__(self, noise_dim):
         self.N = 120
         self.M = 30
-        self.div = 5
+        self.div = 3
 
         self.filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "assets/hf_gen.png")
@@ -150,20 +150,28 @@ class ManualGen:
         self.noise_dim = noise_dim
         self.convgen = ConvGen(self.noise_dim)
 
-        self.genfun = self.gen_conv
+        self.genfun = self.gen_manual
 
 
     def generate(self):
         self.genfun()
 
 
+    def feedback(self, _):
+        return
+
+
     def gen_manual(self):
-        mat = np.random.randint(0, 70, size=(self.M // self.div, self.N // self.div), dtype=np.uint8).repeat(self.div, axis=0).repeat(self.div,
+        maxheight = 255
+        mat = np.random.randint(0, 3, size=(self.M // self.div, self.N // self.div), dtype=np.uint8).repeat(self.div, axis=0).repeat(self.div,
                                                                                                              axis=1)
-        mat[0, :] = 255
-        mat[:, 0] = 255
-        mat[-1, :] = 255
-        mat[:, -1] = 255
+        mat[mat > 0] = 255
+
+        mat[:,:16] = maxheight
+        # mat[0, :] = maxheight
+        # mat[:, 0] = maxheight
+        # mat[-1, :] = maxheight
+        # mat[:, -1] = maxheight
         cv2.imwrite(self.filename, mat)
 
 

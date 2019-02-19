@@ -121,7 +121,7 @@ class Hexapod:
     def get_obs(self):
         # Joint angles
         q = self.robot.get_all_servo_position()
-        #q = self.vrep_to_mj(q)
+        q = self.vrep_to_mj(q)
 
         # Previous joint angles (or velocities)
         #qprev = self.prev_servo_pos
@@ -158,12 +158,11 @@ class Hexapod:
 
     def demo(self, policy):
         obs = self.reset()
-        for i in range(6):
-            for k in range(20):
-                act = policy(my_utils.to_tensor(obs, True))[0].detach().numpy()
-                obs, _, _, _ = self.step(act)
-                time.sleep(0.02)
-                print(i)
+        for i in range(1000):
+            act = policy(my_utils.to_tensor(obs, True))[0].detach().numpy()
+            obs, _, _, _ = self.step(act)
+            time.sleep(0.01)
+            print(i)
 
 
 

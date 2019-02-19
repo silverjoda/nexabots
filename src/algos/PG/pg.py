@@ -205,7 +205,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 8, "animate": True, "train" : False,
+              "ppo_update_iters": 6, "animate": True, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new
@@ -223,11 +223,11 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    #from src.envs.hexapod_terrain_env import hexapod_terrain
-    #env = hexapod_terrain.Hexapod()
+    from src.envs.hexapod_terrain_env import hexapod_terrain
+    env = hexapod_terrain.Hexapod()
 
-    from src.envs.hexapod_trossen import hexapod_trossen
-    env = hexapod_trossen.Hexapod()
+    #from src.envs.hexapod_trossen import hexapod_trossen
+    #env = hexapod_trossen.Hexapod()
 
     #env.test(policies.NN_PG(env))
     # exit()

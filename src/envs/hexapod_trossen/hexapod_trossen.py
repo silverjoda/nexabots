@@ -17,7 +17,7 @@ class Hexapod:
         print([sqrt(l**2 + l**2) for l in [0.1, 0.3, 0.4]])
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 600
+        self.max_steps = 400
         self.mem_dim = 0
         self.cumulative_environment_reward = None
 
@@ -138,7 +138,7 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 0.2
+        target_vel = 0.25
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 

@@ -34,7 +34,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -53,7 +53,6 @@ class Hexapod:
         # Initial methods
         if animate:
             self.setupcam()
-
 
 
     def setupcam(self):
@@ -160,7 +159,16 @@ class Hexapod:
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
-        obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
+        #obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
+
+        yaw = np.arctan2(2 * qy * qw - 2 * qx * qz, 1 - 2 * qy**2 - 2 * qz**2)
+        pitch = np.arcsin(2 * qx * qy + 2 * qz * qw)
+        roll = np.arctan2(2 * qx * qw - 2 * qy * qz, 1 - 2 * qx**2 - 2 * qz**2)
+
+        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
+                              np.array([yaw, pitch, roll]),
+                              obs_dict["contacts"],
+                              mem])
 
         return obs, r, done, obs_dict
 
@@ -192,7 +200,12 @@ class Hexapod:
         self.set_state(init_q, init_qvel)
 
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs, obs_dict["contacts"], np.zeros(self.mem_dim)))
+        #obs = np.concatenate((obs, obs_dict["contacts"], np.zeros(self.mem_dim)))
+
+        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
+                              np.zeros(3),
+                              obs_dict["contacts"],
+                              np.zeros(self.mem_dim)])
 
         return obs
 

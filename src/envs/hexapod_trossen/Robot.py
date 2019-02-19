@@ -6,10 +6,10 @@ import time
 import numpy as np
 
 #hexapod robot 
-import hexapod_sim.RobotHAL as robothal
+import src.envs.hexapod_trossen.hexapod_sim.RobotHAL as robothal
 #import hexapod_real.RobotHAL as robothal
 
-from RobotConst import *
+from src.envs.hexapod_trossen.RobotConst import *
 
 
 class Robot:
@@ -94,9 +94,9 @@ if __name__=="__main__":
         vec = [0] * 18
         robot.robot.set_all_servo_position(vec)
 
-        time.sleep(5)
-        robot.robot.set_all_servo_position([-1] * 18)
-        time.sleep(5)
+        time.sleep(2)
+        robot.robot.set_all_servo_position([1] * 18)
+        time.sleep(2)
         
 
 

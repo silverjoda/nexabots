@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
-import hexapod_sim.vrep_api.vrep as vrep
+import src.envs.hexapod_trossen.hexapod_sim.vrep_api.vrep as vrep
 import math
 import time
 import numpy as np

@@ -14,7 +14,7 @@
     <texture name="texplane" type="2d" width="1" height="1" file="wood2.png"/>
     <material name="MatPlane" reflectance="0.0" shininess="1" specular="1" texrepeat="10 10" texture="texplane"/>
     <material name='geom' texture="texgeom" texuniform="true" />
-    <hfield name="hill" file="hf_gen.png" size="12 3 2.0 0.1"/>
+    <hfield name="hill" file="hf_backup.png" size="12 3 2.00 0.1"/>
   </asset>
 
   <worldbody>
@@ -129,7 +129,6 @@
     <position joint="coxa_ml" kp="50"/>
     <position joint="femur_ml" kp="50"/>
     <position joint="tibia_ml" kp="50"/>
-
 <!--
     <motor joint="coxa_fl" gear="100"/>
     <motor joint="femur_fl" gear="100"/>

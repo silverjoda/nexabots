@@ -10,13 +10,16 @@ import string
 
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
+    BACKUPPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_backup.xml")
     def __init__(self, animate=False):
+
 
         print([sqrt(l**2 + l**2) for l in [0.1, 0.3, 0.4]])
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 800
-        self.mem_dim = 8
+        self.backuppath = Hexapod.BACKUPPATH
+        self.max_steps = 600
+        self.mem_dim = 0
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.3, -1., 1.] * 6)
@@ -91,9 +94,14 @@ class Hexapod:
 
 
     def step(self, ctrl):
-        mem = ctrl[-self.mem_dim:]
-        act = ctrl[:-self.mem_dim]
-        ctrl = self.scale_action(act)
+        if self.mem_dim == 0:
+            mem = np.zeros(0)
+            act = ctrl
+            ctrl = self.scale_action(act)
+        else:
+            mem = ctrl[-self.mem_dim:]
+            act = ctrl[:-self.mem_dim]
+            ctrl = self.scale_action(act)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -152,7 +160,12 @@ class Hexapod:
 
         self.cumulative_environment_reward = 0
 
-        self.model = mujoco_py.load_model_from_path(self.modelpath)
+        try:
+            self.model = mujoco_py.load_model_from_path(self.modelpath)
+        except:
+            print("Error, file was not found, backup loaded instead for this episode")
+            self.model = mujoco_py.load_model_from_path(self.backuppath)
+
         self.sim = mujoco_py.MjSim(self.model)
 
         self.model.opt.timestep = 0.02
@@ -178,7 +191,7 @@ class Hexapod:
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = np.random.randn() * 0.1
         init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 1.40 + np.random.rand() * 0.1
+        init_q[2] = 1.00 + np.random.rand() * 0.1
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
@@ -215,10 +228,26 @@ class Hexapod:
         for i in range(100):
             obs = self.reset(test=True)
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(self.max_steps * 5):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 #print(action[0, :-self.mem_dim])
                 obs, r, done, od, = self.step(action[0])
+                cr += r
+                time.sleep(0.001)
+                self.render()
+            print("Total episode reward: {}".format(cr))
+
+
+    def test_recurrent(self, policy):
+        self.reset()
+        for i in range(100):
+            obs = self.reset()
+            h = None
+            cr = 0
+            for j in range(self.max_steps):
+                action, h_ = policy((my_utils.to_tensor(obs, True), h))
+                h = h_
+                obs, r, done, od, = self.step(action[0].detach())
                 cr += r
                 time.sleep(0.001)
                 self.render()

@@ -13,7 +13,7 @@ import string
 
 def train(env, policy, params):
 
-    policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["w_decay"])
+    policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=0.0005)
 
     batch_states = []
     batch_actions = []
@@ -33,6 +33,7 @@ def train(env, policy, params):
         episode_states = []
         episode_actions = []
 
+        # Set sampling parameters to currently trained ones
         policy.clone_params()
 
         while not done:
@@ -64,6 +65,7 @@ def train(env, policy, params):
 
         batch_states.append(T.cat(episode_states))
         batch_actions.append(T.cat(episode_actions))
+
 
         # If enough data gathered, then perform update
         if episode_ctr == params["batchsize"]:
@@ -113,7 +115,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss.backward()
 
         # Step policy update
-        #policy.print_info()
+        policy.print_info()
         policy.clip_grads()
         policy_optim.step()
 
@@ -132,7 +134,7 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 
     # Step policy update
     policy.print_info()
-    #policy.clip_grads()
+    policy.clip_grads()
     policy_optim.step()
 
     return loss.data
@@ -155,12 +157,11 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
     return targets
 
 
-
 if __name__=="__main__":
-    T.set_num_threads(1)
+    T.set_num_threads(2)
 
-    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.001, "rnn_lr": 0.001, "w_decay" : 0.001, "ppo": False,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+    params = {"iters": 100000, "batchsize": 256, "gamma": 0.98, "policy_lr": 0.001, "rnn_lr": 0.001, "w_decay" : 0.001, "ppo": True,
+              "ppo_update_iters": 12, "animate": False, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers
@@ -180,8 +181,11 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    from src.envs.memory_env import memory_env
-    env = memory_env.MemoryEnv()
+    #from src.envs.memory_env import memory_env
+    #env = memory_env.MemoryEnv()
+
+    from src.envs.hexapod_terrain_env import hexapod_terrain
+    env = hexapod_terrain.Hexapod()
 
     print(params, env.__class__.__name__)
 
@@ -192,7 +196,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/MemoryEnv_RNN_PG_CLW_pg.p')
+        policy = T.load('agents/Hexapod_RNN_PG_IGQ_pg.p')
         env.test_recurrent(policy)
 
 

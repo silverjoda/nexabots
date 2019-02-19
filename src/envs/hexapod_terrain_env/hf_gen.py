@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.utils.convert_parameters import vector_to_parameters, parameters_to_vector
 import cma
+import time
 
 class EvoGen():
     def __init__(self, noise_dim):
@@ -166,17 +167,18 @@ class ManualGen:
 
 
     def gen_manual(self):
-        maxheight = 100
+        maxheight = 90
         mat = np.random.randint(0, 3, size=(self.M // self.div, self.N // self.div), dtype=np.uint8).repeat(self.div, axis=0).repeat(self.div,
                                                                                                              axis=1)
         mat[mat > 0] = maxheight
 
-        mat[:,:16] = maxheight
+        #mat[:,:16] = maxheight
         mat[0, :] = 255
         mat[:, 0] = 255
         mat[-1, :] = 255
         mat[:, -1] = 255
         cv2.imwrite(self.filename, mat)
+        time.sleep(0.1)
 
 
     def gen_conv(self):

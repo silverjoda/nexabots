@@ -838,16 +838,16 @@ class ConvPolicy30_PG(nn.Module):
 
 
 class NN_PG(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, hid_dim=64):
         super(NN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
 
-        self.fc1 = nn.Linear(self.obs_dim, 64)
+        self.fc1 = nn.Linear(self.obs_dim, hid_dim)
         #self.bn1 = nn.BatchNorm1d(64)
-        self.fc2 = nn.Linear(64, 64)
+        self.fc2 = nn.Linear(hid_dim, hid_dim)
         #self.bn2 = nn.BatchNorm2d(64)
-        self.fc3 = nn.Linear(64, self.act_dim)
+        self.fc3 = nn.Linear(hid_dim, self.act_dim)
 
         #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
         self.log_std = T.zeros(1, self.act_dim)
@@ -1037,11 +1037,11 @@ class CNN_PG(nn.Module):
 
 
 class RNN_PG(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, hid_dim=48):
         super(RNN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = 48
+        self.hid_dim = hid_dim
 
         self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
         self.batch_rnn = nn.LSTM(input_size=self.obs_dim,

@@ -256,6 +256,21 @@ class Hexapod:
             print("Total episode reward: {}".format(cr))
 
 
+    def test_recurrent(self, policy):
+        self.reset()
+        for i in range(100):
+            obs = self.reset()
+            h = None
+            cr = 0
+            for j in range(self.max_steps):
+                action, h_ = policy((my_utils.to_tensor(obs, True), h))
+                h = h_
+                obs, r, done, od, = self.step(action[0].detach())
+                cr += r
+                time.sleep(0.001)
+                self.render()
+            print("Total episode reward: {}".format(cr))
+
 if __name__ == "__main__":
     ant = Hexapod(animate=True)
     print(ant.obs_dim)

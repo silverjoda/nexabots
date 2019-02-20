@@ -27,7 +27,7 @@ class Hexapod:
         self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.robot = robothal.RobotHAL(TIME_FRAME)
+        self.robot = robothal.RobotHAL(TIME_FRAME, True)
 
         self.obs_dim = 18 + 3 + 6
         self.act_dim = 18
@@ -64,9 +64,10 @@ class Hexapod:
             speed[i] = (SERVOS_BASE[i] - pose[i]) / interpolation_steps
 
         # execute the motion
-        for t in range(0, interpolation_steps):
+        for t in range(0, 1):
             self.robot.set_all_servo_position(pose + t * speed)
             pass
+
 
 
     def mj_to_vrep(self, joints):
@@ -168,7 +169,6 @@ class Hexapod:
         for i in range(1000):
             act = policy(my_utils.to_tensor(obs, True))[0].detach().numpy()
             obs, _, _, _ = self.step(act)
-            time.sleep(0.01)
             print(i)
 
 
@@ -176,11 +176,9 @@ class Hexapod:
         self.reset()
         for i in range(100):
             a = np.ones((self.act_dim)) * 0
-            a[[9,13,14]] = 1
+            a[[15,16,17]] = -1
             obs, _, _, _ = self.step(a)
             print(obs[[3,4,5]])
-
-            # TODO: Observations are not correct for second leg (at least)
 
         print("-------------------------------------------")
         print("-------------------------------------------")
@@ -189,8 +187,7 @@ class Hexapod:
 
 if __name__ == "__main__":
     pod = Hexapod(animate=True)
-    pod.info()
-    exit()
+
     #policy = policies.NN_PG(pod)
     policy = T.load('/home/silverjoda/PycharmProjects/nexabots/src/algos/PG/agents/Hexapod_NN_PG_8AX_pg.p')
     print(pod.obs_dim)

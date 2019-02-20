@@ -10,9 +10,9 @@ import numpy as np
 class RobotHAL:
     #class for interfacing the hexapod robot in V-REP simulator
 
-    def __init__(self, simulation_step=1, sync_sim=False):
-        self.simulation_step = simulation_step
-        self.sync_sim = sync_sim
+    def __init__(self, simulation_step=100, sync_sim=True):
+        self.simulation_step = 20
+        self.sync_sim = True
         self.sync_steps = 0
 
         self.clientID = self.connect_simulator()

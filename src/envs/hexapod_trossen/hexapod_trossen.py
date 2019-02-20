@@ -28,7 +28,7 @@ class Hexapod:
         self.model = mujoco_py.load_model_from_path(self.modelpath)
         self.sim = mujoco_py.MjSim(self.model)
 
-        self.model.opt.timestep = 0.01
+        self.model.opt.timestep = 0.02
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -158,7 +158,7 @@ class Hexapod:
         self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
+        done = self.step_ctr > self.max_steps# or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
         #obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
         yaw = np.arctan2(2 * qy * qw - 2 * qx * qz, 1 - 2 * qy**2 - 2 * qz**2)
@@ -194,7 +194,7 @@ class Hexapod:
         init_q[2] = 0.15 + np.random.rand() * 0.05
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
-        obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
+        #obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
 
         # Set environment state
         self.set_state(init_q, init_qvel)
@@ -230,20 +230,15 @@ class Hexapod:
 
     def info(self):
         self.reset()
-        for i in range(1000):
-            #self.step(np.random.randn(self.act_dim))
-            for i in range(100):
-                self.step(np.zeros((self.act_dim)))
-                self.render()
-            for i in range(100):
-                self.step(np.array([0, -1, 1] * 6))
-                self.render()
-            for i in range(100):
-                self.step(np.ones((self.act_dim)) * 1)
-                self.render()
-            for i in range(100):
-                self.step(np.ones((self.act_dim)) * -1)
-                self.render()
+        for i in range(100):
+            a = np.ones((self.act_dim)) * 0
+            obs, _, _, _ = self.step(a)
+            print(obs[[3, 4, 5]])
+            self.render()
+            time.sleep(0.01)
+
+        print("-------------------------------------------")
+        print("-------------------------------------------")
 
 
     def test(self, policy):
@@ -259,7 +254,6 @@ class Hexapod:
                 time.sleep(0.001)
                 self.render()
             print("Total episode reward: {}".format(cr))
-
 
 
 if __name__ == "__main__":

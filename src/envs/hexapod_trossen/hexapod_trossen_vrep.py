@@ -31,6 +31,7 @@ class Hexapod:
 
         self.obs_dim = 18 + 3 + 6
         self.act_dim = 18
+        self.sign_corr_vec = np.array([1,1,1,-1,1,-1,1,1,1,-1,1,-1,1,1,1,-1,1,-1])
 
         # Environent inner parameters
         self.viewer = None
@@ -44,6 +45,8 @@ class Hexapod:
         self.turn_on()
         time.sleep(3)
 
+        # TODO: Test the action and observation sign and position correctness
+        # TODO: Check the correspondant angles in MUJOCO as well to make sure that assumption was correct
 
     def turn_on(self):
         """
@@ -110,21 +113,25 @@ class Hexapod:
                 ]
 
 
+    def correct_sign(self, joints):
+        return np.array(joints) * self.sign_corr_vec
+
+
     def turn_off(self):
         self.robot.stop_simulation()
 
 
     def scale_action(self, action):
-        return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
+        a = (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
+        return np.clip(a, self.joints_rads_low, self.joints_rads_high)
+
 
 
     def get_obs(self):
         # Joint angles
         q = self.robot.get_all_servo_position()
+        q = self.correct_sign(q)
         q = self.vrep_to_mj(q)
-
-        # Previous joint angles (or velocities)
-        #qprev = self.prev_servo_pos
 
         # Orientation
         rot = self.robot.get_robot_orientation()
@@ -140,6 +147,7 @@ class Hexapod:
     def step(self, ctrl):
         ctrl = self.scale_action(ctrl)
         ctrl = self.mj_to_vrep(ctrl)
+        ctrl = self.correct_sign(ctrl)
 
         self.robot.set_all_servo_position(ctrl)
         self.step_ctr += 1
@@ -152,7 +160,6 @@ class Hexapod:
     def reset(self, test=False):
         self.cumulative_environment_reward = 0
         self.step_ctr = 0
-
         return self.get_obs()
 
 
@@ -165,11 +172,27 @@ class Hexapod:
             print(i)
 
 
+    def info(self):
+        self.reset()
+        for i in range(100):
+            a = np.ones((self.act_dim)) * 0
+            a[[9,13,14]] = 1
+            obs, _, _, _ = self.step(a)
+            print(obs[[3,4,5]])
+
+            # TODO: Observations are not correct for second leg (at least)
+
+        print("-------------------------------------------")
+        print("-------------------------------------------")
+
+
 
 if __name__ == "__main__":
-    ant = Hexapod(animate=True)
-    #policy = policies.NN_PG(ant)
+    pod = Hexapod(animate=True)
+    pod.info()
+    exit()
+    #policy = policies.NN_PG(pod)
     policy = T.load('/home/silverjoda/PycharmProjects/nexabots/src/algos/PG/agents/Hexapod_NN_PG_8AX_pg.p')
-    print(ant.obs_dim)
-    print(ant.act_dim)
-    ant.demo(policy)
+    print(pod.obs_dim)
+    print(pod.act_dim)
+    pod.demo(policy)

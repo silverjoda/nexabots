@@ -19,7 +19,7 @@ class Hexapod:
         self.modelpath = Hexapod.MODELPATH
         self.backuppath = Hexapod.BACKUPPATH
         self.max_steps = 500
-        self.mem_dim = 24
+        self.mem_dim = 12
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.5, -1.2, .8] * 6)
@@ -230,6 +230,7 @@ class Hexapod:
             cr = 0
             for j in range(self.max_steps * 3):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
+                print(action[-12:])
                 #print(action[0, :-self.mem_dim])
                 obs, r, done, od, = self.step(action[0])
                 cr += r

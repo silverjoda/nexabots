@@ -169,7 +169,7 @@ class Hexapod:
 if __name__ == "__main__":
     ant = Hexapod(animate=True)
     #policy = policies.NN_PG(ant)
-    policy = T.load('/home/silverjoda/PycharmProjects/nexabots/src/algos/PG/agents/Hexapod_NN_PG_J6Q_pg.p')
+    policy = T.load('/home/silverjoda/PycharmProjects/nexabots/src/algos/PG/agents/Hexapod_NN_PG_8AX_pg.p')
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo(policy)

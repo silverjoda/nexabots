@@ -1041,7 +1041,7 @@ class RNN_PG(nn.Module):
         super(RNN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
-        self.hid_dim = 64
+        self.hid_dim = 48
 
         self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
         self.batch_rnn = nn.LSTM(input_size=self.obs_dim,

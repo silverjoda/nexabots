@@ -28,7 +28,7 @@ class Hexapod:
         self.model = mujoco_py.load_model_from_path(self.modelpath)
         self.sim = mujoco_py.MjSim(self.model)
 
-        self.model.opt.timestep = 0.02
+        self.model.opt.timestep = 0.01
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -228,6 +228,24 @@ class Hexapod:
                 self.render()
 
 
+    def info(self):
+        self.reset()
+        for i in range(1000):
+            #self.step(np.random.randn(self.act_dim))
+            for i in range(100):
+                self.step(np.zeros((self.act_dim)))
+                self.render()
+            for i in range(100):
+                self.step(np.array([0, -1, 1] * 6))
+                self.render()
+            for i in range(100):
+                self.step(np.ones((self.act_dim)) * 1)
+                self.render()
+            for i in range(100):
+                self.step(np.ones((self.act_dim)) * -1)
+                self.render()
+
+
     def test(self, policy):
         #self.envgen.load()
         for i in range(100):
@@ -248,4 +266,4 @@ if __name__ == "__main__":
     ant = Hexapod(animate=True)
     print(ant.obs_dim)
     print(ant.act_dim)
-    ant.demo()
+    ant.info()

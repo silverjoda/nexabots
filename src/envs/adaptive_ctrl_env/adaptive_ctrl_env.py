@@ -6,18 +6,24 @@ class AdaptiveSliderEnv:
         self.mass_variety = 0.
         self.target = 0
         self.target_change_prob = 0.01
-        self.render_prob = 0.07
+        self.render_prob = 0.05
         self.mem_dim = 0
-        self.dt = 0.05
-        self.max_steps = 400
+        self.dt = 0.1
+        self.max_steps = 200
         self.step_ctr = 0
         self.x = 0
         self.dx = 0
+        self.mass_as_input = False
         self.obs_dim = 3 + self.mem_dim
         self.act_dim = 1 + self.mem_dim
         self.current_act = None
 
-        cv2.namedWindow('image')
+        if self.mass_as_input:
+            self.obs_dim += 1
+
+        print("Adaptive slider, mass_variety: {}, mass as input: {}, mem_dim: {}".format(self.mass_variety, self.mass_as_input, self.mem_dim))
+
+        #cv2.namedWindow('image')
 
 
     def reset(self):
@@ -28,7 +34,10 @@ class AdaptiveSliderEnv:
         self.step_ctr = 0
         self.render_episode = True if np.random.rand() < self.render_prob else False
 
-        obs = np.concatenate((np.array([self.x, self.dx, self.target]), np.zeros(self.mem_dim)))
+        if self.mass_as_input:
+            obs = np.concatenate((np.array([self.x, self.dx, self.target]), [self.mass], np.zeros(self.mem_dim)))
+        else:
+            obs = np.concatenate((np.array([self.x, self.dx, self.target]), np.zeros(self.mem_dim)))
         return obs
 
 
@@ -60,18 +69,29 @@ class AdaptiveSliderEnv:
 
         a = act / self.mass
         self.dx += a * self.dt
+        self.dx *= 0.9
         self.x += self.dx * self.dt
 
+        if self.x[0] > 4:
+            self.x[0] = 3.9
+            self.dx = 0
+        if self.x[0] < -4:
+            self.x[0] = -3.9
+            self.dx = 0
+
         self.step_ctr += 1
-        done = (self.step_ctr >= self.max_steps) or np.abs(self.x) > 6
+        done = (self.step_ctr >= self.max_steps) #or np.abs(self.x) > 6
 
         curr_dist = np.square(self.x - self.target)
-        r = (prev_dist - curr_dist)[0] - np.square(act) * 0.01
+        r = (prev_dist - curr_dist)[0] - np.square(act) * 0.03
 
         if np.random.rand() < self.target_change_prob:
             self.target = np.random.randn()
 
-        obs = np.concatenate((np.array([self.x, self.dx, self.target]), mem))
+        if self.mass_as_input:
+            obs = np.concatenate((np.array([self.x, self.dx, self.target]), [self.mass], mem))
+        else:
+            obs = np.concatenate((np.array([self.x, self.dx, self.target]), mem))
 
         return obs, r[0], done, None
 

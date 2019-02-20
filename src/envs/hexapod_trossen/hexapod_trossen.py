@@ -8,13 +8,15 @@ from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
 import string
 
+
+
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen.xml")
     def __init__(self, animate=False):
 
         print("Trossen hexapod")
 
-        print([sqrt(l**2 + l**2) for l in [0.1, 0.3, 0.4]])
+        self.leg_list = ["coxa_fl_geom","coxa_fr_geom","coxa_rr_geom","coxa_rl_geom","coxa_mr_geom","coxa_ml_geom"]
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 400
@@ -112,6 +114,12 @@ class Hexapod:
 
 
     def step(self, ctrl):
+
+        # Mute appropriate leg joints
+        for i in range(6):
+            if self.dead_leg_vector[i] == 1:
+                ctrl[i * 3:i * 3 + 3] = 0
+
         if self.mem_dim == 0:
             mem = np.zeros(0)
             act = ctrl
@@ -170,22 +178,24 @@ class Hexapod:
                               obs_dict["contacts"],
                               mem])
 
+        if np.random.rand() < self.dead_leg_prob:
+            idx = np.random.randint(0,6)
+            self.dead_leg_vector[idx] = 1
+            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
+            self.dead_leg_prob /= 2.
+
         return obs, r, done, obs_dict
 
 
     def reset(self, test=False):
-        # if self.episodes % 1000 == 0 and self.episodes > 0:
-        #     self.envgen.save()
-        #
-        # if not test:
-        #     self.envgen.feedback(self.cumulative_environment_reward)
-        #     self.envgen.generate()
-        # else:
-        #     self.envgen.test_generate()
 
         self.cumulative_environment_reward = 0
-
+        self.dead_leg_prob = 0.004
+        self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
+
+        for i in range(6):
+            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[i]]] = [0.0, 0.6, 0.4, 1]
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
@@ -194,14 +204,10 @@ class Hexapod:
         init_q[2] = 0.15 + np.random.rand() * 0.05
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
-        #obs = np.concatenate((init_q[2:], init_qvel)).astype(np.float32)
-
         # Set environment state
         self.set_state(init_q, init_qvel)
 
         obs_dict = self.get_obs_dict()
-        #obs = np.concatenate((obs, obs_dict["contacts"], np.zeros(self.mem_dim)))
-
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
                               np.zeros(3),
                               obs_dict["contacts"],
@@ -275,4 +281,4 @@ if __name__ == "__main__":
     ant = Hexapod(animate=True)
     print(ant.obs_dim)
     print(ant.act_dim)
-    ant.info()
+    ant.demo()

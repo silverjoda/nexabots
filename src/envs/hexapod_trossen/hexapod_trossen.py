@@ -11,7 +11,7 @@ import string
 
 
 class Hexapod:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen.xml")
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_barrier.xml")
     def __init__(self, animate=False):
 
         print("Trossen hexapod")
@@ -156,9 +156,9 @@ class Hexapod:
               velocity_rew * 7.0,
               - ctrl_effort * 0.005,
               - np.square(angle) * 0.2,
-              - np.square(yd) * 0.2,
+              - np.square(yd) * 0.3,
               - contact_cost * 0.0,
-              - height_pen * 0.2 * int(self.step_ctr > 30))
+              - height_pen * 0.1 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -3, 3)
@@ -167,7 +167,6 @@ class Hexapod:
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps# or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
-        #obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
         yaw = np.arctan2(2 * qy * qw - 2 * qx * qz, 1 - 2 * qy**2 - 2 * qz**2)
         pitch = np.arcsin(2 * qx * qy + 2 * qz * qw)

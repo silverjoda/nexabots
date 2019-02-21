@@ -205,7 +205,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new
@@ -244,11 +244,11 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 16)
+        policy = policies.NN_PG(env, 64)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_8AX_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_62Y_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

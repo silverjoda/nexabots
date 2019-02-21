@@ -2,19 +2,12 @@ import cma
 import numpy as np
 import time
 
+import cv2
 
-es = cma.CMAEvolutionStrategy(np.random.randn(1000) * 0.1, 0.5)
-while not es.stop():
-    X = es.ask()
-    # X = [(1 - a) * x for x in X]
-    es.tell(X, [np.square(x).sum() for x in X])
-    # es.mean *= 1 - a
+mat = np.zeros((30,120), dtype=np.uint8)
+mat[:,:2] = 255
+mat[:,-2:] = 255
+mat[:2,:] = 255
+mat[-2:,:] = 255
 
-    print(es.mean.min(), es.mean.max())
-    es.logger.add()
-    es.disp()
-
-#es.logger.plot()
-#cma.plot()
-#time.sleep(5)
-
+cv2.imwrite("hf_gen.png", mat)

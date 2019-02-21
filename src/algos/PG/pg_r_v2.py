@@ -115,7 +115,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss.backward()
 
         # Step policy update
-        policy.print_info()
+        #policy.print_info()
         policy.clip_grads()
         policy_optim.step()
 
@@ -133,7 +133,7 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     loss.backward()
 
     # Step policy update
-    policy.print_info()
+    #policy.print_info()
     policy.clip_grads()
     policy_optim.step()
 
@@ -202,7 +202,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_RNN_PG_L57_pg.p')
+        policy = T.load('agents/Hexapod_RNN_PG_M7D_pg.p')
         env.test_recurrent(policy)
 
 

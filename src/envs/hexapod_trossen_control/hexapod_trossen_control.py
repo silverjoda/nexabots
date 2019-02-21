@@ -9,7 +9,6 @@ import random
 import string
 
 
-
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen.xml")
     def __init__(self, animate=False):
@@ -36,7 +35,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1 + 7
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -44,10 +43,6 @@ class Hexapod:
 
         # Reset env variables
         self.step_ctr = 0
-
-        #self.envgen = ManualGen(12)
-        #self.envgen = HMGen()
-        #self.envgen = EvoGen(12)
         self.episodes = 0
 
         self.reset()
@@ -116,9 +111,9 @@ class Hexapod:
     def step(self, ctrl):
 
         # Mute appropriate leg joints
-        for i in range(6):
-            if self.dead_leg_vector[i] == 1:
-                ctrl[i * 3:i * 3 + 3] = np.zeros(3) #np.random.randn(3) * 0.1
+        # for i in range(6):
+        #     if self.dead_leg_vector[i] == 1:
+        #         ctrl[i * 3:i * 3 + 3] = np.zeros(3) #np.random.randn(3) * 0.1
 
         if self.mem_dim == 0:
             mem = np.zeros(0)
@@ -129,6 +124,9 @@ class Hexapod:
             act = ctrl[:-self.mem_dim]
             ctrl = self.scale_action(act)
 
+        x, y, z, qw, qx, qy, qz = self.get_obs()[:7]
+        prev_dist_to_goal = abs(self.goal_xy[0] - x) + abs(self.goal_xy[1] - y)
+
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
         self.sim.step()
@@ -137,28 +135,27 @@ class Hexapod:
         obs = self.get_obs()
         obs_dict = self.get_obs_dict()
 
-        # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
+        curr_dist_to_goal = abs(self.goal_xy[0] - x) + abs(self.goal_xy[1] - y)
 
         xd, yd, zd, _, _, _ = self.sim.get_state().qvel.tolist()[:6]
-        angle = 2 * acos(qw)
+
+        yaw = np.arctan2(2 * qy * qw - 2 * qx * qz, 1 - 2 * qy ** 2 - 2 * qz ** 2)
+        pitch = np.arcsin(2 * qx * qy + 2 * qz * qw)
+        roll = np.arctan2(2 * qx * qw - 2 * qy * qz, 1 - 2 * qx ** 2 - 2 * qz ** 2)
+
+        # Calculate target angle to goal
+        tar_angle = np.arctan2(self.goal_xy[1] - y, self.goal_xy[0] - x)
 
         # Reward conditions
-        ctrl_effort = np.square(ctrl).sum()
-        target_progress = xd
-        target_vel = 0.25
-        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
-        height_pen = np.square(zd)
+        goal_velocity = prev_dist_to_goal - curr_dist_to_goal
+        velocity_rew = 1. / (abs(goal_velocity - self.goal_vel) + 1.) - 1. / (self.goal_vel + 1.)
+        direction_pen = abs(tar_angle - yaw)
 
-        contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
-
-        rV = (target_progress * 0.0,
-              velocity_rew * 7.0,
-              - ctrl_effort * 0.005,
-              - np.square(angle) * 0.2,
-              - np.square(yd) * 0.2,
-              - contact_cost * 0.0,
-              - height_pen * 0.2 * int(self.step_ctr > 30))
+        rV = (velocity_rew * 5.0,
+              - direction_pen * 0.1,
+              - np.square(ctrl).sum() * 0.1 * self.goal_eco,
+              - (np.square(pitch) * 1. + np.square(roll) * 1. + np.square(zd) * 1.) * self.goal_level * int(self.step_ctr > 15))
 
         r = sum(rV)
         r = np.clip(r, -3, 3)
@@ -166,51 +163,55 @@ class Hexapod:
         self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps# or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
+        done = self.step_ctr > self.max_steps # or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
         #obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
-        yaw = np.arctan2(2 * qy * qw - 2 * qx * qz, 1 - 2 * qy**2 - 2 * qz**2)
-        pitch = np.arcsin(2 * qx * qy + 2 * qz * qw)
-        roll = np.arctan2(2 * qx * qw - 2 * qy * qz, 1 - 2 * qx**2 - 2 * qz**2)
+        goal_params = [*self.goal_xy, self.goal_vel, self.goal_eco, self.goal_level]
 
-        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                              np.array([yaw, pitch, roll]),
+        obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+                              [x, y],
+                              [yaw, pitch, roll],
                               obs_dict["contacts"],
+                              goal_params,
                               mem])
-
-        if np.random.rand() < self.dead_leg_prob:
-            idx = np.random.randint(0,6)
-            self.dead_leg_vector[idx] = 1
-            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
-            self.dead_leg_prob /= 2.
 
         return obs, r, done, obs_dict
 
 
     def reset(self, test=False):
-
         self.cumulative_environment_reward = 0
         self.dead_leg_prob = 0.004
         self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
 
-        for i in range(6):
-            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[i]]] = [0.0, 0.6, 0.4, 1]
+        #for i in range(6):
+        #    self.model.geom_rgba[self.model._geom_name2id[self.leg_list[i]]] = [0.0, 0.6, 0.4, 1]
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = np.random.randn() * 0.1 + 0.05
         init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.15
+        init_q[2] = 0.2
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Set environment state
         self.set_state(init_q, init_qvel)
 
+        self.goal_xy = np.random.randn(2) * 1.5
+        self.goal_vel = 0.1 + np.random.rand() * 3
+        self.goal_eco = np.random.rand()
+        self.goal_level = np.random.rand()
+
+        goal_params = [*self.goal_xy, self.goal_vel, self.goal_eco, self.goal_level]
+
+        self.model.body_pos[20] = [*self.goal_xy, 0]
+
         obs_dict = self.get_obs_dict()
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
+                              [init_q[0], init_q[1]],
                               np.zeros(3),
                               obs_dict["contacts"],
+                              goal_params,
                               np.zeros(self.mem_dim)])
 
         return obs
@@ -271,7 +272,7 @@ class Hexapod:
             for j in range(self.max_steps):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
-                obs, r, done, od, = self.step(action[0].detach().numpy())
+                obs, r, done, od, = self.step(action[0].detach())
                 cr += r
                 time.sleep(0.001)
                 self.render()

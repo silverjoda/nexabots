@@ -205,7 +205,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new

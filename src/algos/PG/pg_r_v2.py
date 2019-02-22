@@ -161,7 +161,7 @@ if __name__=="__main__":
     T.set_num_threads(2)
 
     params = {"iters": 100000, "batchsize": 128, "gamma": 0.98, "policy_lr": 0.001, "rnn_lr": 0.001, "w_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 8, "animate": False, "train" : True,
+              "ppo_update_iters": 8, "animate": True, "train" : False,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Ant feelers

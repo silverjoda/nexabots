@@ -226,11 +226,14 @@ if __name__=="__main__":
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
 
-    from src.envs.hexapod_trossen import hexapod_trossen
-    env = hexapod_trossen.Hexapod()
+    #from src.envs.hexapod_trossen import hexapod_trossen
+    #env = hexapod_trossen.Hexapod()
 
-    #from src.envs.hexapod_trossen_control import hexapod_trossen_control
+    from src.envs.hexapod_trossen_control import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
+
+    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain
+    env = hexapod_trossen_terrain.Hexapod()
 
     #env.test(policies.NN_PG(env))
     # exit()
@@ -252,6 +255,6 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_62Y_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_US2_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

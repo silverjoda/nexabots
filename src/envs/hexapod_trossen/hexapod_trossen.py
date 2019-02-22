@@ -19,8 +19,8 @@ class Hexapod:
         self.leg_list = ["coxa_fl_geom","coxa_fr_geom","coxa_rr_geom","coxa_rl_geom","coxa_mr_geom","coxa_ml_geom"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 400
-        self.mem_dim = 0
+        self.max_steps = 600
+        self.mem_dim = 18
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
@@ -36,7 +36,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1 + 3
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -146,19 +146,19 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 0.25
+        target_vel = 0.3
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
         contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
         rV = (target_progress * 0.0,
-              velocity_rew * 7.0,
-              - ctrl_effort * 0.005,
-              - np.square(angle) * 0.2,
-              - np.square(yd) * 0.3,
+              velocity_rew * 6.0,
+              - ctrl_effort * 0.001,
+              - np.square(angle) * 0.5,
+              - np.square(yd) * 10.,
               - contact_cost * 0.0,
-              - height_pen * 0.1 * int(self.step_ctr > 20))
+              - height_pen * 0.5 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -3, 3)
@@ -168,28 +168,26 @@ class Hexapod:
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps# or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
 
-        yaw = np.arctan2(2 * qy * qw - 2 * qx * qz, 1 - 2 * qy**2 - 2 * qz**2)
-        pitch = np.arcsin(2 * qx * qy + 2 * qz * qw)
-        roll = np.arctan2(2 * qx * qw - 2 * qy * qz, 1 - 2 * qx**2 - 2 * qz**2)
-
-        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                              np.array([yaw, pitch, roll]),
+        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
+                              [xd, yd],
                               obs_dict["contacts"],
                               mem])
 
         if np.random.rand() < self.dead_leg_prob:
-            idx = np.random.randint(0,6)
-            self.dead_leg_vector[idx] = 1
-            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
-            self.dead_leg_prob /= 2.
+            #idx = np.random.randint(0,6)
+            self.dead_leg_vector[3] = 1
+            self.dead_leg_vector[4] = 1
+            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[3]]] = [1, 0, 0, 1]
+            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[4]]] = [1, 0, 0, 1]
+            self.dead_leg_prob = 0.
 
         return obs, r, done, obs_dict
 
 
-    def reset(self, test=False):
+    def reset(self):
 
         self.cumulative_environment_reward = 0
-        self.dead_leg_prob = 0.004
+        self.dead_leg_prob = 0.003
         self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
 
@@ -207,8 +205,8 @@ class Hexapod:
         self.set_state(init_q, init_qvel)
 
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                              np.zeros(3),
+        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
+                              [0, 0],
                               obs_dict["contacts"],
                               np.zeros(self.mem_dim)])
 
@@ -249,7 +247,7 @@ class Hexapod:
     def test(self, policy):
         #self.envgen.load()
         for i in range(100):
-            obs = self.reset(test=True)
+            obs = self.reset()
             cr = 0
             for j in range(self.max_steps):
                 action = policy(my_utils.to_tensor(obs, True)).detach()

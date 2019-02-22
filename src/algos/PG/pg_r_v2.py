@@ -202,7 +202,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_RNN_PG_X8D_pg.p')
+        policy = T.load('agents/Hexapod_RNN_PG_DZH_pg.p')
         env.test_recurrent(policy)
 
 

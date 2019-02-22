@@ -35,7 +35,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1 + 7
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim + 2
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -109,12 +109,6 @@ class Hexapod:
 
 
     def step(self, ctrl):
-
-        # Mute appropriate leg joints
-        # for i in range(6):
-        #     if self.dead_leg_vector[i] == 1:
-        #         ctrl[i * 3:i * 3 + 3] = np.zeros(3) #np.random.randn(3) * 0.1
-
         if self.mem_dim == 0:
             mem = np.zeros(0)
             act = ctrl
@@ -124,8 +118,12 @@ class Hexapod:
             act = ctrl[:-self.mem_dim]
             ctrl = self.scale_action(act)
 
-        x, y, z, qw, qx, qy, qz = self.get_obs()[:7]
-        prev_dist_to_goal = abs(self.goal_xy[0] - x) + abs(self.goal_xy[1] - y)
+        x, y, z, q0, q1, q2, q3 = self.get_obs()[:7]
+        prev_dist_to_goal = np.sqrt(np.square(self.goal_xy[0] - x) + np.square(self.goal_xy[1] - y))
+
+        siny_cosp = 2.0 * (q0 * q3 + q1 * q2)
+        cosy_cosp = 1.0 - 2.0 * (q2 * q2 + q3 * q3)
+        yaw_prev = np.arctan2(siny_cosp, cosy_cosp)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -136,68 +134,55 @@ class Hexapod:
         obs_dict = self.get_obs_dict()
 
         x, y, z, q0, q1, q2, q3 = obs[:7]
-        curr_dist_to_goal = abs(self.goal_xy[0] - x) + abs(self.goal_xy[1] - y)
+        curr_dist_to_goal = np.sqrt(np.square(self.goal_xy[0] - x) + np.square(self.goal_xy[1] - y))
 
         xd, yd, zd, _, _, _ = self.sim.get_state().qvel.tolist()[:6]
 
-        roll = np.arctan2(2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1 ** 2 - q2 ** 2))
-        pitch = np.arcsin(2 * (q0 * q2 - q3 * q1))
-        yaw = np.arctan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 ** 2 - q3 ** 2))
-
+        #roll, pitch, yaw = my_utils.quat_to_rpy((q0,q1,q2,q3))
         #print(roll, pitch, yaw)
+
+        siny_cosp = 2.0 * (q0 * q3 + q1 * q2)
+        cosy_cosp = 1.0 - 2.0 * (q2 * q2 + q3 * q3)
+        yaw = np.arctan2(siny_cosp, cosy_cosp)
 
         # Calculate target angle to goal
         tar_angle = np.arctan2(self.goal_xy[1] - y, self.goal_xy[0] - x)
 
         # Reward conditions
-        goal_velocity = prev_dist_to_goal - curr_dist_to_goal
-        velocity_rew = 1. / (abs(goal_velocity - self.goal_vel) + 1.) - 1. / (self.goal_vel + 1.)
+        goal_velocity = (prev_dist_to_goal - curr_dist_to_goal) * 50
+
+        target_velocity = 0.3
+        velocity_rew = 1. / (abs(goal_velocity - target_velocity) + 1.) - 1. / (target_velocity + 1.)
+        direction_rew = abs(tar_angle - yaw_prev) - abs(tar_angle - yaw)
         direction_pen = abs(tar_angle - yaw)
 
-        rV = (velocity_rew * 7.0,
-              - direction_pen * 0.1,
-              - np.square(ctrl).sum() * 0.1 * self.goal_eco,
-              - (np.square(pitch) * 1. + np.square(roll) * 1. + np.square(zd) * 1.) * self.goal_level * int(self.step_ctr > 15))
+        rV = (velocity_rew * 3.0,
+              goal_velocity * 0,
+              direction_rew * 0,
+              - direction_pen * .0,
+              - np.square(ctrl).sum() * 0.00)
+              #,- (np.square(pitch) * 1. + np.square(roll) * 1. + np.square(zd) * 1.) * self.goal_level * int(self.step_ctr > 15))
 
         r = sum(rV)
         r = np.clip(r, -3, 3)
         obs_dict['rV'] = rV
-        self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps # or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
-        #obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"], mem))
 
-        goal_params = [*self.goal_xy, self.goal_vel, self.goal_eco, self.goal_level]
-
-        obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
-                              [x, y],
-                              [yaw, pitch, roll],
+        obs = np.concatenate([self.sim.get_state().qpos.tolist()[2:],
+                              self.sim.get_state().qvel.tolist(),
                               obs_dict["contacts"],
-                              goal_params,
+                              [self.goal_xy[0] - x, self.goal_xy[1] - y],
                               mem])
 
-        cy = np.cos(yaw * 0.5)
-        sy = np.sin(yaw * 0.5)
-        cp = np.cos(pitch * 0.5)
-        sp = np.sin(pitch * 0.5)
-        cr = np.cos(roll * 0.5)
-        sr = np.sin(roll * 0.5)
-
-        q0 = cy * cp * cr + sy * sp * sr
-        q1 = cy * cp * sr - sy * sp * cr
-        q2 = sy * cp * sr + cy * sp * cr
-        q3 = sy * cp * cr - cy * sp * sr
-
-        self.model.body_quat[21] = [q0,q1,q2,q3]
+        self.model.body_quat[21] = my_utils.rpy_to_quat(0, 0, yaw)
+        self.model.body_pos[21] = [x,y,1]
 
         return obs, r, done, obs_dict
 
 
     def reset(self, test=False):
-        self.cumulative_environment_reward = 0
-        self.dead_leg_prob = 0.004
-        self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
 
         #for i in range(6):
@@ -213,21 +198,17 @@ class Hexapod:
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        self.goal_xy = np.random.randn(2) * 1.5
-        self.goal_vel = 0.25 #0.1 + np.random.rand() * 3
-        self.goal_eco = 0.0 #np.random.rand()
-        self.goal_level = 0.1 #np.random.rand()
-
-        goal_params = [*self.goal_xy, self.goal_vel, self.goal_eco, self.goal_level]
+        self.goal_xy = np.random.randn(2) * 1.0
 
         self.model.body_pos[20] = [*self.goal_xy, 0]
 
+        x, y, z, q0, q1, q2, q3 = self.get_obs()[:7]
+
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                              [init_q[0], init_q[1]],
-                              np.zeros(3),
+        obs = np.concatenate([self.sim.get_state().qpos.tolist()[2:],
+                              self.sim.get_state().qvel.tolist(),
                               obs_dict["contacts"],
-                              goal_params,
+                              [self.goal_xy[0] - x, self.goal_xy[1] - y],
                               np.zeros(self.mem_dim)])
 
         return obs

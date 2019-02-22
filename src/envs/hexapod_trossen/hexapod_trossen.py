@@ -20,7 +20,7 @@ class Hexapod:
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 600
-        self.mem_dim = 18
+        self.mem_dim = 0
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
@@ -174,12 +174,10 @@ class Hexapod:
                               mem])
 
         if np.random.rand() < self.dead_leg_prob:
-            #idx = np.random.randint(0,6)
-            self.dead_leg_vector[3] = 1
-            self.dead_leg_vector[4] = 1
-            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[3]]] = [1, 0, 0, 1]
-            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[4]]] = [1, 0, 0, 1]
-            self.dead_leg_prob = 0.
+            idx = np.random.randint(0,6)
+            self.dead_leg_vector[idx] = 1
+            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
+            self.dead_leg_prob = 0
 
         return obs, r, done, obs_dict
 

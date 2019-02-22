@@ -205,7 +205,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+              "ppo_update_iters": 6, "animate": False, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     # Centipede new
@@ -229,11 +229,11 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen import hexapod_trossen
     #env = hexapod_trossen.Hexapod()
 
-    from src.envs.hexapod_trossen_control import hexapod_trossen_control
+    #from src.envs.hexapod_trossen_control import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
 
     from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain
-    env = hexapod_trossen_terrain.Hexapod()
+    env = hexapod_trossen_terrain.Hexapod(mem_dim=0)
 
     #env.test(policies.NN_PG(env))
     # exit()
@@ -255,6 +255,6 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_US2_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_TPI_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

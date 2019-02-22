@@ -9,10 +9,21 @@ def to_tensor(x, add_batchdim=False):
     return x
 
 def quat_to_rpy(quat):
-    q0, q1, q2, q3 = quat
-    roll = math.atan2(2 * (q0 * q1 + q2 * q3), 1 - 2 * (q1 ** 2 - q2 ** 2))
-    pitch = math.asin(2 * (q0 * q2 - q3 * q1))
-    yaw = math.atan2(2 * (q0 * q3 + q1 * q2), 1 - 2 * (q2 ** 2 - q3 ** 2))
+    qw, qx, qy, qz = quat
+
+    sinr_cosp = 2 * (qw * qx + qy * qz)
+    cosr_cosp = 1 - 2 * (qx * qx + qy * qy)
+    roll = np.arctan2(sinr_cosp, cosr_cosp)
+
+    sinp = 2 * (qw * qy - qz * qx)
+    if (np.abs(sinp) >= 1):
+        pitch = np.copysign(np.pi / 2, sinp)
+    else:
+        pitch = np.arcsin(sinp)
+
+    siny_cosp = 2.0 * (qw * qz + qx * qy)
+    cosy_cosp = 1.0 - 2.0 * (qy * qy + qz * qz)
+    yaw = np.arctan2(siny_cosp, cosy_cosp)
 
     return roll, pitch, yaw
 

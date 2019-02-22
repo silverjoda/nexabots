@@ -11,8 +11,8 @@ import string
 
 
 class Hexapod:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_bumps.xml")
-    def __init__(self, animate=False):
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_holes.xml")
+    def __init__(self, animate=False, mem_dim=0):
 
         print("Trossen hexapod")
 
@@ -20,7 +20,7 @@ class Hexapod:
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 1000
-        self.mem_dim = 0
+        self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
@@ -144,15 +144,16 @@ class Hexapod:
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
-        contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
+        roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         rV = (target_progress * 0.0,
               velocity_rew * 7.0,
               - ctrl_effort * 0.001,
               - np.square(thd) * 0.05 - np.square(phid) * 0.05,
-              - np.square(angle) * 0.00,
+              - np.square(angle) * 0.0,
+              - np.square(roll) * 0.0,
+              - np.square(pitch) * 0.0,
               - np.square(yd) * 0.0,
-              - contact_cost * 0.0,
               - height_pen * 0.1 * int(self.step_ctr > 20))
 
         r = sum(rV)

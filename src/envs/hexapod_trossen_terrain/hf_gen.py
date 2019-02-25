@@ -192,6 +192,7 @@ class HMGen:
 
         cv2.imwrite(self.filename, mat)
 
+
     def test_generate(self):
         mat = cv2.imread(self.filename)
         mat -= mat.min()
@@ -201,10 +202,50 @@ class HMGen:
     def load(self):
         pass
 
+
     def feedback(self, _):
         pass
 
 
+def genstairs():
+    N = 120
+    M = 30
+
+    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 "assets/stairs.png")
+
+    # Generate stairs
+    mat = np.zeros((M, N))
+
+    stair_height = 20
+    stair_width = 3
+    current_height = 0
+
+    for i in range(6):
+        mat[:, 10 + i * stair_width : 10 + i * stair_width + stair_width] = current_height
+        current_height += stair_height
+
+    for i in range(3):
+        mat[:, 28 + i * stair_width :  28 + i * stair_width + stair_width] = current_height
+
+    for i in range(4):
+        mat[:, 37 + i * stair_width : 37 + i * stair_width + stair_width] = current_height
+        current_height -= stair_height
+
+    for i in range(2):
+        mat[:, 49 + i * stair_width :  49 + i * stair_width + stair_width] = current_height
+
+    for i in range(3):
+        mat[:, 55 + i * stair_width: 55 + i * stair_width + stair_width] = current_height
+        current_height -= stair_height
+
+    mat[0, :] = 255
+    mat[:, 0] = 255
+    mat[-1, :] = 255
+    mat[:, -1] = 255
+    cv2.imwrite(filename, mat)
+
 if __name__ == "__main__":
-    gen = HMGen(12)
-    gen.generate()
+    genstairs()
+    #gen = HMGen(12)
+    #gen.generate()

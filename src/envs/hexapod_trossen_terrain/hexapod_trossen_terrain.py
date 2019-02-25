@@ -11,7 +11,7 @@ import string
 
 
 class Hexapod:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_holes.xml")
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_stairs.xml")
     def __init__(self, animate=False, mem_dim=0):
 
         print("Trossen hexapod")
@@ -178,7 +178,7 @@ class Hexapod:
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = np.random.randn() * 0.1 + 0.05
-        init_q[1] = np.random.randn() * 0.3
+        init_q[1] = np.random.randn() * 0.1
         init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
@@ -234,7 +234,7 @@ class Hexapod:
         for i in range(100):
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(self.max_steps * 3):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 #print(action[0, :-self.mem_dim])
                 obs, r, done, od, = self.step(action[0].numpy())
@@ -250,7 +250,7 @@ class Hexapod:
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(self.max_steps ):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach().numpy())

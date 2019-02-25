@@ -184,8 +184,11 @@ if __name__=="__main__":
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
 
-    from src.envs.hexapod_terrain_env import hexapod_terrain
-    env = hexapod_terrain.Hexapod()
+    #from src.envs.hexapod_terrain_env import hexapod_terrain
+    #env = hexapod_terrain.Hexapod()
+
+    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain
+    env = hexapod_trossen_terrain.Hexapod(mem_dim=0)
 
     #from src.envs.hexapod_trossen import hexapod_trossen
     #env = hexapod_trossen.Hexapod()
@@ -202,7 +205,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_RNN_PG_OD1_pg.p')
+        policy = T.load('agents/Hexapod_RNN_PG_ZD3_pg.p')
         env.test_recurrent(policy)
 
 

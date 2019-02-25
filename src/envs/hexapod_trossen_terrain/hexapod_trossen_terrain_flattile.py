@@ -11,8 +11,7 @@ import string
 
 
 class Hexapod:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "assets/hexapod_trossen_flat_tile_hybrid.xml")
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_flattiles.xml")
     def __init__(self, animate=False, mem_dim=0):
 
         print("Trossen hexapod")
@@ -149,13 +148,13 @@ class Hexapod:
 
         rV = (target_progress * 0.0,
               velocity_rew * 7.0,
-              - ctrl_effort * 0.001,
-              - np.square(thd) * 0.01 - np.square(phid) * 0.01,
-              - np.square(angle) * 0.3,
-              - np.square(roll) * 0.0,
+              - ctrl_effort * 0.01,
+              - np.square(thd) * 0.05 - np.square(phid) * 0.05,
+              - np.square(angle) * 0.2,
+              - np.square(roll) * 0.1,
               - np.square(pitch) * 0.0,
               - np.square(yd) * 0.1,
-              - height_pen * 0.3 * int(self.step_ctr > 20))
+              - height_pen * 0.1 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -1, 1)
@@ -179,14 +178,14 @@ class Hexapod:
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = np.random.randn() * 0.1 + 0.05
-        init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.25
+        init_q[1] = -1 + np.random.randn() * 0.1 + 2 * (np.random.rand() < 0.5)
+        init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(20):
+        for i in range(15):
             self.sim.forward()
             self.sim.step()
 

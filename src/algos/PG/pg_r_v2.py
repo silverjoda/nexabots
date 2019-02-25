@@ -10,6 +10,7 @@ import src.my_utils as my_utils
 import src.policies as policies
 import random
 import string
+import socket
 
 def train(env, policy, params):
 
@@ -161,8 +162,12 @@ if __name__=="__main__":
     T.set_num_threads(2)
 
     params = {"iters": 100000, "batchsize": 128, "gamma": 0.98, "policy_lr": 0.001, "rnn_lr": 0.001, "w_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 8, "animate": True, "train" : False,
+              "ppo_update_iters": 8, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
+
+    if socket.gethostname() == "goedel":
+        params["animate"] = False
+        params["Train"] = True
 
     # Ant feelers
     #from src.envs.ant_feelers_mjc import ant_feelers_mjc
@@ -187,8 +192,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
 
-    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain
-    env = hexapod_trossen_terrain.Hexapod(mem_dim=0)
+    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.hexapod_trossen import hexapod_trossen
     #env = hexapod_trossen.Hexapod()
@@ -205,7 +210,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_RNN_PG_ZD3_pg.p')
+        policy = T.load('agents/Hexapod_RNN_PG_5LT_pg.p')
         env.test_recurrent(policy)
 
 

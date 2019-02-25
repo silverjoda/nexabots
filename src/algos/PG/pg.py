@@ -10,6 +10,7 @@ import src.my_utils as my_utils
 import src.policies as policies
 import random
 import string
+import socket
 
 class Valuefun(nn.Module):
     def __init__(self, env):
@@ -208,6 +209,10 @@ if __name__=="__main__":
               "ppo_update_iters": 6, "animate": True, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
+    if socket.gethostname() == "goedel":
+        params["animate"] = False
+        params["Train"] = True
+
     # Centipede new
     #from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
     #env = centipede()
@@ -232,8 +237,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_control import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
 
-    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain
-    env = hexapod_trossen_terrain.Hexapod(mem_dim=0)
+    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
 
     #env.test(policies.NN_PG(env))
     # exit()
@@ -255,6 +260,6 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_ALY_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_FVV_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

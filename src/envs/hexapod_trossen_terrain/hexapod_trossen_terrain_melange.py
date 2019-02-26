@@ -12,7 +12,7 @@ import string
 
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "assets/hexapod_trossen_stairs.xml")
+                             "assets/hexapod_trossen_flat.xml")
     def __init__(self, animate=False, mem_dim=0):
 
         print("Trossen hexapod")
@@ -148,15 +148,14 @@ class Hexapod:
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         rV = (target_progress * 0.0,
-              velocity_rew * 8.0,
-              - ctrl_effort * 0.01,
+              velocity_rew * 7.0,
+              - ctrl_effort * 0.001,
               - np.square(thd) * 0.01 - np.square(phid) * 0.01,
-              - np.square(angle) * 0.8,
+              - np.square(angle) * 0.3,
               - np.square(roll) * 0.0,
               - np.square(pitch) * 0.0,
               - np.square(yd) * 0.1,
-              - height_pen * 0.8 * int(self.step_ctr > 20))
-
+              - height_pen * 0.3 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -1, 1)
@@ -267,8 +266,9 @@ class Hexapod:
         for i in range(100):
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(self.max_steps * 3):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
+                #print(action[0, :-self.mem_dim])
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
                 time.sleep(0.001)

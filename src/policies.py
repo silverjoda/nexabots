@@ -860,6 +860,51 @@ class NN_PG(nn.Module):
         return x
 
 
+    def print_info(self):
+        print("-------------------------------")
+        print("w_fc1", self.fc1.weight.data.max(), self.fc1.weight.data.min())
+        print("b_fc1", self.fc1.bias.data.max(), self.fc1.weight.data.min())
+        print("w_fc2", self.fc2.weight.data.max(), self.fc2.weight.data.min())
+        print("b_fc2", self.fc2.bias.data.max(), self.fc2.weight.data.min())
+        print("w_fc3", self.fc3.weight.data.max(), self.fc3.weight.data.min())
+        print("b_fc3", self.fc3.bias.data.max(), self.fc3.weight.data.min())
+        print("---")
+        print("w_fc1 grad", self.fc1.weight.grad.max(), self.fc1.weight.grad.min())
+        print("b_fc1 grad", self.fc1.bias.grad.max(), self.fc1.bias.grad.min())
+        print("w_fc2 grad", self.fc2.weight.grad.max(), self.fc2.weight.grad.min())
+        print("b_fc2 grad", self.fc2.bias.grad.max(), self.fc2.bias.grad.min())
+        print("w_fc3 grad", self.fc3.weight.grad.max(), self.fc3.weight.grad.min())
+        print("b_fc3 grad", self.fc3.bias.grad.max(), self.fc3.bias.grad.min())
+        print("-------------------------------")
+
+
+    def clip_grads(self, bnd=1):
+        self.fc1.weight.grad.clamp_(-bnd, bnd)
+        self.fc1.bias.grad.clamp_(-bnd, bnd)
+        self.fc2.weight.grad.clamp_(-bnd, bnd)
+        self.fc2.bias.grad.clamp_(-bnd, bnd)
+        self.fc3.weight.grad.clamp_(-bnd, bnd)
+        self.fc3.bias.grad.clamp_(-bnd, bnd)
+
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            m = np.abs(p.grad.max())
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            self.fc1.weight.grad = (self.fc1.weight.grad / maxval) * bnd
+            self.fc1.bias.grad = (self.fc2.bias.grad / maxval) * bnd
+            self.fc2.weight.grad = (self.fc2.weight.grad / maxval) * bnd
+            self.fc2.bias.grad = (self.fc2.bias.grad / maxval) * bnd
+            self.fc3.weight.grad = (self.fc3.weight.grad / maxval) * bnd
+            self.fc3.bias.grad = (self.fc3.bias.grad / maxval) * bnd
+
+
     def sample_action(self, s):
         return T.normal(self.forward(s), T.exp(self.log_std))
 
@@ -1064,7 +1109,7 @@ class RNN_PG(nn.Module):
         print("w_fc1", self.fc1.weight.data.max(), self.fc1.weight.data.min())
         print("b_fc1", self.fc1.bias.data.max(), self.fc1.weight.data.min())
         print("w_fc2", self.fc2.weight.data.max(), self.fc2.weight.data.min())
-        print("b_fc2", self.fc2.bias.data.max(), self.fc1.weight.data.min())
+        print("b_fc2", self.fc2.bias.data.max(), self.fc2.weight.data.min())
         print("---")
         print("w_hh grad", self.batch_rnn.weight_hh_l0.grad.max(), self.batch_rnn.weight_hh_l0.grad.min())
         print("w_ih grad", self.batch_rnn.weight_ih_l0.grad.max(), self.batch_rnn.weight_ih_l0.grad.min())
@@ -1094,6 +1139,26 @@ class RNN_PG(nn.Module):
         self.fc1.bias.grad.clamp_(-bnd, bnd)
         self.fc2.weight.grad.clamp_(-bnd, bnd)
         self.fc2.bias.grad.clamp_(-bnd, bnd)
+
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            m = np.abs(p.grad.max())
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            self.batch_rnn.weight_hh_l0.grad = (self.batch_rnn.weight_hh_l0.grad / maxval) * bnd
+            self.batch_rnn.weight_ih_l0.grad = (self.batch_rnn.weight_ih_l0.grad / maxval) * bnd
+            self.batch_rnn.bias_hh_l0.grad = (self.batch_rnn.bias_hh_l0.grad / maxval) * bnd
+            self.batch_rnn.bias_ih_l0.grad = (self.batch_rnn.bias_ih_l0.grad / maxval) * bnd
+            self.fc1.weight.grad = (self.fc1.weight.grad / maxval) * bnd
+            self.fc1.bias.grad = (self.fc1.bias.grad / maxval) * bnd
+            self.fc2.weight.grad = (self.fc2.weight.grad / maxval) * bnd
+            self.fc2.bias.grad = (self.fc2.bias.grad / maxval) * bnd
 
 
     def clone_params(self):

@@ -56,7 +56,7 @@ def train(env, policy, params):
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
             assert r < 10, print("Large rew {}, step: {}".format(r, step_ctr))
-            r = np.clip(r, -3, 3)
+            r = np.clip(r, -1, 1)
             step_ctr += 1
 
             batch_rew += r
@@ -122,7 +122,10 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
         loss.backward()
+        policy.soft_clip_grads(0.5)
         policy_optim.step()
+
+    policy.print_info()
 
 
 def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
@@ -205,7 +208,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+    params = {"iters": 100000, "batchsize": 2, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
@@ -231,14 +234,14 @@ if __name__=="__main__":
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
 
-    #from src.envs.hexapod_trossen import hexapod_trossen
-    #env = hexapod_trossen.Hexapod()
+    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    env = env.Hexapod()
 
     #from src.envs.hexapod_trossen_control import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
 
-    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
+    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
 
     #env.test(policies.NN_PG(env))
     # exit()

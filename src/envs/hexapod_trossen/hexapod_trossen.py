@@ -20,7 +20,7 @@ class Hexapod:
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 600
-        self.mem_dim = 0
+        self.mem_dim = 18
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
@@ -153,12 +153,12 @@ class Hexapod:
         contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
         rV = (target_progress * 0.0,
-              velocity_rew * 6.0,
+              velocity_rew * 7.0,
               - ctrl_effort * 0.001,
-              - np.square(angle) * 0.5,
-              - np.square(yd) * 10.,
+              - np.square(angle) * 0.2,
+              - np.square(yd) * 5.,
               - contact_cost * 0.0,
-              - height_pen * 0.5 * int(self.step_ctr > 20))
+              - height_pen * 0.2 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -3, 3)

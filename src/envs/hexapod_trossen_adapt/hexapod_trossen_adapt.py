@@ -11,17 +11,16 @@ import string
 
 
 class Hexapod:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "assets/hexapod_trossen_stairs.xml")
-    def __init__(self, animate=False, mem_dim=0):
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_barrier.xml")
+    def __init__(self, animate=False):
 
         print("Trossen hexapod")
 
         self.leg_list = ["coxa_fl_geom","coxa_fr_geom","coxa_rr_geom","coxa_rl_geom","coxa_mr_geom","coxa_ml_geom"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 800
-        self.mem_dim = mem_dim
+        self.max_steps = 600
+        self.mem_dim = 0
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
@@ -37,7 +36,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1 + 5
+        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1 + 3 + 18
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -45,6 +44,7 @@ class Hexapod:
 
         # Reset env variables
         self.step_ctr = 0
+
 
         #self.envgen = ManualGen(12)
         #self.envgen = HMGen()
@@ -115,6 +115,12 @@ class Hexapod:
 
 
     def step(self, ctrl):
+
+        # Mute appropriate leg joints
+        for i in range(6):
+            if self.dead_leg_vector[i] == 1:
+                ctrl[i * 3:i * 3 + 3] = np.zeros(3) #np.random.randn(3) * 0.1
+
         if self.mem_dim == 0:
             mem = np.zeros(0)
             act = ctrl
@@ -123,6 +129,8 @@ class Hexapod:
             mem = ctrl[-self.mem_dim:]
             act = ctrl[:-self.mem_dim]
             ctrl = self.scale_action(act)
+
+        self.prev_act = np.array(act)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -135,7 +143,7 @@ class Hexapod:
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
 
-        xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
+        xd, yd, zd, _, _, _ = self.sim.get_state().qvel.tolist()[:6]
         angle = 2 * acos(qw)
 
         # Reward conditions
@@ -145,55 +153,65 @@ class Hexapod:
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
-        roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
+        contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
         rV = (target_progress * 0.0,
-              velocity_rew * 8.0,
-              - ctrl_effort * 0.01,
-              - np.square(thd) * 0.01 - np.square(phid) * 0.01,
-              - np.square(angle) * 0.8,
-              - np.square(roll) * 0.0,
-              - np.square(pitch) * 0.0,
-              - np.square(yd) * 0.1,
-              - height_pen * 0.8 * int(self.step_ctr > 20))
-
+              velocity_rew * 7.0,
+              - ctrl_effort * 0.001,
+              - np.square(angle) * 0.2,
+              - np.square(yd) * 5.,
+              - contact_cost * 0.0,
+              - height_pen * 0.2 * int(self.step_ctr > 20))
 
         r = sum(rV)
-        r = np.clip(r, -1, 1)
+        r = np.clip(r, -3, 3)
         obs_dict['rV'] = rV
+        self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps #or (abs(angle) > 3 and self.step_ctr > 30) or abs(y) > 1 or x < -0.2
+        done = self.step_ctr > self.max_steps# or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
 
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
-                              [xd, yd, thd, phid],
+                              [xd, yd],
+                              self.prev_act,
                               obs_dict["contacts"],
                               mem])
+
+        if np.random.rand() < self.dead_leg_prob:
+            idx = np.random.randint(0,6)
+            self.dead_leg_vector[idx] = 1
+            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
+            self.dead_leg_prob = 0
 
         return obs, r, done, obs_dict
 
 
     def reset(self):
 
+        self.cumulative_environment_reward = 0
+        self.dead_leg_prob = 0.003
+        self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
+
+        for i in range(6):
+            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[i]]] = [0.0, 0.6, 0.4, 1]
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = np.random.randn() * 0.1 + 0.05
         init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.25
+        init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(20):
-            self.sim.forward()
-            self.sim.step()
+        self.prev_act = np.zeros((self.act_dim))
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
-                              [0, 0, 0, 0],
+                              [0, 0],
+                              self.prev_act,
                               obs_dict["contacts"],
                               np.zeros(self.mem_dim)])
 
@@ -231,37 +249,6 @@ class Hexapod:
         print("-------------------------------------------")
 
 
-
-    def test_record(self, policy, ID):
-        episode_states = []
-        episode_acts = []
-        for i in range(10):
-            s = self.reset()
-            cr = 0
-
-            states = []
-            acts = []
-
-            for j in range(self.max_steps):
-                states.append(s)
-                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy
-                acts.append(action)
-                s, r, done, od, = self.step(action)
-                cr += r
-
-            episode_states.append(states)
-            episode_acts.append(acts)
-
-            print("Total episode reward: {}".format(cr))
-
-        np_states = np.concatenate(episode_states)
-        np_acts = np.concatenate(episode_acts)
-
-        np.save("{}_states.npy".format(ID), np_states)
-        np.save("{}_acts.npy".format(ID), np_acts)
-
-
-
     def test(self, policy):
         #self.envgen.load()
         for i in range(100):
@@ -269,6 +256,7 @@ class Hexapod:
             cr = 0
             for j in range(self.max_steps):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
+                #print(action[0, :-self.mem_dim])
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
                 time.sleep(0.001)
@@ -282,7 +270,7 @@ class Hexapod:
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps ):
+            for j in range(self.max_steps):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach().numpy())
@@ -290,7 +278,6 @@ class Hexapod:
                 time.sleep(0.001)
                 self.render()
             print("Total episode reward: {}".format(cr))
-
 
 if __name__ == "__main__":
     ant = Hexapod(animate=True)

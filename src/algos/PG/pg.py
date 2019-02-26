@@ -208,7 +208,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 2, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
@@ -216,26 +216,20 @@ if __name__=="__main__":
         params["animate"] = False
         params["Train"] = True
 
-    # Centipede new
-    #from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
-    #env = centipede()
-
-    # Ant Reach
-    #from src.envs.ant_reach_mjc import ant_reach_mjc
-    #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
 
     # Ant terrain
     #from src.envs.ant_terrain_mjc import ant_terrain_mjc
     #env = ant_terrain_mjc.AntTerrainMjc(camera=True, heightfield=True)
 
-    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    #env = hexapod_pd.Hexapod()
+
+    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    env = hexapod_pd.Hexapod()
 
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
 
-    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    env = env.Hexapod()
+    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    #env = env.Hexapod()
 
     #from src.envs.hexapod_trossen_control import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
@@ -258,7 +252,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 64)
+        policy = policies.NN_PG(env, 124)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:

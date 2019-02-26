@@ -3,10 +3,10 @@ import cv2
 
 class AdaptiveSliderEnv:
     def __init__(self):
-        self.mass_variety = 0.
+        self.mass_variety = 3.
         self.target = 0
         self.target_change_prob = 0.01
-        self.render_prob = 0.05
+        self.render_prob = 0.0
         self.mem_dim = 0
         self.dt = 0.1
         self.max_steps = 200
@@ -69,7 +69,7 @@ class AdaptiveSliderEnv:
 
         a = act / self.mass
         self.dx += a * self.dt
-        self.dx *= 0.9
+        self.dx *= 0.8
         self.x += self.dx * self.dt
 
         if self.x[0] > 4:
@@ -83,7 +83,7 @@ class AdaptiveSliderEnv:
         done = (self.step_ctr >= self.max_steps) #or np.abs(self.x) > 6
 
         curr_dist = np.square(self.x - self.target)
-        r = (prev_dist - curr_dist)[0] - np.square(act) * 0.03
+        r = (prev_dist - curr_dist)[0] - np.square(act) * 0.1
 
         if np.random.rand() < self.target_change_prob:
             self.target = np.random.randn()

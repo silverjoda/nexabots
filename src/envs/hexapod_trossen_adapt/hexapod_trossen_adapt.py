@@ -36,7 +36,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1 + 3 + 18
+        self.obs_dim = 48 + self.mem_dim
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -149,22 +149,31 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 0.3
+        target_vel = 0.35
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
         contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
-        rV = (target_progress * 0.0,
-              velocity_rew * 7.0,
-              - ctrl_effort * 0.001,
-              - np.square(angle) * 0.2,
-              - np.square(yd) * 5.,
-              - contact_cost * 0.0,
-              - height_pen * 0.2 * int(self.step_ctr > 20))
+        if sum(self.dead_leg_vector) > 0:
+            rV = (target_progress * 0.0,
+                  velocity_rew * 7.0,
+                  - ctrl_effort * 0.0003,
+                  - np.square(angle) * 0.0,
+                  - np.square(yd) * 10.,
+                  - contact_cost * 0.0,
+                  - height_pen * 0.05 * int(self.step_ctr > 20))
+        else:
+            rV = (target_progress * 0.0,
+                  velocity_rew * 7.0,
+                  - ctrl_effort * 0.003,
+                  - np.square(angle) * 0.5,
+                  - np.square(yd) * 5.,
+                  - contact_cost * 0.0,
+                  - height_pen * 0.5 * int(self.step_ctr > 20))
 
         r = sum(rV)
-        r = np.clip(r, -3, 3)
+        r = np.clip(r, -1, 1)
         obs_dict['rV'] = rV
         self.cumulative_environment_reward += r
 
@@ -181,7 +190,7 @@ class Hexapod:
             idx = np.random.randint(0,6)
             self.dead_leg_vector[idx] = 1
             self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
-            self.dead_leg_prob = 0
+            self.dead_leg_prob = 0.002
 
         return obs, r, done, obs_dict
 
@@ -189,7 +198,7 @@ class Hexapod:
     def reset(self):
 
         self.cumulative_environment_reward = 0
-        self.dead_leg_prob = 0.003
+        self.dead_leg_prob = 0.004
         self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
 
@@ -198,15 +207,15 @@ class Hexapod:
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.randn() * 0.1 + 0.05
-        init_q[1] = np.random.randn() * 0.1
+        init_q[0] = 0.05
+        init_q[1] = 0
         init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        self.prev_act = np.zeros((self.act_dim))
+        self.prev_act = np.zeros((self.act_dim - self.mem_dim))
 
         obs_dict = self.get_obs_dict()
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
@@ -224,9 +233,6 @@ class Hexapod:
             #self.step(np.random.randn(self.act_dim))
             for i in range(100):
                 self.step(np.zeros((self.act_dim)))
-                self.render()
-            for i in range(100):
-                self.step(np.array([0, -1, 1] * 6))
                 self.render()
             for i in range(100):
                 self.step(np.ones((self.act_dim)) * 1)

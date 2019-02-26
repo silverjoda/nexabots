@@ -116,7 +116,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss.backward()
 
         # Step policy update
-        policy.clip_grads(0.5)
+        policy.soft_clip_grads()
         policy_optim.step()
 
     policy.print_info()
@@ -136,7 +136,7 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 
     # Step policy update
     #policy.print_info()
-    policy.clip_grads()
+    policy.soft_clip_grads()
     policy_optim.step()
 
     return loss.data
@@ -170,25 +170,9 @@ if __name__=="__main__":
         params["animate"] = False
         params["Train"] = True
 
-    # Ant feelers
-    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    #env = ant_feelers_mjc.AntFeelersMjc()
 
-    # Hexapod
-    #from src.envs.hexapod_flat_mjc import hexapod
-    #env = hexapod.Hexapod()
-
-    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    #env = centipede()
-
-    #from src.envs.ant_reach_mjc import ant_reach_mjc
-    #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
-
-    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    #env = hexapod_pd.Hexapod()
-
-    #from src.envs.memory_env import memory_env
-    #env = memory_env.MemoryEnv()
+    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    env = hexapod_pd.Hexapod()
 
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
@@ -196,18 +180,21 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.hexapod_trossen import hexapod_trossen
-    env = hexapod_trossen.Hexapod()
+    #from src.envs.hexapod_trossen import hexapod_trossen
+    #env = hexapod_trossen.Hexapod()
 
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
+
+    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    #env = env.Hexapod()
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, 96)
+        policy = policies.RNN_PG(env, 124)
         train(env, policy, params)
     else:
         print("Testing")

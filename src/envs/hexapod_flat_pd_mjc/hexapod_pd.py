@@ -32,11 +32,10 @@ class Hexapod:
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
-        self.max_steps = 400
+        self.max_steps = 600
 
         self.ctrl_vecs = []
-        self.dead_joint_idx = 0
-        self.dead_leg_idx = 0
+
         self.joints_rads_low = np.array([-0.3, -1., 1.] * 6)
         self.joints_rads_high = np.array([0.3, 0, 2.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
@@ -138,12 +137,12 @@ class Hexapod:
         contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
         rV = (target_progress * 0.0,
-              velocity_rew * 5.0,
-              - ctrl_effort * 0.005,
-              - np.square(angle) * 0.9,
+              velocity_rew * 6.0,
+              - ctrl_effort * 0.01,
+              - np.square(angle) * 0.7,
               - abs(yd) * 0.1,
               - contact_cost * 0.0,
-              - height_pen * 0.9)
+              - height_pen * 0.7)
 
         # 1.0 with 0.1 pens # 1.4 with 0.3 pens # 1.2 with 0.9 pens
         #print(rV)
@@ -152,7 +151,7 @@ class Hexapod:
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
+        done = self.step_ctr > self.max_steps #or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
         obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"]))
         #
         # self.rew_list[self.n_episodes % self.rew_len] = r

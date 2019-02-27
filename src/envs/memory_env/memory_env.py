@@ -6,7 +6,7 @@ import os
 from copy import deepcopy
 import cv2
 
-class MemoryEnv:
+class MemoryEnv():
     def __init__(self, animate=False):
         self.mem_dim = 0
         self.obs_dim = 2 + self.mem_dim

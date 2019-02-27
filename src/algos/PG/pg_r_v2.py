@@ -14,7 +14,7 @@ import socket
 
 def train(env, policy, params):
 
-    policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=0.0005)
+    policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
 
     batch_states = []
     batch_actions = []
@@ -116,7 +116,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss.backward()
 
         # Step policy update
-        policy.soft_clip_grads()
+        policy.soft_clip_grads(1)
         policy_optim.step()
 
     policy.print_info()
@@ -136,7 +136,7 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 
     # Step policy update
     #policy.print_info()
-    policy.soft_clip_grads()
+    policy.soft_clip_grads(1)
     policy_optim.step()
 
     return loss.data
@@ -162,7 +162,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(2)
 
-    params = {"iters": 100000, "batchsize": 64, "gamma": 0.98, "policy_lr": 0.001, "rnn_lr": 0.001, "w_decay" : 0.001, "ppo": True,
+    params = {"iters": 100000, "batchsize": 64, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
@@ -170,9 +170,8 @@ if __name__=="__main__":
         params["animate"] = False
         params["Train"] = True
 
-
-    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    env = hexapod_pd.Hexapod()
+    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
+    #env = hexapod_pd.Hexapod()
 
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
@@ -183,22 +182,24 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen import hexapod_trossen
     #env = hexapod_trossen.Hexapod()
 
-    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
-    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
+    from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
+    env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
     #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
     #env = env.Hexapod()
+
+    # 1) tanh 2)no tanh
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, 124)
+        policy = policies.RNN_PG(env, 128)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_RNN_PG_5LT_pg.p')
+        policy = T.load('agents/AdaptiveSliderEnv_RNN_PG_AJF_pg.p')
         env.test_recurrent(policy)
 
 

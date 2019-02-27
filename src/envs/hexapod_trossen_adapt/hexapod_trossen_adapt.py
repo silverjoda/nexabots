@@ -9,7 +9,6 @@ import random
 import string
 
 
-
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_barrier.xml")
     def __init__(self, animate=False):
@@ -36,7 +35,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 48 + self.mem_dim
+        self.obs_dim = 30 + self.mem_dim + 18
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -44,6 +43,7 @@ class Hexapod:
 
         # Reset env variables
         self.step_ctr = 0
+        self.dead_leg_sums = [0,0,0,0,0,0]
 
 
         #self.envgen = ManualGen(12)
@@ -158,11 +158,11 @@ class Hexapod:
         if sum(self.dead_leg_vector) > 0:
             rV = (target_progress * 0.0,
                   velocity_rew * 7.0,
-                  - ctrl_effort * 0.0003,
+                  - ctrl_effort * 0.000,
                   - np.square(angle) * 0.0,
-                  - np.square(yd) * 10.,
+                  - np.square(yd) * 1.,
                   - contact_cost * 0.0,
-                  - height_pen * 0.05 * int(self.step_ctr > 20))
+                  - height_pen * 0.00 * int(self.step_ctr > 20))
         else:
             rV = (target_progress * 0.0,
                   velocity_rew * 7.0,
@@ -189,8 +189,10 @@ class Hexapod:
         if np.random.rand() < self.dead_leg_prob:
             idx = np.random.randint(0,6)
             self.dead_leg_vector[idx] = 1
+            self.dead_leg_sums[idx] += 1
             self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
-            self.dead_leg_prob = 0.002
+            self.dead_leg_prob /= 2.
+
 
         return obs, r, done, obs_dict
 
@@ -278,12 +280,15 @@ class Hexapod:
             cr = 0
             for j in range(self.max_steps):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
+                #print(action[0].detach().numpy()[:])
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach().numpy())
                 cr += r
                 time.sleep(0.001)
                 self.render()
             print("Total episode reward: {}".format(cr))
+
+        print(self.dead_leg_sums)
 
 if __name__ == "__main__":
     ant = Hexapod(animate=True)

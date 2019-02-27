@@ -227,7 +227,7 @@ class Hexapod:
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(self.max_steps * 2):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach())

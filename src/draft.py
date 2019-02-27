@@ -1,13 +1,21 @@
-import cma
-import numpy as np
-import time
+import gym
 
-import cv2
+from stable_baselines.common.policies import MlpPolicy, LstmPolicy, MlpLstmPolicy, MlpLnLstmPolicy
+from stable_baselines.common.vec_env import DummyVecEnv
+from stable_baselines import *
 
-mat = np.zeros((30,120), dtype=np.uint8)
-mat[:,:2] = 255
-mat[:,-2:] = 255
-mat[:2,:] = 255
-mat[-2:,:] = 255
+env = gym.make('MemoryEnv-v0')
+# Vectorized environments allow to easily multiprocess training
+# we demonstrate its usefulness in the next examples
+env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
-cv2.imwrite("hf_gen.png", mat)
+model = A2C(MlpLnLstmPolicy, env, verbose=1, tensorboard_log="/tmp/a2c_cartpole_tensorboard/")
+# Train the agent
+model.learn(total_timesteps=1000000)
+
+# Enjoy trained agent
+obs = env.reset()
+for i in range(1000):
+    action, _states = model.predict(obs)
+    obs, rewards, dones, info = env.step(action)
+    env.render()

@@ -162,8 +162,8 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(2)
 
-    params = {"iters": 100000, "batchsize": 64, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+    params = {"iters": 100000, "batchsize": 96, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
@@ -182,22 +182,22 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen import hexapod_trossen
     #env = hexapod_trossen.Hexapod()
 
-    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
-    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
+    from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
+    env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    env = env.Hexapod()
+    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    #env = env.Hexapod()
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V2_PG(env, hid_dim=64, memory_dim=24, tanh=True)
+        policy = policies.RNN_V2_PG(env, hid_dim=64, memory_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AdaptiveSliderEnv_RNN_PG_AJF_pg.p')
+        policy = T.load('agents/AdaptiveSliderEnv_RNN_PG_56J_pg.p')
         env.test_recurrent(policy)
 
 

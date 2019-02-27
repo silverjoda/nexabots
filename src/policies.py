@@ -1103,8 +1103,6 @@ class RNN_PG(nn.Module):
         self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
         self.fc2 = nn.Linear(self.hid_dim, self.act_dim)
 
-
-
         self.log_std = T.zeros(1, self.act_dim)
 
 
@@ -1234,7 +1232,7 @@ class RNN_V2_PG(nn.Module):
         self.tanh = tanh
 
 
-        self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
+        self.rnn = nn.LSTMCell(self.obs_dim, self.memory_dim)
         self.batch_rnn = nn.LSTM(input_size=self.obs_dim,
                                 hidden_size=self.memory_dim,
                                 batch_first=True)
@@ -1314,10 +1312,9 @@ class RNN_V2_PG(nn.Module):
         x = F.selu(self.fc1(x))
         h_, c_ = self.rnn(x, h)
         if self.tanh:
-            x = T.tanh(self.fc2(T.concat((h_, x), 1)))
+            x = T.tanh(self.fc2(T.cat((h_, x), 1)))
         else:
-            x = self.fc2(T.concat((h_, x), 1))
-
+            x = self.fc2(T.cat((h_, x), 1))
         return x, (h_, c_)
 
 
@@ -1325,9 +1322,9 @@ class RNN_V2_PG(nn.Module):
         x = F.selu(self.fc1(batch_states))
         h_, _ = self.batch_rnn(x)
         if self.tanh:
-            x = T.tanh(self.fc2(T.concat((h_, x), 1)))
+            x = T.tanh(self.fc2(T.cat((h_, x), 2)))
         else:
-            x = self.fc2(T.concat((h_, x), 1))
+            x = self.fc2(T.cat((h_, x), 2))
         return x
 
 

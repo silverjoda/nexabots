@@ -3,7 +3,11 @@ import cv2
 import src.my_utils as my_utils
 import time
 
-class AdaptiveSliderEnv:
+import gym
+from gym import spaces
+from gym.utils import seeding
+
+class AdaptiveSliderEnv(gym.Env):
     def __init__(self):
         self.mass_variety = 2.
         self.target = 0
@@ -23,10 +27,16 @@ class AdaptiveSliderEnv:
         if self.mass_as_input:
             self.obs_dim += 1
 
+        self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
+        self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
+
         print("Adaptive slider, mass_variety: {}, mass as input: {}, mem_dim: {}".format(self.mass_variety, self.mass_as_input, self.mem_dim))
 
         #cv2.namedWindow('image')
 
+    def seed(self, seed=None):
+        self.np_random, seed = seeding.np_random(seed)
+        return [seed]
 
     def step(self, ctrl):
         self.current_act = ctrl[0]

@@ -122,7 +122,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
         loss.backward()
-        policy.soft_clip_grads(1.)
+        #policy.soft_clip_grads(1.)
         policy_optim.step()
 
     policy.print_info()
@@ -226,8 +226,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
 
-    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    #env = env.Hexapod()
+    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    env = env.Hexapod()
 
     #from src.envs.hexapod_trossen_control import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
@@ -244,17 +244,17 @@ if __name__=="__main__":
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
 
-    from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
-    env = adaptive_ctrl_env.AdaptiveSliderEnv()
+    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
+    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 24, tanh=True)
+        policy = policies.NN_PG(env, 64, tanh=False)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AdaptiveSliderEnv_NN_PG_E4Z_pg.p')
+        policy = T.load('agents/AdaptiveSliderEnv_NN_PG_1KV_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

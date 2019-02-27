@@ -8,6 +8,9 @@ from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
 import string
 
+import gym
+from gym import spaces
+from gym.utils import seeding
 
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_barrier.xml")
@@ -37,6 +40,9 @@ class Hexapod:
 
         self.obs_dim = 30 + self.mem_dim
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
+
+        self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
+        self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
         # Environent inner parameters
         self.viewer = None
@@ -148,7 +154,7 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 0.35
+        target_vel = 0.6
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
@@ -165,7 +171,7 @@ class Hexapod:
         else:
             rV = (target_progress * 0.0,
                   velocity_rew * 7.0,
-                  - ctrl_effort * 0.003,
+                  - ctrl_effort * 0.007,
                   - np.square(angle) * 0.5,
                   - np.square(yd) * 5.,
                   - contact_cost * 0.0,

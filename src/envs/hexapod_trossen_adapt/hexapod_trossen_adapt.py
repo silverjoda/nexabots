@@ -35,7 +35,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 30 + self.mem_dim + 18
+        self.obs_dim = 30 + self.mem_dim
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -44,7 +44,6 @@ class Hexapod:
         # Reset env variables
         self.step_ctr = 0
         self.dead_leg_sums = [0,0,0,0,0,0]
-
 
         #self.envgen = ManualGen(12)
         #self.envgen = HMGen()
@@ -160,7 +159,7 @@ class Hexapod:
                   velocity_rew * 7.0,
                   - ctrl_effort * 0.000,
                   - np.square(angle) * 0.0,
-                  - np.square(yd) * 1.,
+                  - np.square(yd) * 3.,
                   - contact_cost * 0.0,
                   - height_pen * 0.00 * int(self.step_ctr > 20))
         else:
@@ -182,7 +181,6 @@ class Hexapod:
 
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
                               [xd, yd],
-                              self.prev_act,
                               obs_dict["contacts"],
                               mem])
 
@@ -200,7 +198,7 @@ class Hexapod:
     def reset(self):
 
         self.cumulative_environment_reward = 0
-        self.dead_leg_prob = 0.004
+        self.dead_leg_prob = 0.005
         self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
 
@@ -222,7 +220,6 @@ class Hexapod:
         obs_dict = self.get_obs_dict()
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
                               [0, 0],
-                              self.prev_act,
                               obs_dict["contacts"],
                               np.zeros(self.mem_dim)])
 

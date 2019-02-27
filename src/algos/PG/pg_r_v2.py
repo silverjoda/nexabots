@@ -182,20 +182,18 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen import hexapod_trossen
     #env = hexapod_trossen.Hexapod()
 
-    from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
-    env = adaptive_ctrl_env.AdaptiveSliderEnv()
+    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
+    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    #env = env.Hexapod()
-
-    # 1) tanh 2)no tanh
+    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    env = env.Hexapod()
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, 128)
+        policy = policies.RNN_V2_PG(env, hid_dim=64, memory_dim=24, tanh=True)
         train(env, policy, params)
     else:
         print("Testing")

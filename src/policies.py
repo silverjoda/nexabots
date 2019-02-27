@@ -1225,11 +1225,14 @@ class RNN_PG(nn.Module):
 
 
 class RNN_V2_PG(nn.Module):
-    def __init__(self, env, hid_dim=48, memory_dim=24):
+    def __init__(self, env, hid_dim=48, memory_dim=24, tanh=False):
         super(RNN_V2_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
         self.hid_dim = hid_dim
+        self.memory_dim = memory_dim
+        self.tanh = tanh
+
 
         self.rnn = nn.LSTMCell(self.obs_dim, self.hid_dim)
         self.batch_rnn = nn.LSTM(input_size=self.obs_dim,
@@ -1310,14 +1313,21 @@ class RNN_V2_PG(nn.Module):
         x, h = input
         x = F.selu(self.fc1(x))
         h_, c_ = self.rnn(x, h)
-        x = T.tanh(self.fc2(T.concat((h_, x), 1)))
+        if self.tanh:
+            x = T.tanh(self.fc2(T.concat((h_, x), 1)))
+        else:
+            x = self.fc2(T.concat((h_, x), 1))
+
         return x, (h_, c_)
 
 
     def forward_batch(self, batch_states):
         x = F.selu(self.fc1(batch_states))
-        x, _ = self.batch_rnn(x)
-        x = T.tanh(self.fc2(x))
+        h_, _ = self.batch_rnn(x)
+        if self.tanh:
+            x = T.tanh(self.fc2(T.concat((h_, x), 1)))
+        else:
+            x = self.fc2(T.concat((h_, x), 1))
         return x
 
 

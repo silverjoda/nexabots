@@ -16,10 +16,10 @@ class Baseline(nn.Module):
 
 
 class NN(nn.Module):
-    def __init__(self, env):
+    def __init__(self):
         super(NN, self).__init__()
-        self.obs_dim = env.obs_dim
-        self.act_dim = env.act_dim
+        self.obs_dim = 1
+        self.act_dim = 2
 
         self.fc1 = nn.Linear(self.obs_dim, 42)
         self.fc2 = nn.Linear(42, 42)

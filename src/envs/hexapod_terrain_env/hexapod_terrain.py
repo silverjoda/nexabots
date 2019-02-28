@@ -8,17 +8,14 @@ from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
 import string
 
-class Hexapod:
+
+class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
     BACKUPPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_backup.xml")
     def __init__(self, animate=False):
-
-
-        print([sqrt(l**2 + l**2) for l in [0.1, 0.3, 0.4]])
-
         self.modelpath = Hexapod.MODELPATH
         self.backuppath = Hexapod.BACKUPPATH
-        self.max_steps = 500
+        self.max_steps = 400
         self.mem_dim = 12
         self.cumulative_environment_reward = None
 
@@ -30,6 +27,8 @@ class Hexapod:
         #self.envgen = HMGen()
         #self.envgen = EvoGen(12)
         self.episodes = 0
+
+
 
         # Initial methods
         if animate:

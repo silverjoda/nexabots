@@ -6,7 +6,14 @@ import os
 from math import sqrt, acos, fabs
 import queue
 
-class Hexapod:
+import socket
+
+if socket.gethostname() != "goedel":
+    import gym
+    from gym import spaces
+    from gym.utils import seeding
+
+class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
     def __init__(self, animate=False, sim=None):
 
@@ -29,10 +36,15 @@ class Hexapod:
         self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
+        if socket.gethostname() != "goedel":
+            self.render_prob = 0.00
+            self.observation_space = spaces.Box(low=-10, high=10, dtype=np.float32, shape=(self.obs_dim,))
+            self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
+
         # Environent inner parameters
         self.viewer = None
         self.step_ctr = 0
-        self.max_steps = 600
+        self.max_steps = 300
 
         self.ctrl_vecs = []
 
@@ -137,12 +149,12 @@ class Hexapod:
         contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
 
         rV = (target_progress * 0.0,
-              velocity_rew * 6.0,
+              velocity_rew * 3.0,
               - ctrl_effort * 0.01,
-              - np.square(angle) * 0.7,
-              - abs(yd) * 0.1,
+              - np.square(angle) * 0.1,
+              - abs(yd) * 0.01,
               - contact_cost * 0.0,
-              - height_pen * 0.7)
+              - height_pen * 0.1)
 
         # 1.0 with 0.1 pens # 1.4 with 0.3 pens # 1.2 with 0.9 pens
         #print(rV)
@@ -151,7 +163,7 @@ class Hexapod:
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps #or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
+        done = self.step_ctr > self.max_steps or (abs(angle) > 0.9 and self.step_ctr > 30) or abs(y) > 0.7
         obs = np.concatenate((obs.astype(np.float32)[2:], obs_dict["contacts"]))
         #
         # self.rew_list[self.n_episodes % self.rew_len] = r

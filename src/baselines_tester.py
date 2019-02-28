@@ -6,6 +6,7 @@ from stable_baselines import *
 
 from src.envs.adaptive_ctrl_env.adaptive_ctrl_env import AdaptiveSliderEnv
 from src.envs.hexapod_trossen_adapt.hexapod_trossen_adapt import Hexapod
+from src.envs.hexapod_flat_pd_mjc.hexapod_pd import Hexapod
 
 #env = gym.make('MemoryEnv-v0')
 env = Hexapod()
@@ -14,12 +15,12 @@ env = Hexapod()
 # we demonstrate its usefulness in the next examples
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
-model = A2C(MlpLnLstmPolicy, env, verbose=1, tensorboard_log="/tmp/ppo2_hex/", n_steps=300)
+model = PPO2(MlpPolicy, env, verbose=1, tensorboard_log="/tmp/ppo2_terrain/", n_steps=256)
 # Train the agent
-#model.learn(total_timesteps=1000000)
-#model.save("a2c_adapt")
+model.learn(total_timesteps=1500000)
+model.save("ppo_terrain")
 
-model = A2C.load("a2c_adapt")
+#model = A2C.load("a2c_adapt")
 
 # Enjoy trained agent
 for i in range(100):

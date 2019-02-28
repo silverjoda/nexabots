@@ -44,7 +44,7 @@ def train(env, policy, params):
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
-            r = np.clip(r, -1, 1)
+            r = np.clip(r, -3, 3)
 
             step_ctr += 1
             episode_rew += r
@@ -163,30 +163,31 @@ if __name__=="__main__":
     T.set_num_threads(2)
 
     params = {"iters": 100000, "batchsize": 96, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : False,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["Train"] = True
 
+
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    #from src.envs.hexapod_terrain_env import hexapod_terrain
-    #env = hexapod_terrain.Hexapod()
+    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    #env = env.Hexapod()
 
-    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
+    # from src.envs.hexapod_trossen_control import hexapod_trossen_control
+    # env = hexapod_trossen_control.Hexapod()
 
-    #from src.envs.hexapod_trossen import hexapod_trossen
-    #env = hexapod_trossen.Hexapod()
+    # from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    # env = hex_env.Hexapod(mem_dim=0)
+
+    # from src.envs.memory_env import memory_env
+    # env = memory_env.MemoryEnv()
 
     from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     env = adaptive_ctrl_env.AdaptiveSliderEnv()
-
-    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    #env = env.Hexapod()
 
     print(params, env.__class__.__name__)
 
@@ -194,10 +195,11 @@ if __name__=="__main__":
     if params["train"]:
         print("Training")
         policy = policies.RNN_V2_PG(env, hid_dim=24, memory_dim=12, tanh=params["tanh"])
+        #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AdaptiveSliderEnv_RNN_PG_56J_pg.p')
+        policy = T.load('agents/AdaptiveSliderEnv_RNN_PG_ZGA_pg.p')
         env.test_recurrent(policy)
 
 

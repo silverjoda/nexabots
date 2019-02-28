@@ -56,7 +56,7 @@ def train(env, policy, params):
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
             assert r < 10, print("Large rew {}, step: {}".format(r, step_ctr))
-            r = np.clip(r, -1, 1)
+            r = np.clip(r, -3, 3)
             step_ctr += 1
 
             batch_rew += r
@@ -209,22 +209,15 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["Train"] = True
 
-    # Ant terrain
-    #from src.envs.ant_terrain_mjc import ant_terrain_mjc
-    #env = ant_terrain_mjc.AntTerrainMjc(camera=True, heightfield=True)
-
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
-
-    #from src.envs.hexapod_terrain_env import hexapod_terrain
-    #env = hexapod_terrain.Hexapod()
 
     #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
     #env = env.Hexapod()
@@ -235,12 +228,6 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    #env.test(policies.NN_PG(env))
-    # exit()
-
-    #from src.envs.ant_feelers_mem_mjc import ant_feelers_goal_mem_mjc
-    #env = ant_feelers_goal_mem_mjc.AntFeelersMjc()
-
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
 
@@ -250,11 +237,11 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 24, tanh=True)
+        policy = policies.NN_PG(env, 64, tanh=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AdaptiveSliderEnv_NN_PG_1KV_pg.p')
+        policy = T.load('agents/AdaptiveSliderEnv_NN_PG_6LU_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

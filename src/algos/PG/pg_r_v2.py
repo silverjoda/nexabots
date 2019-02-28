@@ -193,7 +193,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V2_PG(env, hid_dim=64, memory_dim=24, tanh=params["tanh"])
+        policy = policies.RNN_V2_PG(env, hid_dim=24, memory_dim=12, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")

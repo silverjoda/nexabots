@@ -204,7 +204,7 @@ class Hexapod:
     def reset(self):
 
         self.cumulative_environment_reward = 0
-        self.dead_leg_prob = 0.005
+        self.dead_leg_prob = 0.006
         self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
 

@@ -9,7 +9,7 @@ import random
 import string
 
 
-class Hexapod(gym.Env):
+class Hexapod(Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod.xml")
     BACKUPPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_backup.xml")
     def __init__(self, animate=False):

@@ -225,19 +225,22 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_control import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
 
-    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
-
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
 
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
+    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
+
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
+
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 256, tanh=True)
+        policy = policies.NN_PG(env, 96, tanh=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:

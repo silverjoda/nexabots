@@ -174,8 +174,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    #env = env.Hexapod()
+    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    env = env.Hexapod()
 
     # from src.envs.hexapod_trossen_control import hexapod_trossen_control
     # env = hexapod_trossen_control.Hexapod()
@@ -186,8 +186,8 @@ if __name__=="__main__":
     # from src.envs.memory_env import memory_env
     # env = memory_env.MemoryEnv()
 
-    from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
-    env = adaptive_ctrl_env.AdaptiveSliderEnv()
+    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
+    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
     print(params, env.__class__.__name__)
 
@@ -199,7 +199,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/AdaptiveSliderEnv_RNN_PG_ZGA_pg.p')
+        policy = T.load('agents/Hexapod_RNN_PG_SCD_pg.p')
         env.test_recurrent(policy)
 
 

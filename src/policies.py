@@ -992,7 +992,6 @@ class NN_PG_D(nn.Module):
         return T.log(action_softmax.gather(1, batch_actions.long()))
 
 
-
 class CNN_PG(nn.Module):
     def __init__(self, env):
         super(CNN_PG, self).__init__()
@@ -1047,7 +1046,7 @@ class CNN_PG(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
-class RNN_PG(nn.Module):
+class RNN_PG_TMP(nn.Module):
     def __init__(self, env, hid_dim=48, tanh=False):
         super(RNN_PG, self).__init__()
         self.obs_dim = env.obs_dim
@@ -1183,7 +1182,7 @@ class RNN_PG(nn.Module):
         return log_density.sum(2, keepdim=True)
 
 
-class RNN_PG_OLD(nn.Module):
+class RNN_PG(nn.Module):
     def __init__(self, env, hid_dim=48, tanh=False):
         super(RNN_PG, self).__init__()
         self.obs_dim = env.obs_dim

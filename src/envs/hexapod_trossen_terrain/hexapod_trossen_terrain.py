@@ -9,10 +9,9 @@ import random
 import string
 
 
-
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "assets/hexapod_trossen_stairs.xml")
+                             "assets/hexapod_trossen_flat.xml")
     def __init__(self, animate=False, mem_dim=0):
 
         print("Trossen hexapod")
@@ -37,7 +36,7 @@ class Hexapod:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = self.q_dim + self.qvel_dim - 2 + 6 + self.mem_dim - 18 - 6 - 1 - 1 + 5
+        self.obs_dim = 31
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
         # Environent inner parameters
@@ -89,8 +88,6 @@ class Hexapod:
 
         # Contacts:
         od['contacts'] = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
-        #print(od['contacts'])
-        #od['contacts'] = np.zeros(6)
         return od
 
 
@@ -149,24 +146,25 @@ class Hexapod:
 
         rV = (target_progress * 0.0,
               velocity_rew * 8.0,
-              - ctrl_effort * 0.01,
+              - ctrl_effort * 0.005,
               - np.square(thd) * 0.01 - np.square(phid) * 0.01,
-              - np.square(angle) * 0.8,
+              - np.square(angle) * 0.0,
               - np.square(roll) * 0.0,
               - np.square(pitch) * 0.0,
-              - np.square(yd) * 0.1,
-              - height_pen * 0.8 * int(self.step_ctr > 20))
+              - np.square(yaw - self.rnd_yaw) * 0.5,
+              - np.square(yd) * 0.0,
+              - height_pen * 0.1 * int(self.step_ctr > 20))
 
 
         r = sum(rV)
-        r = np.clip(r, -1, 1)
+        r = np.clip(r, -2, 2)
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps #or (abs(angle) > 3 and self.step_ctr > 30) or abs(y) > 1 or x < -0.2
+        done = self.step_ctr > self.max_steps # or (abs(angle) > 3 and self.step_ctr > 30) or abs(y) > 1 or x < -0.2
 
-        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
-                              [xd, yd, thd, phid],
+        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
+                              [roll, pitch, yaw, xd, yd, thd, phid],
                               obs_dict["contacts"],
                               mem])
 
@@ -179,10 +177,15 @@ class Hexapod:
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.randn() * 0.1 + 0.05
-        init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.25
+        init_q[0] = 0.1
+        init_q[1] = np.random.randn() * 0.03
+        init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
+
+        # Init_quat
+        self.rnd_yaw = np.random.randn() * 0.0
+        rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
+        init_q[3:7] = rnd_quat
 
         # Set environment state
         self.set_state(init_q, init_qvel)
@@ -191,11 +194,7 @@ class Hexapod:
             self.sim.forward()
             self.sim.step()
 
-        obs_dict = self.get_obs_dict()
-        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
-                              [0, 0, 0, 0],
-                              obs_dict["contacts"],
-                              np.zeros(self.mem_dim)])
+        obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         return obs
 

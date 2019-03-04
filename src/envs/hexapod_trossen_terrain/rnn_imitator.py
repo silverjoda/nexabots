@@ -21,31 +21,38 @@ if __name__=="__main__":
     optimizer = T.optim.Adam(master.parameters(), lr=1e-3)
     loss = T.nn.MSELoss()
 
+    # N x EP_LEN x OBS_DIM
     states_A = np.load("states_A.npy")
+    # N x EP_LEN x ACT_DIM
     acts_A = np.load("acts_A.npy")
 
     states_B = np.load("states_B.npy")
     acts_B = np.load("acts_B.npy")
 
     iters = 1000
-    batchsize = 64
+    batchsize = 32
 
     assert len(states_A) == len(acts_A) == len(states_B) == len(acts_B)
-    N_episodes = len(states_A)
+    N_EPS, EP_LEN, OBS_DIM = states_A.shape
+    _, _, ACT_DIM = acts_A.shape
 
     for i in range(iters):
         # Make batch of episodes
         batch_states = []
         batch_acts = []
         for i in range(batchsize):
-            rnd_idx = np.random.randint(0, N_episodes)
-            states = states_A[rnd_idx] if np.random.rand() < 0.5 else states_B[rnd_idx]
-            acts = acts_A[rnd_idx] if np.random.rand() < 0.5 else acts_B[rnd_idx]
+            rnd_idx = np.random.randint(0, N_EPS)
+            A_B_choice = np.random.rand()
+            states = states_A[rnd_idx] if A_B_choice < 0.5 else states_B[rnd_idx]
+            acts = acts_A[rnd_idx] if A_B_choice < 0.5 else acts_B[rnd_idx]
             batch_states.append(states)
             batch_acts.append(acts)
 
         batch_states = np.concatenate(batch_states)
         batch_acts = np.concatenate(batch_acts)
+
+        assert batch_states.shape == (batchsize, EP_LEN, OBS_DIM)
+        assert batch_acts.shape == (batchsize, EP_LEN, ACT_DIM)
 
         batch_states_T = T.from_numpy(batch_states)
         expert_acts_T = T.from_numpy(batch_acts)
@@ -54,7 +61,8 @@ if __name__=="__main__":
         master_acts = master.forward_batch(batch_states)
 
         # Update RNN
-        loss = loss(master_acts, expert_acts_T)
+        N_WARMUP_STEPS = 20
+        loss = loss(master_acts[:, N_WARMUP_STEPS:, :], expert_acts_T[:, N_WARMUP_STEPS:, :])
 
         # Print info
         if i % 10 == 0:

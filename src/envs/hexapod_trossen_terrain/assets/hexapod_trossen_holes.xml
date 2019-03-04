@@ -1,7 +1,7 @@
 <mujoco model="hexapod">
   <compiler angle="radian" coordinate="local" inertiafromgeom="true"/>
   <option integrator="RK4" timestep="0.01"/>
-  <size nconmax="300"/>
+  <size nconmax="500" njmax="2000"/>
 
   <default>
     <joint armature="0.5" damping="3" limited="true"/>

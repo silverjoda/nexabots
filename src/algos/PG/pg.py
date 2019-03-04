@@ -208,8 +208,8 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False,
+    params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+              "ppo_update_iters": 6, "animate": True, "train" : True,
               "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
@@ -225,19 +225,19 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_control import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
 
-    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
+    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
 
-    from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
-    env = adaptive_ctrl_env.AdaptiveSliderEnv()
+    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
+    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 64, tanh=True)
+        policy = policies.NN_PG(env, 256, tanh=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:

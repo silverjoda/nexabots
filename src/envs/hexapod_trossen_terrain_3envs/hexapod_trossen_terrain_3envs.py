@@ -11,50 +11,29 @@ import string
 
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "assets/hexapod_trossen_flat.xml")
-    def __init__(self, animate=False, mem_dim=0):
+                             "assets/hexapod_trossen_")
 
-        print("Trossen hexapod")
+    def __init__(self, mem_dim=0, env_name=None):
+        print("Trossen hexapod terrain all")
 
-        self.leg_list = ["coxa_fl_geom","coxa_fr_geom","coxa_rr_geom","coxa_rl_geom","coxa_mr_geom","coxa_ml_geom"]
+
+        self.env_list = ["flat", "tiles", "rails"]
+        #self.env_list = ["rails"]
+
+        self.env_name = env_name
+        if self.env_name is not None:
+            self.env_list = self.env_name
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 600
+        self.max_steps = 800
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
-        self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
-        self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
+        self.joints_rads_low = np.array([-0.6, -1.3, -1.] * 6)
+        self.joints_rads_high = np.array([0.6, 0.6, 1.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.model = mujoco_py.load_model_from_path(self.modelpath)
-        self.sim = mujoco_py.MjSim(self.model)
-
-        self.model.opt.timestep = 0.02
-
-        # Environment dimensions
-        self.q_dim = self.sim.get_state().qpos.shape[0]
-        self.qvel_dim = self.sim.get_state().qvel.shape[0]
-
-        self.obs_dim = 31
-        self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
-
-        # Environent inner parameters
-        self.viewer = None
-
-        # Reset env variables
-        self.step_ctr = 0
-
-        #self.envgen = ManualGen(12)
-        #self.envgen = HMGen()
-        #self.envgen = EvoGen(12)
-        self.episodes = 0
-
         self.reset()
-
-        # Initial methods
-        if animate:
-            self.setupcam()
 
 
     def setupcam(self):
@@ -140,21 +119,31 @@ class Hexapod:
         target_progress = xd
         target_vel = 0.3
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
-        height_pen = np.square(zd)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        rV = (target_progress * 0.0,
-              velocity_rew * 7.0,
-              - ctrl_effort * 0.005,
-              - np.square(thd) * 0.01 - np.square(phid) * 0.01,
-              - np.square(angle) * 0.0,
-              - np.square(roll) * 0.0,
-              - np.square(pitch) * 0.0,
-              - np.square(yaw - self.rnd_yaw) * 0.0,
-              - np.square(yd) * 0.0,
-              - height_pen * 0.01 * int(self.step_ctr > 20))
-
+        if self.env_list == "flat":
+            rV = (target_progress * 0.0,
+                  velocity_rew * 6.0,
+                  - ctrl_effort * 0.3,
+                  - np.square(thd) * 0.01 - np.square(phid) * 0.01,
+                  - np.square(angle) * 0.0,
+                  - np.square(roll) * .5,
+                  - np.square(pitch) * .5,
+                  - np.square(yaw - self.rnd_yaw) * 0.0,
+                  - np.square(yd) * 0.0,
+                  - np.square(zd) * 0.5 * int(self.step_ctr > 20))
+        else:
+            rV = (target_progress * 0.0,
+                  velocity_rew * 6.0,
+                  - ctrl_effort * 0.005,
+                  - np.square(thd) * 0.01 - np.square(phid) * 0.01,
+                  - np.square(angle) * 0.0,
+                  - np.square(roll) * .5,
+                  - np.square(pitch) * .5,
+                  - np.square(yaw - self.rnd_yaw) * 0.0,
+                  - np.square(yd) * 0.0,
+                  - np.square(zd) * 0.5 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -2, 2)
@@ -173,12 +162,30 @@ class Hexapod:
 
     def reset(self):
 
+        self.viewer = None
+        self.env_name = self.env_list[np.random.randint(0, len(self.env_list))]
+
+        path = Hexapod.MODELPATH + self.env_name + ".xml"
+        self.model = mujoco_py.load_model_from_path(path)
+        self.sim = mujoco_py.MjSim(self.model)
+
+        self.model.opt.timestep = 0.02
+
+        # Environment dimensions
+        self.q_dim = self.sim.get_state().qpos.shape[0]
+        self.qvel_dim = self.sim.get_state().qvel.shape[0]
+
+        self.obs_dim = 31
+        self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
+
+        # Reset env variables
         self.step_ctr = 0
+        self.episodes = 0
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.randn() * 0 + 0.15
-        init_q[1] = np.random.randn() * 0
+        init_q[0] = 0.15
+        init_q[1] = np.clip(np.random.randn() * 0.1, -0.3, 0.3)
         init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
@@ -266,7 +273,7 @@ class Hexapod:
         for i in range(100):
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps * 3):
+            for j in range(self.max_steps):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
@@ -281,7 +288,7 @@ class Hexapod:
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps * 3):
+            for j in range(self.max_steps ):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach().numpy())
@@ -292,7 +299,7 @@ class Hexapod:
 
 
 if __name__ == "__main__":
-    ant = Hexapod(animate=True)
+    ant = Hexapod()
     print(ant.obs_dim)
     print(ant.act_dim)
     ant.demo()

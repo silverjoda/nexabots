@@ -168,20 +168,16 @@ if __name__=="__main__":
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
-        params["Train"] = True
-
+        params["train"] = True
 
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    env = env.Hexapod()
+    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    #env = env.Hexapod()
 
     # from src.envs.hexapod_trossen_control import hexapod_trossen_control
     # env = hexapod_trossen_control.Hexapod()
-
-    # from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
-    # env = hex_env.Hexapod(mem_dim=0)
 
     # from src.envs.memory_env import memory_env
     # env = memory_env.MemoryEnv()
@@ -189,17 +185,26 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
+    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
+
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
+
+    #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
+
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V2_PG(env, hid_dim=24, memory_dim=12, tanh=params["tanh"])
+        policy = policies.RNN_V2_PG(env, hid_dim=64, memory_dim=24, tanh=params["tanh"])
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_RNN_PG_SCD_pg.p')
+        policy = T.load('agents/Hexapod_RNN_V2_PG_UBL_pg.p')
         env.test_recurrent(policy)
 
 

@@ -16,10 +16,11 @@ class Hexapod:
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["flat", "tiles", "rails", "holes", "stairs", "bumps"]
+        #self.env_list = ["flat", "tiles", "rails", "holes", "stairs", "bumps"]
+        self.env_list = ["flat"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 800
+        self.max_steps = 600
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -147,8 +148,9 @@ class Hexapod:
     def reset(self):
 
         self.viewer = None
+        self.env_name = self.env_list[np.random.randint(0, len(self.env_list))]
 
-        path = Hexapod.MODELPATH + self.env_list[np.random.randint(0, len(self.env_list))] + ".xml"
+        path = Hexapod.MODELPATH + self.env_name + ".xml"
         self.model = mujoco_py.load_model_from_path(path)
         self.sim = mujoco_py.MjSim(self.model)
 
@@ -267,18 +269,30 @@ class Hexapod:
 
     def test_recurrent(self, policy):
         self.reset()
-        for i in range(100):
+        h_episodes = []
+        for i in range(10):
+            h_list = []
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps ):
+            for j in range(self.max_steps):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach().numpy())
                 cr += r
                 time.sleep(0.001)
                 self.render()
+                h_list.append(h[0].detach().numpy())
             print("Total episode reward: {}".format(cr))
+            h_arr = np.concatenate(h_list)
+            h_episodes.append(h_arr)
+
+        h_episodes_arr = np.stack(h_episodes)
+
+        # Save hidden states
+        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                     "data/{}_states.npy".format(self.env_name))
+        np.save(filename, h_episodes_arr)
 
 
 if __name__ == "__main__":

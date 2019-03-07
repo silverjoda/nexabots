@@ -192,6 +192,7 @@ def guess_env():
     expert_flat = T.load('../../algos/PG/agents/Hexapod_RNN_V2_PG_THQ_pg.p')
     expert_tiles = T.load('../../algos/PG/agents/Hexapod_RNN_V2_PG_Z29_pg.p')
     expert_rails = T.load('../../algos/PG/agents/Hexapod_RNN_V2_PG_7NK_pg.p')
+    expert_3env = T.load('../../algos/PG/agents/Hexapod_RNN_V2_PG_PTH_pg.p')
 
     iters = 200
     batchsize = 12

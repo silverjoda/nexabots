@@ -1403,6 +1403,52 @@ class RNN_S(nn.Module):
         return x, (h_, c_)
 
 
+class RNN_ML(nn.Module):
+    def __init__(self, env, hid_dim=128, memory_dim=128, tanh=False):
+        super(RNN_ML, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = hid_dim
+        self.memory_dim = memory_dim
+        self.tanh = tanh
+
+        self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, 3, batch_first=True)
+        self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
+        self.fc2 = nn.Linear(self.obs_dim + self.memory_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
+
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            if p.grad is None: continue
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            print("Soft clipping grads")
+
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def forward(self, input):
+        x, h = input
+        x = F.selu(self.fc1(x))
+        output, h = self.rnn(x, h)
+        x = self.fc2(T.cat((output, x), 2))
+        if self.tanh:
+            x = T.tanh(self.fc3(x))
+        else:
+            x = self.fc3(x)
+        return x, h
+
+
+
 class RNN_CLASSIF(nn.Module):
     def __init__(self, env, n_classes, hid_dim=48, memory_dim=24):
         super(RNN_CLASSIF, self).__init__()

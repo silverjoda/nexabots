@@ -15,18 +15,18 @@ from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs
 
 def imitate_static():
     env = hex_env.Hexapod()
-    master = policies.RNN_V2_PG(env)
-    optimizer = T.optim.Adam(master.parameters(), lr=3e-4, weight_decay=1e-4)
+    master = policies.RNN_ML(env, hid_dim=64, memory_dim=64).cuda()
+    optimizer = T.optim.Adam(master.parameters(), lr=1e-4, weight_decay=1e-4)
     lossfun = T.nn.MSELoss()
 
     # N x EP_LEN x OBS_DIM
     states_A = np.load("A_states.npy")
     acts_A = np.load("A_acts.npy")
 
-    states_B = np.load("A_states.npy")
-    acts_B = np.load("A_acts.npy")
+    states_B = np.load("C_states.npy")
+    acts_B = np.load("C_acts.npy")
 
-    iters = 300
+    iters = 1400
     batchsize = 24
 
     assert len(states_A) == len(acts_A) == len(states_B) == len(acts_B)
@@ -51,22 +51,21 @@ def imitate_static():
         assert batch_states.shape == (batchsize, EP_LEN, OBS_DIM)
         assert batch_acts.shape == (batchsize, EP_LEN, ACT_DIM)
 
-        batch_states_T = T.from_numpy(batch_states).float()
-        expert_acts_T = T.from_numpy(batch_acts).float()
+        batch_states_T = T.from_numpy(batch_states).float().cuda()
+        expert_acts_T = T.from_numpy(batch_acts).float().cuda()
 
         # Perform batch forward pass on episodes
-        master_acts_T = master.forward_batch(batch_states_T)
+        master_acts_T, _ = master.forward((batch_states_T, None))
 
         # Update RNN
-        N_WARMUP_STEPS = 200
+        N_WARMUP_STEPS = 100
         loss = lossfun(master_acts_T[:, N_WARMUP_STEPS:, :], expert_acts_T[:, N_WARMUP_STEPS:, :])
         loss.backward()
-        master.print_info()
         master.soft_clip_grads(0.5)
         optimizer.step()
 
         # Print info
-        if i % 1 == 0:
+        if i % 10 == 0:
             print("Iter: {}/{}, loss: {}".format(i, iters, loss))
 
     if iters == 0:
@@ -74,7 +73,7 @@ def imitate_static():
     else:
         T.save(master, "master.p")
 
-    master.clone_params()
+    master = master.cpu()
 
     # Test visually
     while True:
@@ -82,8 +81,8 @@ def imitate_static():
         episode_reward = 0
         h = None
         for i in range(1000):
-            act, h = master((my_utils.to_tensor(s, True), h))
-            s, r, done, _ = env.step(act[0].detach().numpy())
+            act, h = master((my_utils.to_tensor(s, True).unsqueeze(0), h))
+            s, r, done, _ = env.step(act[0,0].detach().numpy())
             episode_reward += r
             env.render()
         print("Episode reward: {}".format(episode_reward))
@@ -270,5 +269,5 @@ def guess_env():
 
 if __name__=="__main__":
     T.set_num_threads(1)
-    guess_env()
+    imitate_static()
 

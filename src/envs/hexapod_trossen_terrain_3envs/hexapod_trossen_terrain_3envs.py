@@ -16,16 +16,15 @@ class Hexapod:
     def __init__(self, mem_dim=0, env_name=None):
         print("Trossen hexapod terrain all")
 
-
-        self.env_list = ["flat", "tiles", "rails"]
-        #self.env_list = ["rails"]
+        self.env_list = ["flat", "rails", "flattiles", "tiles"]
+        #self.env_list = ["flattiles"]
 
         self.env_name = env_name
         if self.env_name is not None:
-            self.env_list = self.env_name
+            self.env_list = [self.env_name]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 800
+        self.max_steps = 600
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -237,12 +236,12 @@ class Hexapod:
         print("-------------------------------------------")
 
 
-
     def test_record(self, policy, ID):
         episode_states = []
         episode_acts = []
         for i in range(10):
             s = self.reset()
+            h = None
             cr = 0
 
             states = []
@@ -250,22 +249,21 @@ class Hexapod:
 
             for j in range(self.max_steps):
                 states.append(s)
-                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy
-                acts.append(action)
-                s, r, done, od, = self.step(action)
+                action, h = policy((my_utils.to_tensor(s, True), h))
+                acts.append(action.detach().numpy())
+                s, r, done, od, = self.step(action.detach()[0].numpy())
                 cr += r
 
-            episode_states.append(np.concatenate(states))
+            episode_states.append(np.stack(states))
             episode_acts.append(np.concatenate(acts))
 
             print("Total episode reward: {}".format(cr))
 
-        np_states = np.concatenate(episode_states)
-        np_acts = np.concatenate(episode_acts)
+        np_states = np.stack(episode_states)
+        np_acts = np.stack(episode_acts)
 
         np.save("{}_states.npy".format(ID), np_states)
         np.save("{}_acts.npy".format(ID), np_acts)
-
 
 
     def test(self, policy):
@@ -288,7 +286,7 @@ class Hexapod:
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps ):
+            for j in range(self.max_steps):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach().numpy())

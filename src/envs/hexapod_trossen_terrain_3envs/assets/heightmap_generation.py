@@ -389,70 +389,70 @@ import matplotlib.pyplot as plt
 #
 
 # Bumpiness training terrain
-
-im=n[0.3]*0+n[1]*0+np.maximum(0.0,n[10])**(xgrad*3+0.01)*ygrad
-plt.imshow(im)
-im = im *0.5
-skimage.io.imsave("bumps1.png",(im*255).astype(dtype=np.uint8))
-
-# Bumpiness training terrain
-im=n[0.3]*0+n[1]*2+n[20]*xgrad*0.3+np.maximum(+0.5,n[50])*0.5*ygrad
-im = im + np.abs(np.min(im))
-im = im/(np.max(im)-np.min(im))
-plt.imshow(im)
-im = im *0.8
-skimage.io.imsave("bumps2.png",(im*255).astype(dtype=np.uint8)) 
-
-#%% Holes
-im=np.minimum(0,n[20]+0.5)*1*xgrad+np.minimum(0,n[50]+0.5)*0.5*ygrad
-plt.imshow(im)
-im = im + np.abs(np.min(im))
-im = im/(np.max(im)-np.min(im))
-skimage.io.imsave("holes1.png",(im*255).astype(dtype=np.uint8)) 
-
-#%% Holes
-im=np.minimum(0,n[5]+0.5)*2*xgrad+np.minimum(0,n[50]+0.9)*0.5*ygrad
-plt.imshow(im)
-im = im + np.abs(np.min(im))
-im = im/(np.max(im)-np.min(im))
-skimage.io.imsave("holes2.png",(im*255).astype(dtype=np.uint8)) 
-
-#%% slope + rocks
-im=xgrad**2*2+np.maximum(+0.5,n[10])*0.2*ygrad
-plt.imshow(im)
-im = im + np.abs(np.min(im))
-im = im/(np.max(im)-np.min(im))
-skimage.io.imsave("slope_rocks1.png",(im*255).astype(dtype=np.uint8)) 
-
-#%% slope + rocks
-im=xgrad**2*1+np.maximum(+0.5,n[50])*0.2*ygrad
-plt.imshow(im)
-im = im + np.abs(np.min(im))
-im = im/(np.max(im)-np.min(im))
-skimage.io.imsave("slope_rocks2.png",(im*255).astype(dtype=np.uint8)) 
-
-#%% steps
-im=np.clip(n[10]*(ygrad*20+1),0,1)*xgrad*0.2
-plt.imshow(im)
-im = im + np.abs(np.min(im))
-im = im/(np.max(im)-np.min(im))
-im = im *0.5
-skimage.io.imsave("steps1.png",(im*255).astype(dtype=np.uint8)) 
-
-#%% steps
-im=np.clip(n[5]*(ygrad*10+1),0,1)*xgrad*0.1
-plt.imshow(im)
-im = im + np.abs(np.min(im))
-im = im/(np.max(im)-np.min(im))
-im = im *0.5
-skimage.io.imsave("steps2.png",(im*255).astype(dtype=np.uint8)) 
-
-#%% rails
-im=(np.clip((n[5]*40*ygrad)**2,0,1)-1)*xgrad*0.2
-plt.imshow(im)
-im = im + np.abs(np.min(im))
-im = im/(np.max(im)-np.min(im))
-skimage.io.imsave("rails1.png",(im*255).astype(dtype=np.uint8)) 
+#
+# im=n[0.3]*0+n[1]*0+np.maximum(0.0,n[10])**(xgrad*3+0.01)*ygrad
+# plt.imshow(im)
+# im = im *0.5
+# skimage.io.imsave("bumps1.png",(im*255).astype(dtype=np.uint8))
+#
+# # Bumpiness training terrain
+# im=n[0.3]*0+n[1]*2+n[20]*xgrad*0.3+np.maximum(+0.5,n[50])*0.5*ygrad
+# im = im + np.abs(np.min(im))
+# im = im/(np.max(im)-np.min(im))
+# plt.imshow(im)
+# im = im *0.8
+# skimage.io.imsave("bumps2.png",(im*255).astype(dtype=np.uint8))
+#
+# #%% Holes
+# im=np.minimum(0,n[20]+0.5)*1*xgrad+np.minimum(0,n[50]+0.5)*0.5*ygrad
+# plt.imshow(im)
+# im = im + np.abs(np.min(im))
+# im = im/(np.max(im)-np.min(im))
+# skimage.io.imsave("holes1.png",(im*255).astype(dtype=np.uint8))
+#
+# #%% Holes
+# im=np.minimum(0,n[5]+0.5)*2*xgrad+np.minimum(0,n[50]+0.9)*0.5*ygrad
+# plt.imshow(im)
+# im = im + np.abs(np.min(im))
+# im = im/(np.max(im)-np.min(im))
+# skimage.io.imsave("holes2.png",(im*255).astype(dtype=np.uint8))
+#
+# #%% slope + rocks
+# im=xgrad**2*2+np.maximum(+0.5,n[10])*0.2*ygrad
+# plt.imshow(im)
+# im = im + np.abs(np.min(im))
+# im = im/(np.max(im)-np.min(im))
+# skimage.io.imsave("slope_rocks1.png",(im*255).astype(dtype=np.uint8))
+#
+# #%% slope + rocks
+# im=xgrad**2*1+np.maximum(+0.5,n[50])*0.2*ygrad
+# plt.imshow(im)
+# im = im + np.abs(np.min(im))
+# im = im/(np.max(im)-np.min(im))
+# skimage.io.imsave("slope_rocks2.png",(im*255).astype(dtype=np.uint8))
+#
+# #%% steps
+# im=np.clip(n[10]*(ygrad*20+1),0,1)*xgrad*0.2
+# plt.imshow(im)
+# im = im + np.abs(np.min(im))
+# im = im/(np.max(im)-np.min(im))
+# im = im *0.5
+# skimage.io.imsave("steps1.png",(im*255).astype(dtype=np.uint8))
+#
+# #%% steps
+# im=np.clip(n[5]*(ygrad*10+1),0,1)*xgrad*0.1
+# plt.imshow(im)
+# im = im + np.abs(np.min(im))
+# im = im/(np.max(im)-np.min(im))
+# im = im *0.5
+# skimage.io.imsave("steps2.png",(im*255).astype(dtype=np.uint8))
+#
+# #%% rails
+# im=(np.clip((n[5]*40*ygrad)**2,0,1)-1)*xgrad*0.2
+# plt.imshow(im)
+# im = im + np.abs(np.min(im))
+# im = im/(np.max(im)-np.min(im))
+# skimage.io.imsave("rails1.png",(im*255).astype(dtype=np.uint8))
 
 #%% rails
 im=(np.clip((n[5]*5*ygrad)**2,0,1)-1)*xgrad*0.2
@@ -460,7 +460,7 @@ plt.imshow(im)
 im = im + np.abs(np.min(im))
 im = im/(np.max(im)-np.min(im))
 im = im *0.5
-skimage.io.imsave("rails2.png",(im*255).astype(dtype=np.uint8)) 
+skimage.io.imsave("rails3.png",(im*255).astype(dtype=np.uint8))
 
 #%% bumps
 im=-im

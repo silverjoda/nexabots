@@ -204,7 +204,14 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
+        expert_flat = T.load('agents/Hexapod_RNN_V2_PG_THQ_pg.p')
+        expert_tiles = T.load('agents/Hexapod_RNN_V2_PG_Z29_pg.p')
+        expert_rails = T.load('agents/Hexapod_RNN_V2_PG_7NK_pg.p')
+        expert_3env = T.load('agents/Hexapod_RNN_V2_PG_PTH_pg.p')
+        expert_all = T.load('agents/Hexapod_RNN_V2_PG_UBL_pg.p')
         policy = T.load('agents/Hexapod_RNN_V2_PG_UBL_pg.p')
-        env.test_recurrent(policy)
+        env.test_recurrent(expert_all)
+        #env.test_record(expert_rails, "C")
+
 
 

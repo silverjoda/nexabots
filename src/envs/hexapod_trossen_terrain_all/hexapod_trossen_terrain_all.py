@@ -16,11 +16,11 @@ class Hexapod:
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        #self.env_list = ["flat", "tiles", "rails", "holes", "stairs", "bumps"]
-        self.env_list = ["flat"]
+        self.env_list = ["flat", "tiles", "rails", "holes", "stairs", "bumps"]
+        #self.env_list = ["flat"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 600
+        self.max_steps = 800
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -275,7 +275,7 @@ class Hexapod:
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(self.max_steps  * 2):
                 action, h_ = policy((my_utils.to_tensor(obs, True), h))
                 h = h_
                 obs, r, done, od, = self.step(action[0].detach().numpy())

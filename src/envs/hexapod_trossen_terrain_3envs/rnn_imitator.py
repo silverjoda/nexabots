@@ -26,7 +26,7 @@ def imitate_static():
     states_B = np.load("C_states.npy")
     acts_B = np.load("C_acts.npy")
 
-    iters = 1400
+    iters = 0
     batchsize = 24
 
     assert len(states_A) == len(acts_A) == len(states_B) == len(acts_B)

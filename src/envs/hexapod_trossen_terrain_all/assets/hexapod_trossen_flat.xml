@@ -1,6 +1,6 @@
 <mujoco model="hexapod">
   <compiler angle="radian" coordinate="local" inertiafromgeom="true"/>
-  <option integrator="RK4" timestep="0.01"/>
+  <option integrator="RK4" timestep="0.02"/>
   <size nconmax="1000" njmax="2000"/>
 
   <default>

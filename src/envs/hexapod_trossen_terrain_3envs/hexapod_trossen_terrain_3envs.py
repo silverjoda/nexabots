@@ -16,8 +16,8 @@ class Hexapod:
     def __init__(self, mem_dim=0, env_name=None):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["flat", "rails", "flattiles", "tiles"]
-        #self.env_list = ["flat", "rails"]#
+        self.env_list = ["flat", "rails", "tiles"]
+        #self.env_list = ["flattiles"]
 
         self.env_name = env_name
         if self.env_name is not None:

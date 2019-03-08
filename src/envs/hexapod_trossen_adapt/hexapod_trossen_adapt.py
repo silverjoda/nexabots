@@ -8,9 +8,9 @@ from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
 import string
 
-import gym
-from gym import spaces
-from gym.utils import seeding
+# import gym
+# from gym import spaces
+# from gym.utils import seeding
 
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_barrier.xml")
@@ -41,8 +41,8 @@ class Hexapod:
         self.obs_dim = 30 + self.mem_dim
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
-        self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
-        self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
+        #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
+        #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
         # Environent inner parameters
         self.viewer = None
@@ -163,7 +163,7 @@ class Hexapod:
         if sum(self.dead_leg_vector) > 0:
             rV = (target_progress * 0.0,
                   velocity_rew * 7.0,
-                  - ctrl_effort * 0.000,
+                  - ctrl_effort * 0.001,
                   - np.square(angle) * 0.0,
                   - np.square(yd) * 3.,
                   - contact_cost * 0.0,
@@ -171,7 +171,7 @@ class Hexapod:
         else:
             rV = (target_progress * 0.0,
                   velocity_rew * 7.0,
-                  - ctrl_effort * 0.007,
+                  - ctrl_effort * 0.001,
                   - np.square(angle) * 0.5,
                   - np.square(yd) * 5.,
                   - contact_cost * 0.0,
@@ -196,7 +196,8 @@ class Hexapod:
             self.dead_leg_sums[idx] += 1
             self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
             self.dead_leg_prob /= 2.
-
+            if sum(self.dead_leg_vector) > 1:
+                self.dead_leg_prob = 0
 
         return obs, r, done, obs_dict
 
@@ -204,7 +205,7 @@ class Hexapod:
     def reset(self):
 
         self.cumulative_environment_reward = 0
-        self.dead_leg_prob = 0.006
+        self.dead_leg_prob = 0.005
         self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
 

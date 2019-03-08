@@ -1320,13 +1320,14 @@ class RNN_V2_PG(nn.Module):
 
 
 class RNN_V3_PG(nn.Module):
-    def __init__(self, env, hid_dim=48, memory_dim=24, tanh=False):
+    def __init__(self, env, hid_dim=48, memory_dim=24, tanh=False, to_gpu=False):
         super(RNN_V3_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
         self.hid_dim = hid_dim
         self.memory_dim = memory_dim
         self.tanh = tanh
+        self.to_gpu = to_gpu
 
         self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, 3, batch_first=True)
         self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
@@ -1381,13 +1382,16 @@ class RNN_V3_PG(nn.Module):
         action_means, _ = self.forward((batch_states, None))
 
         # Calculate probabilities
-        log_std_batch = self.log_std_gpu.expand_as(action_means)
+        if self.to_gpu:
+            log_std_batch = self.log_std_gpu.expand_as(action_means)
+        else:
+            log_std_batch = self.log_std_cpu.expand_as(action_means)
+
         std = T.exp(log_std_batch)
         var = std.pow(2)
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
         return log_density.sum(2, keepdim=True)
-
 
 
 class RNN_S(nn.Module):
@@ -1593,7 +1597,6 @@ class RNN_CLASSIF(nn.Module):
         h_, c_ = self.rnn(x, h)
         x = self.fc2(T.cat((h_, x), 1))
         return x, (h_, c_)
-
 
 
 class RNN(nn.Module):

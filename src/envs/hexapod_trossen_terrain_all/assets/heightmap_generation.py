@@ -23,34 +23,39 @@ __version__ = '$Id: perlin.py 521 2008-12-15 03:03:52Z casey.duncan $'
 
 from math import floor, fmod, sqrt
 from random import randint
+import numpy as np
+import skimage.io
+import itertools
+
+print("GENERATING NEW MAPS")
 
 # 3D Gradient vectors
-_GRAD3 = ((1,1,0),(-1,1,0),(1,-1,0),(-1,-1,0), 
-	(1,0,1),(-1,0,1),(1,0,-1),(-1,0,-1), 
+_GRAD3 = ((1,1,0),(-1,1,0),(1,-1,0),(-1,-1,0),
+	(1,0,1),(-1,0,1),(1,0,-1),(-1,0,-1),
 	(0,1,1),(0,-1,1),(0,1,-1),(0,-1,-1),
 	(1,1,0),(0,-1,1),(-1,1,0),(0,-1,-1),
-) 
+)
 
 # 4D Gradient vectors
-_GRAD4 = ((0,1,1,1), (0,1,1,-1), (0,1,-1,1), (0,1,-1,-1), 
-	(0,-1,1,1), (0,-1,1,-1), (0,-1,-1,1), (0,-1,-1,-1), 
-	(1,0,1,1), (1,0,1,-1), (1,0,-1,1), (1,0,-1,-1), 
-	(-1,0,1,1), (-1,0,1,-1), (-1,0,-1,1), (-1,0,-1,-1), 
-	(1,1,0,1), (1,1,0,-1), (1,-1,0,1), (1,-1,0,-1), 
-	(-1,1,0,1), (-1,1,0,-1), (-1,-1,0,1), (-1,-1,0,-1), 
-	(1,1,1,0), (1,1,-1,0), (1,-1,1,0), (1,-1,-1,0), 
+_GRAD4 = ((0,1,1,1), (0,1,1,-1), (0,1,-1,1), (0,1,-1,-1),
+	(0,-1,1,1), (0,-1,1,-1), (0,-1,-1,1), (0,-1,-1,-1),
+	(1,0,1,1), (1,0,1,-1), (1,0,-1,1), (1,0,-1,-1),
+	(-1,0,1,1), (-1,0,1,-1), (-1,0,-1,1), (-1,0,-1,-1),
+	(1,1,0,1), (1,1,0,-1), (1,-1,0,1), (1,-1,0,-1),
+	(-1,1,0,1), (-1,1,0,-1), (-1,-1,0,1), (-1,-1,0,-1),
+	(1,1,1,0), (1,1,-1,0), (1,-1,1,0), (1,-1,-1,0),
 	(-1,1,1,0), (-1,1,-1,0), (-1,-1,1,0), (-1,-1,-1,0))
 
-# A lookup table to traverse the simplex around a given point in 4D. 
-# Details can be found where this table is used, in the 4D noise method. 
+# A lookup table to traverse the simplex around a given point in 4D.
+# Details can be found where this table is used, in the 4D noise method.
 _SIMPLEX = (
-	(0,1,2,3),(0,1,3,2),(0,0,0,0),(0,2,3,1),(0,0,0,0),(0,0,0,0),(0,0,0,0),(1,2,3,0), 
-	(0,2,1,3),(0,0,0,0),(0,3,1,2),(0,3,2,1),(0,0,0,0),(0,0,0,0),(0,0,0,0),(1,3,2,0), 
-	(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0), 
-	(1,2,0,3),(0,0,0,0),(1,3,0,2),(0,0,0,0),(0,0,0,0),(0,0,0,0),(2,3,0,1),(2,3,1,0), 
-	(1,0,2,3),(1,0,3,2),(0,0,0,0),(0,0,0,0),(0,0,0,0),(2,0,3,1),(0,0,0,0),(2,1,3,0), 
-	(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0), 
-	(2,0,1,3),(0,0,0,0),(0,0,0,0),(0,0,0,0),(3,0,1,2),(3,0,2,1),(0,0,0,0),(3,1,2,0), 
+	(0,1,2,3),(0,1,3,2),(0,0,0,0),(0,2,3,1),(0,0,0,0),(0,0,0,0),(0,0,0,0),(1,2,3,0),
+	(0,2,1,3),(0,0,0,0),(0,3,1,2),(0,3,2,1),(0,0,0,0),(0,0,0,0),(0,0,0,0),(1,3,2,0),
+	(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),
+	(1,2,0,3),(0,0,0,0),(1,3,0,2),(0,0,0,0),(0,0,0,0),(0,0,0,0),(2,3,0,1),(2,3,1,0),
+	(1,0,2,3),(1,0,3,2),(0,0,0,0),(0,0,0,0),(0,0,0,0),(2,0,3,1),(0,0,0,0),(2,1,3,0),
+	(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),(0,0,0,0),
+	(2,0,1,3),(0,0,0,0),(0,0,0,0),(0,0,0,0),(3,0,1,2),(3,0,2,1),(0,0,0,0),(3,1,2,0),
 	(2,1,0,3),(0,0,0,0),(0,0,0,0),(0,0,0,0),(3,1,0,2),(0,0,0,0),(3,2,0,1),(3,2,1,0))
 
 # Simplex skew constants
@@ -304,6 +309,7 @@ class SimplexNoise(BaseNoise):
 def lerp(t, a, b):
 	return a + t * (b - a)
 
+
 def grad3(hash, x, y, z):
 	g = _GRAD3[hash % 16]
 	return x*g[0] + y*g[1] + z*g[2]
@@ -357,12 +363,6 @@ class TileableNoise(BaseNoise):
 								 lerp(fx, grad3(perm[AB + kk], x, y - 1, z - 1),
 										  grad3(perm[BB + kk], x - 1, y - 1, z - 1))))
 
-### End of perlin noise library
-
-#%% Simplex generation
-
-s=SimplexNoise()
-import numpy as np
 
 def noise(periods,N):
     s.randomize()
@@ -371,18 +371,23 @@ def noise(periods,N):
         im[yi,xi]=s.noise2(x,y)
     return im
 
+
+s=SimplexNoise()
+
+
 #%% General noise steps generation
-import skimage.io
-import itertools
-N=513
+
+N=120
 n={}
 for i in [0.3,1,5,10,20,50,100]:
     n[i]=noise(i,N)
-xgrad=np.linspace(0,1,N)[:,np.newaxis]
-ygrad=np.linspace(0,1,N)[:,np.newaxis].T
+
+xgrad=np.linspace(np.random.rand() * 0.4,0.6,N)[:,np.newaxis]
+ygrad=np.linspace(np.random.rand() * 0.4,0.6,N)[:,np.newaxis].T
+
 
 #%%
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
 
 #
 # Heighmap generation examples
@@ -390,101 +395,101 @@ import matplotlib.pyplot as plt
 
 # Bumpiness training terrain
 
-# im=n[0.3]*0+n[1]*0+np.maximum(0.0,n[10])**(xgrad*3+0.01)*ygrad
-# plt.imshow(im)
-# im = im *0.5
-# skimage.io.imsave("bumps1.png",(im*255).astype(dtype=np.uint8))
-#
-# # Bumpiness training terrain
-# im=n[0.3]*0+n[1]*2+n[20]*xgrad*0.3+np.maximum(+0.5,n[50])*0.5*ygrad
-# im = im + np.abs(np.min(im))
-# im = im/(np.max(im)-np.min(im))
-# plt.imshow(im)
-# im = im *0.8
-# skimage.io.imsave("bumps2.png",(im*255).astype(dtype=np.uint8))
-#
-# #%% Holes
-# im=np.minimum(0,n[20]+0.5)*1*xgrad+np.minimum(0,n[50]+0.5)*0.5*ygrad
-# plt.imshow(im)
-# im = im + np.abs(np.min(im))
-# im = im/(np.max(im)-np.min(im))
-# skimage.io.imsave("holes1.png",(im*255).astype(dtype=np.uint8))
-#
-# #%% Holes
-# im=np.minimum(0,n[5]+0.5)*2*xgrad+np.minimum(0,n[50]+0.9)*0.5*ygrad
-# plt.imshow(im)
-# im = im + np.abs(np.min(im))
-# im = im/(np.max(im)-np.min(im))
-# skimage.io.imsave("holes2.png",(im*255).astype(dtype=np.uint8))
-#
-# #%% slope + rocks
-# im=xgrad**2*2+np.maximum(+0.5,n[10])*0.2*ygrad
-# plt.imshow(im)
-# im = im + np.abs(np.min(im))
-# im = im/(np.max(im)-np.min(im))
-# skimage.io.imsave("slope_rocks1.png",(im*255).astype(dtype=np.uint8))
-#
-# #%% slope + rocks
-# im=xgrad**2*1+np.maximum(+0.5,n[50])*0.2*ygrad
-# plt.imshow(im)
-# im = im + np.abs(np.min(im))
-# im = im/(np.max(im)-np.min(im))
-# skimage.io.imsave("slope_rocks2.png",(im*255).astype(dtype=np.uint8))
-#
-# #%% steps
-# im=np.clip(n[10]*(ygrad*20+1),0,1)*xgrad*0.2
-# plt.imshow(im)
-# im = im + np.abs(np.min(im))
-# im = im/(np.max(im)-np.min(im))
-# im = im *0.5
-# skimage.io.imsave("steps1.png",(im*255).astype(dtype=np.uint8))
-#
-# #%% steps
-# im=np.clip(n[5]*(ygrad*10+1),0,1)*xgrad*0.1
-# plt.imshow(im)
-# im = im + np.abs(np.min(im))
-# im = im/(np.max(im)-np.min(im))
-# im = im *0.5
-# skimage.io.imsave("steps2.png",(im*255).astype(dtype=np.uint8))
-#
-# #%% rails
-# im=(np.clip((n[5]*40*ygrad)**2,0,1)-1)*xgrad*0.2
-# plt.imshow(im)
-# im = im + np.abs(np.min(im))
-# im = im/(np.max(im)-np.min(im))
-# skimage.io.imsave("rails1.png",(im*255).astype(dtype=np.uint8))
+im=n[0.3]*0+n[1]*0+np.maximum(0.0,n[10])**(xgrad*3+0.01)*ygrad
+#plt.imshow(im)
+im = im *0.5
+skimage.io.imsave("bumps1.png",(im*255).astype(dtype=np.uint8))
 
-#%% rails
-im=(np.clip((n[5]*5*ygrad)**2,0,1)-1)*xgrad*0.2
-plt.imshow(im)
+# Bumpiness training terrain
+im=n[0.3]*0+n[1]*2+n[20]*xgrad*0.3+np.maximum(+0.5,n[50])*0.5*ygrad
+im = im + np.abs(np.min(im))
+im = im/(np.max(im)-np.min(im))
+#plt.imshow(im)
+im = im *0.8
+skimage.io.imsave("bumps2.png",(im*255).astype(dtype=np.uint8))
+
+#%% Holes
+im=np.minimum(0,n[20]+0.5)*1*xgrad+np.minimum(0,n[50]+0.5)*0.5*ygrad
+#plt.imshow(im)
+im = im + np.abs(np.min(im))
+im = im/(np.max(im)-np.min(im))
+skimage.io.imsave("holes1.png",(im*255).astype(dtype=np.uint8))
+
+#%% Holes
+im=np.minimum(0,n[5]+0.5)*2*xgrad+np.minimum(0,n[50]+0.9)*0.5*ygrad
+#plt.imshow(im)
+im = im + np.abs(np.min(im))
+im = im/(np.max(im)-np.min(im))
+skimage.io.imsave("holes2.png",(im*255).astype(dtype=np.uint8))
+
+#%% slope + rocks
+im=xgrad**2*2+np.maximum(+0.5,n[10])*0.2*ygrad
+#plt.imshow(im)
+im = im + np.abs(np.min(im))
+im = im/(np.max(im)-np.min(im))
+skimage.io.imsave("slope_rocks1.png",(im*255).astype(dtype=np.uint8))
+
+#%% slope + rocks
+im=xgrad**2*1+np.maximum(+0.5,n[50])*0.2*ygrad
+#plt.imshow(im)
+im = im + np.abs(np.min(im))
+im = im/(np.max(im)-np.min(im))
+skimage.io.imsave("slope_rocks2.png",(im*255).astype(dtype=np.uint8))
+
+#%% steps
+im=np.clip(n[10]*(ygrad*20+1),0,1)*xgrad*0.2
+#plt.imshow(im)
 im = im + np.abs(np.min(im))
 im = im/(np.max(im)-np.min(im))
 im = im *0.5
-skimage.io.imsave("rails2.png",(im*255).astype(dtype=np.uint8)) 
+skimage.io.imsave("steps1.png",(im*255).astype(dtype=np.uint8))
+
+#%% steps
+im=np.clip(n[5]*(ygrad*10+1),0,1)*xgrad*0.1
+#plt.imshow(im)
+im = im + np.abs(np.min(im))
+im = im/(np.max(im)-np.min(im))
+im = im *0.5
+skimage.io.imsave("steps2.png",(im*255).astype(dtype=np.uint8))
+
+#%% rails
+im=(np.clip((n[5]*40*ygrad)**2,0,1)-1)*xgrad*0.2
+#plt.imshow(im)
+im = im + np.abs(np.min(im))
+im = im/(np.max(im)-np.min(im))
+skimage.io.imsave("rails1.png",(im*255).astype(dtype=np.uint8))
+
+#%% rails
+im=(np.clip((n[5]*5*ygrad)**2,0,1)-1)*xgrad*0.2
+#plt.imshow(im)
+im = im + np.abs(np.min(im))
+im = im/(np.max(im)-np.min(im))
+im = im *0.5
+skimage.io.imsave("rails2.png",(im*255).astype(dtype=np.uint8))
 
 #%% bumps
 im=-im
-plt.imshow(im)
+#plt.imshow(im)
 
 
 #%% For puzzle-like maps
 #bars different sizes
-import scipy.ndimage
+#import scipy.ndimage
 
-noise=n[5]
-lines= np.bitwise_or(
-        np.diff(np.sign(np.hstack((noise,noise[:,[-1]]))),axis=1)!=0,
-        np.diff(np.sign(np.vstack((noise,noise[[-1],:]))),axis=0)!=0)
-distances=scipy.ndimage.morphology.distance_transform_edt(np.invert(lines),sampling=0.02)
-
-minwidth= 0.02 / 2 # this variable is double the minwidth
-maxwidth= 0.30 / 2 # this variable is double the maxwidth
-minheight=0.03
-maxheight=0.30
-
-steps=distances<xgrad*(maxwidth-minwidth)+minwidth
-steps=steps*(ygrad*(maxheight-minheight)+minheight)
-plt.imshow(steps)
-im = steps
-skimage.io.imsave("bars.png",(im*255).astype(dtype=np.uint8)) 
+# noise=n[5]
+# lines= np.bitwise_or(
+#         np.diff(np.sign(np.hstack((noise,noise[:,[-1]]))),axis=1)!=0,
+#         np.diff(np.sign(np.vstack((noise,noise[[-1],:]))),axis=0)!=0)
+# distances=scipy.ndimage.morphology.distance_transform_edt(np.invert(lines),sampling=0.02)
+#
+# minwidth= 0.02 / 2 # this variable is double the minwidth
+# maxwidth= 0.30 / 2 # this variable is double the maxwidth
+# minheight=0.03
+# maxheight=0.30
+#
+# steps=distances<xgrad*(maxwidth-minwidth)+minwidth
+# steps=steps*(ygrad*(maxheight-minheight)+minheight)
+#plt.imshow(steps)
+#im = steps
+#skimage.io.imsave("bars.png",(im*255).astype(dtype=np.uint8))
 

@@ -25,6 +25,9 @@ def train(env, policy, params):
     episode_rew = 0
 
     for i in range(params["iters"]):
+
+        policy = policy.cpu()
+
         s_0 = env.reset()
         h_0 = None
         done = False
@@ -66,13 +69,14 @@ def train(env, policy, params):
 
         # If enough data gathered, then perform update
         if episode_ctr == params["batchsize"]:
+            policy = policy.cuda()
 
-            batch_states = T.stack(batch_states)
-            batch_actions = T.stack(batch_actions)
+            batch_states = T.stack(batch_states).cuda()
+            batch_actions = T.stack(batch_actions).cuda()
             batch_rewards = T.cat(batch_rewards)
 
             # Calculate episode advantages
-            batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
+            batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals).cuda()
 
             if params["ppo"]:
                 update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
@@ -157,7 +161,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
@@ -167,8 +171,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    env = env.Hexapod()
+    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    #env = env.Hexapod()
 
     # from src.envs.hexapod_trossen_control import hexapod_trossen_control
     # env = hexapod_trossen_control.Hexapod()
@@ -179,8 +183,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
@@ -193,7 +197,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_PG(env, hid_dim=128, memory_dim=128, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_PG(env, hid_dim=128, memory_dim=96, tanh=params["tanh"], to_gpu=True)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

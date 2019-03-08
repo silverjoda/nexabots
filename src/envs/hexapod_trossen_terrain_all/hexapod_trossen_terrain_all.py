@@ -8,7 +8,6 @@ from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
 import string
 
-
 class Hexapod:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
@@ -16,8 +15,7 @@ class Hexapod:
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["flat", "tiles", "rails", "holes", "stairs", "bumps"]
-        #self.env_list = ["flat"]
+        self.env_list = ["rails", "holes", "bumps", "desert"]
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 800
@@ -105,7 +103,6 @@ class Hexapod:
 
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
-
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
         angle = 2 * acos(qw)
 
@@ -120,15 +117,14 @@ class Hexapod:
 
         rV = (target_progress * 0.0,
               velocity_rew * 6.0,
-              - ctrl_effort * 0.01,
-              - np.square(thd) * 0.01 - np.square(phid) * 0.01,
+              - ctrl_effort * 0.1,
+              - np.square(thd) * 0.07 - np.square(phid) * 0.07,
               - np.square(angle) * 0.0,
               - np.square(roll) * 0.0,
               - np.square(pitch) * 0.0,
-              - np.square(yaw - self.rnd_yaw) * 0.5,
+              - np.square(yaw - self.rnd_yaw) * 0.0,
               - np.square(yd) * 0.0,
-              - height_pen * 0.01 * int(self.step_ctr > 20))
-
+              - height_pen * 0.1 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -2, 2)
@@ -146,6 +142,9 @@ class Hexapod:
 
 
     def reset(self):
+        if np.random.rand() < 0.05:
+            os.system('python ../../envs/hexapod_trossen_terrain_all/assets/heightmap_generation.py')
+            time.sleep(0.1)
 
         self.viewer = None
         self.env_name = self.env_list[np.random.randint(0, len(self.env_list))]
@@ -169,13 +168,13 @@ class Hexapod:
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.randn() * 0.03
-        init_q[1] = np.random.randn() * 0.03
+        init_q[0] = np.random.rand() * 4 - 4
+        init_q[1] = np.random.rand() * 8 - 4
         init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Init_quat
-        self.rnd_yaw = np.random.randn() * 0.0
+        self.rnd_yaw = np.random.randn() * 0.3
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 

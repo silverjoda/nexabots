@@ -10,11 +10,11 @@ import src.my_utils as my_utils
 import src.policies as policies
 import random
 import string
+import socket
 
 def train(env, policy, params):
 
-    policy_optim = T.optim.Adam(policy.policy_params(), lr=params["policy_lr"], weight_decay=0.001)
-    rnn_optim = T.optim.Adam(policy.rnn_params(), lr=params["rnn_lr"], weight_decay=0.003)
+    policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
 
     batch_states = []
     batch_actions = []
@@ -25,6 +25,9 @@ def train(env, policy, params):
     episode_rew = 0
 
     for i in range(params["iters"]):
+
+        policy = policy.cpu()
+
         s_0 = env.reset()
         h_0 = None
         done = False
@@ -34,16 +37,13 @@ def train(env, policy, params):
         episode_states = []
         episode_actions = []
 
-        # Set sampling parameters to currently trained ones
-        policy.clone_params()
-
         while not done:
             with T.no_grad():
                 # Sample action from policy
-                action, h_1 = policy.sample_action((my_utils.to_tensor(s_0, True), h_0))
+                action, h_1 = policy.sample_action((my_utils.to_tensor(s_0, True).unsqueeze(0), h_0))
 
             # Step action
-            s_1, r, done, _ = env.step(action.squeeze(0).numpy())
+            s_1, r, done, _ = env.step(action[0].numpy())
             r = np.clip(r, -3, 3)
 
             step_ctr += 1
@@ -67,20 +67,21 @@ def train(env, policy, params):
         batch_states.append(T.cat(episode_states))
         batch_actions.append(T.cat(episode_actions))
 
-
         # If enough data gathered, then perform update
         if episode_ctr == params["batchsize"]:
-            batch_states = T.stack(batch_states)
-            batch_actions = T.stack(batch_actions)
+            policy = policy.cuda()
+
+            batch_states = T.stack(batch_states).cuda()
+            batch_actions = T.stack(batch_actions).cuda()
             batch_rewards = T.cat(batch_rewards)
 
             # Calculate episode advantages
-            batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
+            batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals).cuda()
 
             if params["ppo"]:
-                update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+                update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
             else:
-                update_policy(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages)
+                update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
                   format(i, params["iters"], None, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
@@ -101,46 +102,40 @@ def train(env, policy, params):
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 
-def update_ppo(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages, update_iters):
+def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
     # Call logprobs on hidden states
-    log_probs_old = policy.log_probs_batch(batch_states, batch_actions).detach()
-
-    c_eps = 0.2
+    log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
+    c_eps = .2
 
     # Do ppo_update
     for k in range(update_iters):
-        log_probs_new = policy.log_probs_batch(batch_states, batch_actions)
+        log_probs_new = policy.log_probs(batch_states, batch_actions)
         r = T.exp(log_probs_new - log_probs_old).view((-1, 1))
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
-        rnn_optim.zero_grad()
         loss.backward()
 
         # Step policy update
-        policy.print_info()
-        policy.clip_grads()
+        policy.soft_clip_grads(0.5)
         policy_optim.step()
-        rnn_optim.step()
 
 
-def update_policy(policy, policy_optim, rnn_optim, batch_states, batch_actions, batch_advantages):
+def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages):
 
     # Get action log probabilities
-    log_probs = policy.log_probs_batch(batch_states, batch_actions)
+    log_probs = policy.log_probs(batch_states, batch_actions)
 
     # Calculate loss function
     loss = -T.mean(log_probs.view((-1, 1)) * batch_advantages)
 
     # Backward pass on policy
     policy_optim.zero_grad()
-    rnn_optim.zero_grad()
     loss.backward()
 
     # Step policy update
-    policy.print_info()
-    policy.clip_grads()
+    #policy.print_info()
+    policy.soft_clip_grads(1)
     policy_optim.step()
-    rnn_optim.step()
 
     return loss.data
 
@@ -163,45 +158,59 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 
 
 if __name__=="__main__":
-    T.set_num_threads(2)
+    T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 256, "gamma": 0.98, "policy_lr": 0.001, "rnn_lr": 0.001, "w_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 12, "animate": True, "train" : True,
+    params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : False,
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
-    # Ant feelers
-    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    #env = ant_feelers_mjc.AntFeelersMjc()
-
-    # Hexapod
-    #from src.envs.hexapod_flat_mjc import hexapod
-    #env = hexapod.Hexapod()
-
-    #from src.envs.centipede_mjc.centipede8_mjc_new import CentipedeMjc8 as centipede
-    #env = centipede()
-
-    #from src.envs.ant_reach_mjc import ant_reach_mjc
-    #env = ant_reach_mjc.AntReachMjc(animate=params["animate"])
+    if socket.gethostname() == "goedel":
+        params["animate"] = False
+        params["train"] = True
 
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
+    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    #env = env.Hexapod()
+
+    # from src.envs.hexapod_trossen_control import hexapod_trossen_control
+    # env = hexapod_trossen_control.Hexapod()
+
+    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
+    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
+
+    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
+
+    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
+
+    from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
+
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
-
-    from src.envs.hexapod_terrain_env import hexapod_terrain
-    env = hexapod_terrain.Hexapod()
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env)
+        policy = policies.RNN_V3_PG(env, hid_dim=128, memory_dim=128, tanh=params["tanh"])
+        print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
+        #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_RNN_PG_1KL_pg.p')
-        env.test_recurrent(policy)
+        expert_flat = T.load('agents/Hexapod_RNN_V2_PG_THQ_pg.p')
+        expert_tiles = T.load('agents/Hexapod_RNN_V2_PG_Z29_pg.p')
+        expert_rails = T.load('agents/Hexapod_RNN_V2_PG_7NK_pg.p')
+        expert_3env = T.load('agents/Hexapod_RNN_V3_PG_VK5_pg.p')
+        expert_all = T.load('agents/Hexapod_RNN_V2_PG_UBL_pg.p')
+        policy = T.load('agents/Hexapod_RNN_V2_PG_UBL_pg.p')
+        env.test_recurrent(expert_3env)
+        #env.test_record(expert_rails, "C")
+
 
 

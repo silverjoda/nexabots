@@ -16,15 +16,15 @@ class Hexapod:
     def __init__(self, mem_dim=0, env_name=None):
         print("Trossen hexapod terrain all")
 
-        #self.env_list = ["flat", "rails", "flattiles", "tiles"]
-        self.env_list = ["flat", "rails"]#
+        self.env_list = ["flat", "rails", "flattiles", "tiles"]
+        #self.env_list = ["flat", "rails"]#
 
         self.env_name = env_name
         if self.env_name is not None:
             self.env_list = [self.env_name]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 600
+        self.max_steps = 800
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -123,26 +123,26 @@ class Hexapod:
 
         if self.env_list == "flat":
             rV = (target_progress * 0.0,
-                  velocity_rew * 6.0,
+                  velocity_rew * 8.0,
                   - ctrl_effort * 0.3,
-                  - np.square(thd) * 0.01 - np.square(phid) * 0.01,
+                  - np.square(thd) * 0.1 - np.square(phid) * 0.2,
                   - np.square(angle) * 0.0,
-                  - np.square(roll) * .5,
-                  - np.square(pitch) * .5,
+                  - np.square(roll) * .4,
+                  - np.square(pitch) * .7,
                   - np.square(yaw - self.rnd_yaw) * 0.0,
                   - np.square(yd) * 0.0,
-                  - np.square(zd) * 0.5 * int(self.step_ctr > 20))
+                  - np.square(zd) * 0.4 * int(self.step_ctr > 20))
         else:
             rV = (target_progress * 0.0,
-                  velocity_rew * 6.0,
-                  - ctrl_effort * 0.005,
-                  - np.square(thd) * 0.01 - np.square(phid) * 0.01,
+                  velocity_rew * 8.0,
+                  - ctrl_effort * 0.01,
+                  - np.square(thd) * 0.1 - np.square(phid) * 0.1,
                   - np.square(angle) * 0.0,
-                  - np.square(roll) * .5,
-                  - np.square(pitch) * .5,
+                  - np.square(roll) * .6,
+                  - np.square(pitch) * .6,
                   - np.square(yaw - self.rnd_yaw) * 0.0,
                   - np.square(yd) * 0.0,
-                  - np.square(zd) * 0.5 * int(self.step_ctr > 20))
+                  - np.square(zd) * 0.4 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -2, 2)
@@ -287,9 +287,8 @@ class Hexapod:
             h = None
             cr = 0
             for j in range(self.max_steps):
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                h = h_
-                obs, r, done, od, = self.step(action[0].detach().numpy())
+                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                obs, r, done, od, = self.step(action[0,0].detach().numpy())
                 cr += r
                 time.sleep(0.001)
                 self.render()

@@ -154,31 +154,19 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 0.6
+        target_vel = 0.3
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
-        contact_cost = 1e-3 * np.sum(np.square(np.clip(self.sim.data.cfrc_ext, -1, 1)))
-
-        if sum(self.dead_leg_vector) > 0:
-            rV = (target_progress * 0.0,
-                  velocity_rew * 7.0,
-                  - ctrl_effort * 0.001,
-                  - np.square(angle) * 0.0,
-                  - np.square(yd) * 3.,
-                  - contact_cost * 0.0,
-                  - height_pen * 0.00 * int(self.step_ctr > 20))
-        else:
-            rV = (target_progress * 0.0,
-                  velocity_rew * 7.0,
-                  - ctrl_effort * 0.001,
-                  - np.square(angle) * 0.5,
-                  - np.square(yd) * 5.,
-                  - contact_cost * 0.0,
-                  - height_pen * 0.5 * int(self.step_ctr > 20))
+        rV = (target_progress * 0.0,
+              velocity_rew * 5.0,
+              - ctrl_effort * 0.005,
+              - np.square(angle) * 0.1,
+              - np.square(yd) * 2.,
+              - height_pen * 0.1 * int(self.step_ctr > 20))
 
         r = sum(rV)
-        r = np.clip(r, -1, 1)
+        r = np.clip(r, -2, 2)
         obs_dict['rV'] = rV
         self.cumulative_environment_reward += r
 
@@ -195,9 +183,7 @@ class Hexapod:
             self.dead_leg_vector[idx] = 1
             self.dead_leg_sums[idx] += 1
             self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
-            self.dead_leg_prob /= 2.
-            if sum(self.dead_leg_vector) > 1:
-                self.dead_leg_prob = 0
+            self.dead_leg_prob = 0.
 
         return obs, r, done, obs_dict
 
@@ -283,16 +269,13 @@ class Hexapod:
             h = None
             cr = 0
             for j in range(self.max_steps):
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                #print(action[0].detach().numpy()[:])
-                h = h_
-                obs, r, done, od, = self.step(action[0].detach().numpy())
+                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                obs, r, done, od, = self.step(action[0,0].detach().numpy())
                 cr += r
                 time.sleep(0.001)
                 self.render()
             print("Total episode reward: {}".format(cr))
 
-        print(self.dead_leg_sums)
 
 if __name__ == "__main__":
     ant = Hexapod(animate=True)

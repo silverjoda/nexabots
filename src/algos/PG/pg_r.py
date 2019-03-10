@@ -167,8 +167,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    env = env.Hexapod()
+    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    #env = env.Hexapod()
 
     # from src.envs.hexapod_trossen_control import hexapod_trossen_control
     # env = hexapod_trossen_control.Hexapod()
@@ -182,8 +182,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
+    from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
@@ -199,13 +199,10 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert_flat = T.load('agents/Hexapod_RNN_V2_PG_THQ_pg.p')
-        expert_tiles = T.load('agents/Hexapod_RNN_V2_PG_Z29_pg.p')
-        expert_rails = T.load('agents/Hexapod_RNN_V2_PG_7NK_pg.p')
-        expert_3env = T.load('agents/Hexapod_RNN_V3_PG_VK5_pg.p')
-        expert_all = T.load('agents/Hexapod_RNN_V2_PG_UBL_pg.p')
-        policy = T.load('agents/Hexapod_RNN_V2_PG_UBL_pg.p')
-        env.test_recurrent(expert_3env)
+        expert_3envs = T.load('agents/Hexapod_RNN_V3_PG_ZB7_pg.p')
+        expert_adapt = T.load('agents/Hexapod_RNN_V3_PG_EK0_pg.p')
+
+        env.test_recurrent(expert_adapt)
         #env.test_record(expert_rails, "C")
 
 

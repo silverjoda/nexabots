@@ -159,11 +159,11 @@ class Hexapod:
         height_pen = np.square(zd)
 
         rV = (target_progress * 0.0,
-              velocity_rew * 5.0,
-              - ctrl_effort * 0.005,
-              - np.square(angle) * 0.1,
-              - np.square(yd) * 2.,
-              - height_pen * 0.1 * int(self.step_ctr > 20))
+              velocity_rew * 1.0,
+              - ctrl_effort * 0.000,
+              - np.square(angle) * 0.0,
+              - np.square(yd) * 0.,
+              - height_pen * 0.0 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -2, 2)

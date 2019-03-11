@@ -15,10 +15,10 @@ class Hexapod:
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["rails", "holes", "bumps", "desert"]
+        self.env_list = ["rails", "holes", "desert"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 800
+        self.max_steps = 1000
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -116,22 +116,22 @@ class Hexapod:
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         rV = (target_progress * 0.0,
-              velocity_rew * 6.0,
-              - ctrl_effort * 0.1,
-              - np.square(thd) * 0.07 - np.square(phid) * 0.07,
+              velocity_rew * 5.0,
+              - ctrl_effort * 0.001,
+              - np.square(thd) * 0.00 - np.square(phid) * 0.00,
               - np.square(angle) * 0.0,
               - np.square(roll) * 0.0,
               - np.square(pitch) * 0.0,
               - np.square(yaw - self.rnd_yaw) * 0.0,
               - np.square(yd) * 0.0,
-              - height_pen * 0.1 * int(self.step_ctr > 20))
+              - height_pen * 0.00 * int(self.step_ctr > 30))
 
         r = sum(rV)
         r = np.clip(r, -2, 2)
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps # or (abs(angle) > 3 and self.step_ctr > 30) or abs(y) > 1 or x < -0.2
+        done = self.step_ctr > self.max_steps or abs(roll) > 2 or abs(pitch) > 2
 
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
                               [roll, pitch, yaw, xd, yd, thd, phid],
@@ -267,6 +267,21 @@ class Hexapod:
 
 
     def test_recurrent(self, policy):
+        self.reset()
+        for i in range(100):
+            obs = self.reset()
+            h = None
+            cr = 0
+            for j in range(self.max_steps * 2):
+                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                obs, r, done, od, = self.step(action[0,0].detach().numpy())
+                cr += r
+                time.sleep(0.001)
+                self.render()
+            print("Total episode reward: {}".format(cr))
+
+
+    def test_record_hidden(self, policy):
         self.reset()
         h_episodes = []
         for i in range(10):

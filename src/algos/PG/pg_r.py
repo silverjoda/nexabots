@@ -156,8 +156,9 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
+    params = {"iters": 100000, "batchsize": 16, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
               "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "comments" : "terrainall, V3, 96:96:3, no penalties",
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
@@ -170,20 +171,14 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
     #env = env.Hexapod()
 
-    # from src.envs.hexapod_trossen_control import hexapod_trossen_control
-    # env = hexapod_trossen_control.Hexapod()
-
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
-
-    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
-
-    from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     env = hex_env.Hexapod(mem_dim=0)
+
+    #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
@@ -193,16 +188,15 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_PG(env, hid_dim=128, memory_dim=128, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_PG(env, hid_dim=96, memory_dim=96, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        expert_3envs = T.load('agents/Hexapod_RNN_V3_PG_ZB7_pg.p')
-        expert_adapt = T.load('agents/Hexapod_RNN_V3_PG_EK0_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_PG_NDZ_pg.p')
 
-        env.test_recurrent(expert_adapt)
+        env.test_recurrent(expert)
         #env.test_record(expert_rails, "C")
 
 

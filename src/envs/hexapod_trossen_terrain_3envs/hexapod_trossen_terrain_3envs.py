@@ -16,7 +16,7 @@ class Hexapod:
     def __init__(self, mem_dim=0, env_name=None):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["flat", "rails", "tiles"]
+        self.env_list = ["flat", "tiles"]
         #self.env_list = ["flattiles"]
 
         self.env_name = env_name
@@ -121,28 +121,16 @@ class Hexapod:
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        if self.env_list == "flat":
-            rV = (target_progress * 0.0,
-                  velocity_rew * 8.0,
-                  - ctrl_effort * 0.3,
-                  - np.square(thd) * 0.1 - np.square(phid) * 0.2,
-                  - np.square(angle) * 0.0,
-                  - np.square(roll) * .4,
-                  - np.square(pitch) * .7,
-                  - np.square(yaw - self.rnd_yaw) * 0.0,
-                  - np.square(yd) * 0.0,
-                  - np.square(zd) * 0.4 * int(self.step_ctr > 20))
-        else:
-            rV = (target_progress * 0.0,
-                  velocity_rew * 8.0,
-                  - ctrl_effort * 0.01,
-                  - np.square(thd) * 0.1 - np.square(phid) * 0.1,
-                  - np.square(angle) * 0.0,
-                  - np.square(roll) * .6,
-                  - np.square(pitch) * .6,
-                  - np.square(yaw - self.rnd_yaw) * 0.0,
-                  - np.square(yd) * 0.0,
-                  - np.square(zd) * 0.4 * int(self.step_ctr > 20))
+        rV = (target_progress * 0.0,
+              velocity_rew * 7.0,
+              - ctrl_effort * 0.02,
+              - np.square(thd) * 0.01 - np.square(phid) * 0.01,
+              - np.square(angle) * 0.0,
+              - np.square(roll) * .03,
+              - np.square(pitch) * .03,
+              - np.square(yaw) * .03,
+              - np.square(yd) * 0.01,
+              - np.square(zd) * 0.02 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -2, 2)

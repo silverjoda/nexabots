@@ -4,21 +4,21 @@ from sklearn.manifold import TSNE
 import matplotlib.pyplot as plt
 
 filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/")
-bumps = np.load(filepath+ "bumps_states.npy")
-flat = np.load(filepath+ "flat_states.npy")
-holes = np.load(filepath+ "holes_states.npy")
+# bumps = np.load(filepath+ "bumps_states.npy")
+# flat = np.load(filepath+ "flat_states.npy")
+# holes = np.load(filepath+ "holes_states.npy")
 rails = np.load(filepath+ "rails_states.npy")
-stairs = np.load(filepath+ "stairs_states.npy")
-tiles = np.load(filepath+ "tiles_states.npy")
+# stairs = np.load(filepath+ "stairs_states.npy")
+# tiles = np.load(filepath+ "tiles_states.npy")
 
-s_dim = bumps.shape[-1]
+s_dim = rails.shape[-1]
 
-sets = (bumps, flat, holes, rails, stairs, tiles)
-X = np.concatenate(sets)
-
-# plt.imshow(rails[0].T)
-# plt.show()
-# exit()
+sets = (rails)
+#X = np.concatenate(sets)
+X = rails[:,:,-1,:]
+plt.imshow(X[0].T)
+plt.show()
+exit()
 
 X_flat = X.reshape((-1, s_dim))
 X_embedded = TSNE(n_components=2).fit_transform(X_flat)

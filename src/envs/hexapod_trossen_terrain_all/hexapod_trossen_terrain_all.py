@@ -16,6 +16,7 @@ class Hexapod:
         print("Trossen hexapod terrain all")
 
         self.env_list = ["rails", "holes", "desert"]
+        self.env_list = ["desert"]
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 1000
@@ -116,22 +117,20 @@ class Hexapod:
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         rV = (target_progress * 0.0,
-              velocity_rew * 5.0,
-              - ctrl_effort * 0.001,
-              - np.square(thd) * 0.00 - np.square(phid) * 0.00,
-              - np.square(angle) * 0.0,
+              velocity_rew * 6.0,
+              - ctrl_effort * 0.01,
+              - np.square(thd) * 0.001 - np.square(phid) * 0.001,
               - np.square(roll) * 0.0,
               - np.square(pitch) * 0.0,
               - np.square(yaw - self.rnd_yaw) * 0.0,
-              - np.square(yd) * 0.0,
-              - height_pen * 0.00 * int(self.step_ctr > 30))
+              - height_pen * 0.01 * int(self.step_ctr > 30))
 
         r = sum(rV)
         r = np.clip(r, -2, 2)
         obs_dict['rV'] = rV
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or abs(roll) > 2 or abs(pitch) > 2
+        done = self.step_ctr > self.max_steps #or abs(roll) > 2 or abs(pitch) > 2
 
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
                               [roll, pitch, yaw, xd, yd, thd, phid],
@@ -268,7 +267,9 @@ class Hexapod:
 
     def test_recurrent(self, policy):
         self.reset()
-        for i in range(100):
+        h_episodes = []
+        for i in range(10):
+            h_list = []
             obs = self.reset()
             h = None
             cr = 0
@@ -278,7 +279,17 @@ class Hexapod:
                 cr += r
                 time.sleep(0.001)
                 self.render()
+                h_list.append(h[0][:,0,:].detach().numpy())
             print("Total episode reward: {}".format(cr))
+            h_arr = np.stack(h_list)
+            h_episodes.append(h_arr)
+
+        h_episodes_arr = np.stack(h_episodes)
+
+        # Save hidden states
+        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                "data/{}_states.npy".format(self.env_name))
+        #np.save(filename, h_episodes_arr)
 
 
     def test_record_hidden(self, policy):
@@ -290,8 +301,7 @@ class Hexapod:
             h = None
             cr = 0
             for j in range(self.max_steps  * 2):
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                h = h_
+                action, h = policy((my_utils.to_tensor(obs, True), h))
                 obs, r, done, od, = self.step(action[0].detach().numpy())
                 cr += r
                 time.sleep(0.001)

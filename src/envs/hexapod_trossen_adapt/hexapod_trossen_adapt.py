@@ -151,6 +151,8 @@ class Hexapod:
         xd, yd, zd, _, _, _ = self.sim.get_state().qvel.tolist()[:6]
         angle = 2 * acos(qw)
 
+        roll, pitch, yaw = my_utils.quat_to_rpy((qw, qx, qy, qz))
+
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
@@ -158,20 +160,17 @@ class Hexapod:
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
-        rV = (target_progress * 0.0,
-              velocity_rew * 1.0,
-              - ctrl_effort * 0.000,
-              - np.square(angle) * 0.0,
-              - np.square(yd) * 0.,
-              - height_pen * 0.0 * int(self.step_ctr > 20))
+        r = velocity_rew * 3 * \
+             np.clip(1 - abs(yaw) * 0.3, 0, 1) * \
+             np.clip(1 - height_pen * 0.3, 0, 1) * \
+             np.clip(1 - yd * 0.3, 0, 1)
 
-        r = sum(rV)
         r = np.clip(r, -2, 2)
-        obs_dict['rV'] = rV
+
         self.cumulative_environment_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps# or (abs(angle) > 2.4 and self.step_ctr > 30) or abs(y) > 0.5 or x < -0.2
+        done = self.step_ctr > self.max_steps # or abs(y) > 0.3 or x < -0.2 or abs(yaw) > 0.8
 
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
                               [xd, yd],

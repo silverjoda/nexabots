@@ -168,8 +168,8 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 4, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
+    params = {"iters": 100000, "batchsize": 16, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
               "comments" : "terrain all, V3, h128:m128:3l",
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
@@ -180,8 +180,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
 
-    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    #env = env.Hexapod()
+    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    env = env.Hexapod()
 
     # from src.envs.hexapod_trossen_control import hexapod_trossen_control
     # env = hexapod_trossen_control.Hexapod()
@@ -192,8 +192,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
+    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
@@ -206,7 +206,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_VAR_PG(env, hid_dim=128, memory_dim=128, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_VAR_PG(env, hid_dim=64, memory_dim=96, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

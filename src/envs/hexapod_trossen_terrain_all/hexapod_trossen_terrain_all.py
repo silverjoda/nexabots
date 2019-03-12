@@ -15,11 +15,12 @@ class Hexapod:
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["desert"]
+        #self.env_list = ["rails", "holes", "desert"]
+        self.env_list = ["holes"]
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 1000
+        self.env_change_prob = 0.05
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -141,7 +142,7 @@ class Hexapod:
 
 
     def reset(self):
-        if np.random.rand() < 0.05:
+        if np.random.rand() < self.env_change_prob:
             os.system('python ../../envs/hexapod_trossen_terrain_all/assets/heightmap_generation.py')
             time.sleep(0.1)
 
@@ -266,6 +267,7 @@ class Hexapod:
 
 
     def test_recurrent(self, policy):
+        self.env_change_prob = 1
         self.reset()
         h_episodes = []
         for i in range(10):

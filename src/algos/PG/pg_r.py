@@ -156,8 +156,8 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 16, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
+    params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.003, "ppo": True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
               "comments" : "3envs, tiles+flat, V3, 96:96:3",
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
@@ -167,6 +167,9 @@ if __name__=="__main__":
 
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
+
+    #from src.envs.hexapod_terrain_env import hexapod_terrain
+    #env = hexapod_terrain.Hexapod()
 
     #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
     #env = env.Hexapod()
@@ -194,7 +197,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_PG_1VH_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_PG_HA4_pg.p')
 
         env.test_recurrent(expert)
         #env.test_record(expert_rails, "C")

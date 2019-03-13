@@ -15,11 +15,11 @@ class Hexapod:
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        #self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["holes"]
+        self.env_list = ["rails", "holes", "desert"]
+        #self.env_list = ["desert"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 1000
+        self.max_steps = 600
         self.env_change_prob = 0.05
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
@@ -111,7 +111,7 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 0.3
+        target_vel = 0.25
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
@@ -119,12 +119,13 @@ class Hexapod:
 
         rV = (target_progress * 0.0,
               velocity_rew * 6.0,
-              - ctrl_effort * 0.01,
+              - ctrl_effort * 0.003,
               - np.square(thd) * 0.001 - np.square(phid) * 0.001,
-              - np.square(roll) * 0.0,
-              - np.square(pitch) * 0.0,
+              - np.square(roll) * 0.2,
+              - np.square(pitch) * 0.2,
               - np.square(yaw - self.rnd_yaw) * 0.0,
               - height_pen * 0.01 * int(self.step_ctr > 30))
+
 
         r = sum(rV)
         r = np.clip(r, -2, 2)
@@ -275,7 +276,7 @@ class Hexapod:
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps * 2):
+            for j in range(self.max_steps * 3):
                 action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
                 obs, r, done, od, = self.step(action[0,0].detach().numpy())
                 cr += r

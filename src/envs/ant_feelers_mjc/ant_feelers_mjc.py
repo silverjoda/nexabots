@@ -15,11 +15,10 @@ class AntFeelersMjc:
             self.model = mujoco_py.load_model_from_path(self.modelpath)
             self.sim = mujoco_py.MjSim(self.model)
 
-        self.model.opt.timestep = 0.04
+        self.model.opt.timestep = 0.02
         self.N_boxes = 4
 
         self.max_steps = 600
-        print("WARNING: !!!! MAX STEPS = 300, DONE = MAXSTEPS")
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -35,6 +34,9 @@ class AntFeelersMjc:
         self.joints_rads_low = np.array([-0.7, 0.8] * 4 + [-1, -1, -1, -1])
         self.joints_rads_high = np.array([0.7, 1.4] * 4 + [1, 1, 1, 1])
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.target_dist = 0
+        self.done = False
 
         # Initial methods
         if animate:
@@ -126,12 +128,49 @@ class AntFeelersMjc:
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
         ctrl_effort = np.square(ctrl[0:8]).mean() * 0.00
-        target_progress = xd * 1.
+        target_vel = 1.0
+        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         obs = np.concatenate((obs_c.astype(np.float32)[2:], obs_dict["contacts"], [obs_dict['torso_contact']]))
-        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.01 - obs_dict['torso_contact'] * 0.2 - angle * 0.0
+
+        if x > self.target_dist and not done:
+            self.done = True
+            self.target_dist += 0.3
+            r = 1
+        else:
+            r = 0
+
+        #r = velocity_rew * 2
 
         return obs, r, done, obs_dict
+
+
+    def reset(self):
+        self.done = False
+        self.target_dist -= 0.01
+
+        # Reset env variables
+        self.step_ctr = 0
+
+        # Sample initial configuration
+        init_q = np.zeros(self.q_dim, dtype=np.float32)
+        init_q[0] = np.random.randn() * 0.1
+        init_q[1] = np.random.randn() * 0.1
+        init_q[2] = 0.80 + np.random.rand() * 0.1
+        init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
+
+        r = self.q_dim - self.N_boxes * 7
+        for i in range(self.N_boxes):
+            init_q[r + i * 7 :r + i * 7 + 3] = [i * 2.2 + 1.7, np.clip(np.random.randn() * 1.0, -1.8, 1.8), 0.6]
+
+        # Set environment state
+        self.set_state(init_q, init_qvel)
+        obs = np.concatenate((init_q[: - 7 * self.N_boxes], init_qvel[: - 6 * self.N_boxes])).astype(np.float32)
+
+        obs_dict = self.get_obs_dict()
+        obs = np.concatenate((obs[2:], obs_dict["contacts"], [obs_dict["torso_contact"]]))
+
+        return obs
 
 
     def demo(self):
@@ -170,70 +209,19 @@ class AntFeelersMjc:
     def test_recurrent(self, policy):
         self.reset()
         for i in range(100):
-            done = False
             obs = self.reset()
             h = None
             cr = 0
-            self.max_steps = 600
-            import matplotlib.pyplot as plt
-            #fig = plt.figure()
-            acts = []
-            while not done:
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                acts.append(action[0].detach())
-                h = h_
-                obs, r, done, od, = self.step(action[0].detach())
+            for j in range(self.max_steps):
+                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                obs, r, done, od, = self.step(action[0, 0].detach().numpy())
                 cr += r
                 time.sleep(0.001)
                 self.render()
-
-
-            # plt.subplot(4, 1, 1)
-            # plt.plot(range(len(acts)), [a[8] for a in acts], 'r')
-            # plt.title('lf1')
-            #
-            # plt.subplot(4, 1,2)
-            # plt.plot(range(len(acts)), [a[9] for a in acts], 'g')
-            # plt.xlabel('lf2')
-            #
-            # plt.subplot(4, 1, 3)
-            # plt.plot(range(len(acts)), [a[10] for a in acts], 'b')
-            # plt.xlabel('rf1')
-
-            #
-            # plt.subplot(4, 1, 4)
-            # plt.plot(range(len(acts)), [a[11] for a in acts], 'k')
-            # plt.xlabel('rf2')
-            #
-            # plt.show()
-
             print("Total episode reward: {}".format(cr))
 
 
-    def reset(self):
 
-        # Reset env variables
-        self.step_ctr = 0
-
-        # Sample initial configuration
-        init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.randn() * 0.1
-        init_q[1] = np.random.randn() * 0.1
-        init_q[2] = 0.80 + np.random.rand() * 0.1
-        init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
-
-        r = self.q_dim - self.N_boxes * 7
-        for i in range(self.N_boxes):
-            init_q[r + i * 7 :r + i * 7 + 3] = [i * 2.2 + 1.7, np.clip(np.random.randn() * 1.0, -1.8, 1.8), 0.6]
-
-        # Set environment state
-        self.set_state(init_q, init_qvel)
-        obs = np.concatenate((init_q[: - 7 * self.N_boxes], init_qvel[: - 6 * self.N_boxes])).astype(np.float32)
-
-        obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs[2:], obs_dict["contacts"], [obs_dict["torso_contact"]]))
-
-        return obs
 
 
 if __name__ == "__main__":

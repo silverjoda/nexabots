@@ -116,21 +116,20 @@ class Hexapod:
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
         target_progress = xd
-        target_vel = 0.3
+        target_vel = 0.15
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         rV = (target_progress * 0.0,
-              velocity_rew * 7.0,
-              - ctrl_effort * 0.02,
-              - np.square(thd) * 0.01 - np.square(phid) * 0.01,
+              velocity_rew * 10.0,
+              - ctrl_effort * 0.00,
+              - np.square(thd) * 0.002 - np.square(phid) * 0.002,
               - np.square(angle) * 0.0,
-              - np.square(roll) * .03,
-              - np.square(pitch) * .03,
-              - np.square(yaw) * .03,
-              - np.square(yd) * 0.01,
-              - np.square(zd) * 0.02 * int(self.step_ctr > 20))
+              - np.square(roll) * .01,
+              - np.square(pitch) * .01,
+              - np.square(yaw) * .01,
+              - np.square(zd) * 0.0 * int(self.step_ctr > 20))
 
         r = sum(rV)
         r = np.clip(r, -2, 2)

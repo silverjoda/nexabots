@@ -136,6 +136,7 @@ class AntFeelersMjc:
         if x > self.target_dist and not done:
             self.done = True
             self.target_dist += 0.3
+            print("Target reached: {}".format(self.target_dist))
             r = 1
         else:
             r = 0
@@ -147,7 +148,7 @@ class AntFeelersMjc:
 
     def reset(self):
         self.done = False
-        self.target_dist -= 0.01
+        self.target_dist -= 0.02
 
         # Reset env variables
         self.step_ctr = 0

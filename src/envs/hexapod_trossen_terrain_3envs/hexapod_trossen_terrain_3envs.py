@@ -24,7 +24,7 @@ class Hexapod:
             self.env_list = [self.env_name]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 800
+        self.max_steps = 600
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -66,6 +66,7 @@ class Hexapod:
 
         # Contacts:
         od['contacts'] = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
+        od['torso_contact'] = (np.abs(np.array(self.sim.data.cfrc_ext[[1]])).sum(axis=1) > 0.05).astype(np.float32)
         return od
 
 
@@ -111,29 +112,22 @@ class Hexapod:
         x, y, z, qw, qx, qy, qz = obs[:7]
 
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
-        angle = 2 * acos(qw)
 
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
-        target_progress = xd
-        target_vel = 0.15
+        target_vel = 0.25
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        rV = (target_progress * 0.0,
-              velocity_rew * 10.0,
-              - ctrl_effort * 0.00,
-              - np.square(thd) * 0.002 - np.square(phid) * 0.002,
-              - np.square(angle) * 0.0,
-              - np.square(roll) * .01,
-              - np.square(pitch) * .01,
-              - np.square(yaw) * .01,
-              - np.square(zd) * 0.0 * int(self.step_ctr > 20))
-
-        r = sum(rV)
+        r = velocity_rew * 5 * \
+            (1 - np.maximum(ctrl_effort * 0.005, 1)) * \
+            (1 - np.maximum(np.abs(roll) * 0.1, 1)) * \
+            (1 - np.maximum(np.abs(pitch) * 0.1, 1)) * \
+            (1 - np.maximum(np.abs(yaw) * 0.1, 1)) * \
+            np.maximum((sum(obs_dict["contacts"]) + 2.) / 6., 1) * \
+            (1 - obs_dict["torso_contact"] * 0.3)
         r = np.clip(r, -2, 2)
-        obs_dict['rV'] = rV
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps # or (abs(angle) > 3 and self.step_ctr > 30) or abs(y) > 1 or x < -0.2

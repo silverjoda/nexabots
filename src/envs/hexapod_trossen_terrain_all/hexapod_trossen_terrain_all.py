@@ -106,30 +106,20 @@ class Hexapod:
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
-        angle = 2 * acos(qw)
 
         # Reward conditions
         ctrl_effort = np.square(ctrl).sum()
-        target_progress = xd
         target_vel = 0.25
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
-        height_pen = np.square(zd)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        rV = (target_progress * 0.0,
-              velocity_rew * 6.0,
-              - ctrl_effort * 0.003,
-              - np.square(thd) * 0.001 - np.square(phid) * 0.001,
-              - np.square(roll) * 0.2,
-              - np.square(pitch) * 0.2,
-              - np.square(yaw - self.rnd_yaw) * 0.0,
-              - height_pen * 0.01 * int(self.step_ctr > 30))
-
-
-        r = sum(rV)
+        r = velocity_rew * 5 * \
+            (1 - np.maximum(ctrl_effort * 0.005, 1)) * \
+            (1 - np.maximum(np.abs(roll) * 0.1, 1)) * \
+            (1 - np.maximum(np.abs(pitch) * 0.1, 1)) * \
+            (1 - np.maximum(np.abs(zd) * 0.1, 1))
         r = np.clip(r, -2, 2)
-        obs_dict['rV'] = rV
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps #or abs(roll) > 2 or abs(pitch) > 2

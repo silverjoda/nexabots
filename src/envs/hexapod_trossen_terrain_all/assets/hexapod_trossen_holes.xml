@@ -112,24 +112,24 @@
     </body>
   </worldbody>
   <actuator>
-    <position joint="coxa_fl" kp="40"/>
-    <position joint="femur_fl" kp="40"/>
-    <position joint="tibia_fl" kp="40"/>
-    <position joint="coxa_fr" kp="40"/>
-    <position joint="femur_fr" kp="40"/>
-    <position joint="tibia_fr" kp="40"/>
-    <position joint="coxa_rr" kp="40"/>
-    <position joint="femur_rr" kp="40"/>
-    <position joint="tibia_rr" kp="40"/>
-    <position joint="coxa_rl" kp="40"/>
-    <position joint="femur_rl" kp="40"/>
-    <position joint="tibia_rl" kp="40"/>
-    <position joint="coxa_mr" kp="40"/>
-    <position joint="femur_mr" kp="40"/>
-    <position joint="tibia_mr" kp="40"/>
-    <position joint="coxa_ml" kp="40"/>
-    <position joint="femur_ml" kp="40"/>
-    <position joint="tibia_ml" kp="40"/>
+    <position joint="coxa_fl"   kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="femur_fl"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="tibia_fl"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="coxa_fr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="femur_fr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="tibia_fr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="coxa_rr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="femur_rr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="tibia_rr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="coxa_rl"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="femur_rl"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="tibia_rl"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="coxa_mr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="femur_mr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="tibia_mr"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="coxa_ml"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="femur_ml"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="tibia_ml"  kp="40" forcelimited="true" forcerange="-100 100"/>
 
 <!--
     <motor joint="coxa_fl" gear="100"/>

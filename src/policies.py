@@ -1435,6 +1435,141 @@ class RNN_VAR_PG(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
+class RNN_BLEND_PG(nn.Module):
+    def __init__(self, env, hid_dim=64, memory_dim=24, n_temp=2, n_experts=4, tanh=False, to_gpu=False):
+        super(RNN_BLEND_PG, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = hid_dim
+        self.n_experts = n_experts
+        self.memory_dim = memory_dim
+        self.tanh = tanh
+        self.to_gpu = to_gpu
+
+        self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
+        self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, n_temp, batch_first=True)
+        self.fc2 = nn.Linear(self.memory_dim, self.n_experts)
+
+        self.fc_wl1_list = nn.ParameterList([])
+        self.fc_bl1_list = nn.ParameterList([])
+        self.fc_wl2_list = nn.ParameterList([])
+        self.fc_bl2_list = nn.ParameterList([])
+        self.fc_wl3_list = nn.ParameterList([])
+        self.fc_bl3_list = nn.ParameterList([])
+
+        for i in range(self.n_experts):
+            # Make parameters
+            w1 = nn.Parameter(data=T.zeros(self.hid_dim, self.obs_dim), requires_grad=True)
+            b1 = nn.Parameter(data=T.randn(self.hid_dim) * 0.1, requires_grad=True)
+
+            w2 = nn.Parameter(data=T.zeros(self.hid_dim, self.hid_dim), requires_grad=True)
+            b2 = nn.Parameter(data=T.randn(self.hid_dim) * 0.1, requires_grad=True)
+
+            w3 = nn.Parameter(data=T.zeros(self.act_dim, self.hid_dim), requires_grad=True)
+            b3 = nn.Parameter(data=T.randn(self.act_dim) * 0.1, requires_grad=True)
+
+            # Initialize parameters
+            T.nn.init.xavier_uniform_(w1)
+            #b1.data.fill_(0.01)
+
+            T.nn.init.xavier_uniform_(w2)
+            # b2.data.fill_(0.01)
+
+            T.nn.init.xavier_uniform_(w3)
+            # b3.data.fill_(0.01)
+
+            # Add to parameter list
+            self.fc_wl1_list.append(w1)
+            self.fc_bl1_list.append(b1)
+
+            self.fc_wl2_list.append(w2)
+            self.fc_bl2_list.append(b2)
+
+            self.fc_wl3_list.append(w3)
+            self.fc_bl3_list.append(b3)
+
+        self.log_std_cpu = T.zeros(1, self.act_dim)
+
+
+    def print_info(self):
+        pass
+
+
+    def soft_clip_grads(self, bnd=0.5):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            if p.grad is None: continue
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            print("Soft clipping grads")
+
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def forward(self, input):
+        x, h = input
+
+        batch_dim = x.shape[0]
+        seq_dim = x.shape[1]
+
+        rnn_features = F.selu(self.fc1(x))
+        rnn_output, h = self.rnn(rnn_features, h)
+        coeffs = F.softmax(self.fc2(rnn_output), dim=2)
+        output = T.zeros((x.shape[0], x.shape[1], self.act_dim))
+
+        for b in range(batch_dim):
+            for s in range(seq_dim):
+
+                w1 = T.stack([coeffs[b, s, i] * self.fc_wl1_list[i] for i in range(self.n_experts)]).sum(0)
+                b1 = T.stack([coeffs[b, s, i] * self.fc_bl1_list[i] for i in range(self.n_experts)]).sum(0)
+
+                w2 = T.stack([coeffs[b, s, i] * self.fc_wl2_list[i] for i in range(self.n_experts)]).sum(0)
+                b2 = T.stack([coeffs[b, s, i] * self.fc_bl2_list[i] for i in range(self.n_experts)]).sum(0)
+
+                w3 = T.stack([coeffs[b, s, i] * self.fc_wl3_list[i] for i in range(self.n_experts)]).sum(0)
+                b3 = T.stack([coeffs[b, s, i] * self.fc_bl3_list[i] for i in range(self.n_experts)]).sum(0)
+
+                feat = F.selu(F.linear(x[b,s], w1, bias=b1))
+                feat = F.linear(feat, w2, bias=b2)
+
+                if self.tanh:
+                    feat = T.tanh(F.linear(feat, w3, bias=b3))
+                else:
+                    feat = F.linear(feat, w3, bias=b3)
+
+                output[b,s,:] = feat
+
+            return output, h
+
+
+    def sample_action(self, s):
+        x, h = self.forward(s)
+        return T.normal(x[0], T.exp(self.log_std_cpu)), h
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means, _ = self.forward((batch_states, None))
+
+        # Calculate probabilities
+        if self.to_gpu:
+            log_std_batch = self.log_std_gpu.expand_as(action_means)
+        else:
+            log_std_batch = self.log_std_cpu.expand_as(action_means)
+
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(2, keepdim=True)
+
 
 class RNN_S(nn.Module):
     def __init__(self, env, hid_dim=48, memory_dim=24, tanh=False):

@@ -122,10 +122,10 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
         loss.backward()
-        #policy.soft_clip_grads(1.)
+        policy.soft_clip_grads(1.)
         policy_optim.step()
 
-    policy.print_info()
+    #policy.print_info()
 
 
 def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
@@ -209,8 +209,8 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False,
-              "note" : "logctrleffort, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
+              "ppo_update_iters": 6, "animate": True, "train" : True,
+              "note" : "3envs, tiles, 64, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -231,20 +231,26 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
+    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
+    from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
+
+    #from src.envs.cartpole_swingup import cartpole_swingup
+    #env = cartpole_swingup.Cartpole()
+
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 64, tanh=True)
+        policy = policies.NN_PG(env, 32, tanh=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_CSI_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_L7M_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

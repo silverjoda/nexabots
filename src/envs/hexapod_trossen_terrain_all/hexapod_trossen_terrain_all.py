@@ -16,10 +16,10 @@ class Hexapod:
         print("Trossen hexapod terrain all")
 
         #self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["rails_T"]
+        self.env_list = ["holes"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 600
+        self.max_steps = 400
         self.env_change_prob = 0.05
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
@@ -43,7 +43,7 @@ class Hexapod:
 
 
     def scale_action(self, action):
-        return action
+        #return action
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
 

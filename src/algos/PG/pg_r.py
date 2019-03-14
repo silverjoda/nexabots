@@ -158,7 +158,7 @@ if __name__=="__main__":
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
               "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "3envs verts, only pos rew, body+ctcts V3, 64:64:3",
+              "comments" : "adapt, only pos rew, V3, 64:64:3",
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
@@ -174,8 +174,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_terrain_env import hexapod_terrain
     #env = hexapod_terrain.Hexapod()
 
-    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    #env = env.Hexapod()
+    from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
+    env = env.Hexapod()
 
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
@@ -183,8 +183,8 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
+    #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.memory_env import memory_env
     #env = memory_env.MemoryEnv()
@@ -200,7 +200,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_PG_SSN_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_PG_YIT_pg.p') # OEB good for holes
 
         env.test_recurrent(expert)
         #env.test_record(expert_rails, "C")

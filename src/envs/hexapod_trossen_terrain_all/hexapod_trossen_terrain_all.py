@@ -15,8 +15,8 @@ class Hexapod:
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["rails", "holes", "desert"]
-        #self.env_list = ["desert"]
+        #self.env_list = ["rails", "holes", "desert"]
+        self.env_list = ["rails_T"]
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 600
@@ -43,6 +43,7 @@ class Hexapod:
 
 
     def scale_action(self, action):
+        return action
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
 
@@ -115,10 +116,10 @@ class Hexapod:
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r = velocity_rew * 5 * \
-            (1 - np.maximum(ctrl_effort * 0.005, 1)) * \
-            (1 - np.maximum(np.abs(roll) * 0.1, 1)) * \
-            (1 - np.maximum(np.abs(pitch) * 0.1, 1)) * \
-            (1 - np.maximum(np.abs(zd) * 0.1, 1))
+            (1 - np.minimum(ctrl_effort * 0.005, 1)) * \
+            (1 - np.minimum(np.abs(roll) * 0.1, 1)) * \
+            (1 - np.minimum(np.abs(pitch) * 0.1, 1)) * \
+            (1 - np.minimum(np.abs(zd) * 0.1, 1))
         r = np.clip(r, -2, 2)
 
         # Reevaluate termination condition
@@ -268,7 +269,7 @@ class Hexapod:
             cr = 0
             for j in range(self.max_steps * 3):
                 action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
-                obs, r, done, od, = self.step(action[0,0].detach().numpy())
+                obs, r, done, od, = self.step(action[0,0].detach().numpy() + np.random.randn(self.act_dim) * 0.1)
                 cr += r
                 time.sleep(0.001)
                 self.render()

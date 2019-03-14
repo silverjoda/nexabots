@@ -16,8 +16,8 @@ class Hexapod:
     def __init__(self, mem_dim=0, env_name=None):
         print("Trossen hexapod terrain all")
 
-        #self.env_list = ["flat", "tiles"]
-        self.env_list = ["verts"]
+        self.env_list = ["flat", "tiles"]
+        #self.env_list = ["verts"]
 
         self.env_name = env_name
         if self.env_name is not None:
@@ -121,12 +121,13 @@ class Hexapod:
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r = velocity_rew * 5 * \
-            (1 - np.maximum(ctrl_effort * 0.005, 1)) * \
-            (1 - np.maximum(np.abs(roll) * 0.1, 1)) * \
-            (1 - np.maximum(np.abs(pitch) * 0.1, 1)) * \
-            (1 - np.maximum(np.abs(yaw) * 0.1, 1)) * \
-            np.maximum((sum(obs_dict["contacts"]) + 2.) / 6., 1) * \
-            (1 - obs_dict["torso_contact"] * 0.3)
+            (1. - np.minimum(ctrl_effort * 0.005, 1.)) * \
+            (1. - np.minimum(np.abs(roll) * 0.1, 1.)) * \
+            (1. - np.minimum(np.abs(pitch) * 0.1, 1.)) * \
+            (1. - np.minimum(np.abs(yaw) * 0.1, 1.))
+            #np.minimum((sum(obs_dict["contacts"]) + 2.) / 6., 1) * \
+            #(1. - sum(obs_dict["torso_contact"]) * 0.3)
+
         r = np.clip(r, -2, 2)
 
         # Reevaluate termination condition

@@ -13,7 +13,7 @@ import string
 # from gym.utils import seeding
 
 class Hexapod:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_barrier.xml")
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_tiles.xml")
     def __init__(self, animate=False):
 
         print("Trossen hexapod")
@@ -154,16 +154,14 @@ class Hexapod:
         roll, pitch, yaw = my_utils.quat_to_rpy((qw, qx, qy, qz))
 
         # Reward conditions
-        ctrl_effort = np.square(ctrl).sum()
-        target_progress = xd
-        target_vel = 0.3
+        target_vel = 0.25
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         height_pen = np.square(zd)
 
-        r = velocity_rew * 3 * \
-             np.clip(1 - abs(yaw) * 0.3, 0, 1) * \
-             np.clip(1 - height_pen * 0.3, 0, 1) * \
-             np.clip(1 - yd * 0.3, 0, 1)
+        r = velocity_rew * 4 * \
+             np.minimum(1 - abs(yaw) * 0.2, 1) * \
+             np.minimum(1 - height_pen * 0.1, 1) * \
+             np.minimum(1 - yd * 0.3, 1)
 
         r = np.clip(r, -2, 2)
 
@@ -190,7 +188,7 @@ class Hexapod:
     def reset(self):
 
         self.cumulative_environment_reward = 0
-        self.dead_leg_prob = 0.005
+        self.dead_leg_prob = 0.004
         self.dead_leg_vector = [0, 0, 0, 0, 0, 0]
         self.step_ctr = 0
 

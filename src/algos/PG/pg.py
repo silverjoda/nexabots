@@ -210,11 +210,14 @@ if __name__=="__main__":
 
     params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : True,
-              "note" : "3envs, tiles, 64, ", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
+              "note" : "pipe, inc", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
+
+    #from src.envs.centipede import centipede
+    #env = centipede.Centipede(4)
 
     #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
     #env = hexapod_pd.Hexapod()
@@ -234,23 +237,26 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    env = hex_env.Hexapod()
 
-    from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
+    #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    #env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.cartpole_swingup import cartpole_swingup
     #env = cartpole_swingup.Cartpole()
 
+    #from src.envs.double_pendulum_swingup import double_pendulum_swinfgup
+    #env = double_pendulum_swingup.Pendulum()
+
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 32, tanh=True)
+        policy = policies.NN_PG(env, 64, tanh=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_L7M_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_1KE_pg.p')
         #policy = policies.RND(env)
         env.test(policy)

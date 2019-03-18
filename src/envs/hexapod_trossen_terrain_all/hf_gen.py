@@ -312,8 +312,9 @@ def genflattiles():
 
 
 def genflat_tile_hybrid():
-    N = 120
-    M = 30
+    scale = 15
+    N = 24 * scale
+    M = 2 * scale
     div = 5
 
     filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -321,9 +322,11 @@ def genflat_tile_hybrid():
 
     # Generate stairs
     mat = np.random.randint(0, 70, size=(M // div, N // div), dtype=np.uint8).repeat(div, axis=0).repeat(div, axis=1)
-    mat[:, 0:20] = 0
-    mat[:, 40:60] = 0
-    mat[:, 80:] = 0
+
+    indeces = [1, 4, 7, 14, 20]
+    gaps = [10, 15, 20, 10, 15]
+    for idx, gap in zip(indeces, gaps):
+        mat[:, idx * scale : idx * scale + gap] = 0
 
     mat[0, :] = 255
     mat[:, 0] = 255
@@ -331,7 +334,32 @@ def genflat_tile_hybrid():
     mat[:, -1] = 255
     cv2.imwrite(filename, mat)
 
+
+def gen_flat_pipe():
+    N = 90
+    M = 30
+
+    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 "assets/pipe.png")
+
+    # Generate stairs
+    mat = np.zeros((M, N))
+
+    pipe = np.ones((M, 30))
+    pipe *= np.square(np.linspace(-20, 20, M))
+
+    mat[:,  0: 30] = np.transpose(pipe)
+    mat[:, 30: 60] = np.transpose(pipe)
+    mat[:, 60: 90] = np.transpose(pipe)
+
+    mat[0, :] = 255
+    mat[:, 0] = 255
+    mat[-1, :] = 255
+    mat[:, -1] = 255
+    cv2.imwrite(filename, mat)
+
+
 if __name__ == "__main__":
-    genflat_tile_hybrid()
+    gen_flat_pipe()
     #gen = HMGen(12)
     #gen.generate()

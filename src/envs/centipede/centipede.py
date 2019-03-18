@@ -14,7 +14,7 @@ class Centipede:
         self.model = mujoco_py.load_model_from_path(self.modelpath)
         self.sim = mujoco_py.MjSim(self.model)
 
-        self.model.opt.timestep = 0.01
+        self.model.opt.timestep = 0.02
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -91,7 +91,11 @@ class Centipede:
 
 
     def step(self, ctrl):
-        ctrl = self.scale_action(ctrl)
+        #ctrl = self.scale_action(ctrl)
+
+        joint_list = np.array(self.sim.get_state().qpos.tolist()[7:31])
+        joint_list += ctrl
+        ctrl = np.clip(joint_list, self.joints_rads_low, self.joints_rads_high)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
@@ -105,7 +109,7 @@ class Centipede:
         roll, pitch, yaw = my_utils.quat_to_rpy((q0,q1,q2,q3))
 
         # Reevaluate termination condition
-        done = self.step_ctr >= self.max_steps or yaw > 0.7 or z > 1 or z < 0.3 or abs(y) > 0.7
+        done = self.step_ctr >= self.max_steps or yaw > 0.9 or z > 1.2 or z < 0.2 or abs(y) > 0.8
 
         ctrl_effort = np.square(ctrl).mean() * 0.01
         target_progress = -vel[0]

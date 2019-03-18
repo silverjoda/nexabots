@@ -7,8 +7,12 @@ from math import sqrt, acos, fabs
 from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
 import string
+#
+# import gym
+# from gym import spaces
+# from gym.utils import seeding
 
-class Hexapod:
+class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
@@ -16,10 +20,10 @@ class Hexapod:
         print("Trossen hexapod terrain all")
 
         #self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["holes"]
+        self.env_list = ["flatpipe"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 400
+        self.max_steps = 300
         self.env_change_prob = 0.05
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
@@ -29,6 +33,9 @@ class Hexapod:
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.reset()
+
+        #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
+        #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
 
     def setupcam(self):
@@ -43,8 +50,19 @@ class Hexapod:
 
 
     def scale_action(self, action):
-        #return action
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
+
+
+    def scale_inc(self, action):
+        action *= (self.joints_rads_diff / 2.)
+        joint_list = np.array(self.sim.get_state().qpos.tolist()[7:7 + self.act_dim])
+        joint_list += action
+        ctrl = np.clip(joint_list, self.joints_rads_low, self.joints_rads_high)
+        return ctrl
+
+
+    def scale_torque(self, action):
+        return action
 
 
     def get_obs(self):
@@ -87,14 +105,8 @@ class Hexapod:
 
 
     def step(self, ctrl):
-        if self.mem_dim == 0:
-            mem = np.zeros(0)
-            act = ctrl
-            ctrl = self.scale_action(act)
-        else:
-            mem = ctrl[-self.mem_dim:]
-            act = ctrl[:-self.mem_dim]
-            ctrl = self.scale_action(act)
+
+        ctrl = self.scale_inc(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -127,13 +139,12 @@ class Hexapod:
 
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
                               [roll, pitch, yaw, xd, yd, thd, phid],
-                              obs_dict["contacts"],
-                              mem])
+                              obs_dict["contacts"]])
 
         return obs, r, done, obs_dict
 
 
-    def reset(self):
+    def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
             os.system('python ../../envs/hexapod_trossen_terrain_all/assets/heightmap_generation.py')
             time.sleep(0.1)
@@ -160,10 +171,13 @@ class Hexapod:
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = np.random.rand() * 4 - 4
-        init_q[1] = np.random.rand() * 8 - 4
+        init_q[0] = 0.0 # np.random.rand() * 4 - 4
+        init_q[1] = 0 # np.random.rand() * 8 - 4
         init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
+
+        if init_pos is not None:
+            init_q[0:3] += init_pos
 
         # Init_quat
         self.rnd_yaw = np.random.randn() * 0.3
@@ -190,7 +204,7 @@ class Hexapod:
                 self.step(np.zeros((self.act_dim)))
                 self.render()
             for i in range(100):
-                self.step(np.array([0, -1, 1] * 6))
+                self.step(np.array([0., -1., 1.] * 6))
                 self.render()
             for i in range(100):
                 self.step(np.ones((self.act_dim)) * 1)
@@ -211,7 +225,6 @@ class Hexapod:
 
         print("-------------------------------------------")
         print("-------------------------------------------")
-
 
 
     def test_record(self, policy, ID):
@@ -241,7 +254,6 @@ class Hexapod:
 
         np.save("{}_states.npy".format(ID), np_states)
         np.save("{}_acts.npy".format(ID), np_acts)
-
 
 
     def test(self, policy):
@@ -285,6 +297,47 @@ class Hexapod:
                                 "data/{}_states.npy".format(self.env_name))
         #np.save(filename, h_episodes_arr)
 
+
+    def test_adapt(self, p1, p2, ID):
+        self.env_list = ["flatpipe"]
+
+        episode_states = []
+        episode_acts = []
+        for i in range(100):
+            rnd_x = - 0.1 + np.random.rand() * 0.3 + np.random.randint(0,2) * 1.2
+            s = self.reset(init_pos = np.array([rnd_x, 0, 0]))
+
+            cr = 0
+
+            states = []
+            acts = []
+
+            for j in range(self.max_steps):
+                x = self.sim.get_state().qpos.tolist()[0]
+
+                if 2.2 > x > 0.8:
+                    policy = p2
+                    print("Policy switched to p2")
+                else:
+                    policy = p1
+                    print("Policy switched to p1")
+
+                states.append(s)
+                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy
+                acts.append(action)
+                s, r, done, od, = self.step(action)
+                cr += r
+
+            episode_states.append(np.concatenate(states))
+            episode_acts.append(np.concatenate(acts))
+
+            print("Total episode reward: {}".format(cr))
+
+        np_states = np.concatenate(episode_states)
+        np_acts = np.concatenate(episode_acts)
+
+        np.save("{}_states.npy".format(ID), np_states)
+        np.save("{}_acts.npy".format(ID), np_acts)
 
     def test_record_hidden(self, policy):
         self.reset()

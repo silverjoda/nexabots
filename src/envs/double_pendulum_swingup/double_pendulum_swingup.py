@@ -8,10 +8,10 @@ import random
 import string
 
 
-class Cartpole:
+class Pendulum:
     def __init__(self, animate=False):
-        self.modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/inverted_pendulum.xml")
-        self.max_steps = 200
+        self.modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/inverted_double_pendulum.xml")
+        self.max_steps = 150
         self.mem_dim = 0
         self.cumulative_environment_reward = None
 
@@ -24,7 +24,7 @@ class Cartpole:
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 4
+        self.obs_dim = self.q_dim + self.qvel_dim
         self.act_dim = 1
 
         # Environent inner parameters
@@ -51,8 +51,7 @@ class Cartpole:
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        a = [qpos[0], qpos[1], qvel[0], qvel[1]]
-        return np.asarray(a, dtype=np.float32)
+        return np.concatenate((np.asarray(qpos), np.clip(np.asarray(qvel), -10, 10)))
 
     def get_state(self):
         return self.sim.get_state()
@@ -94,7 +93,7 @@ class Cartpole:
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_qvel = np.zeros(self.qvel_dim, dtype=np.float32)
 
-        if False:
+        if True:
             rnd_vec = np.random.rand() * 5.0 + 1.0
             self.model.body_mass[2] = rnd_vec
             self.model.geom_rgba[2] = [rnd_vec / 7.,0,0,1]
@@ -110,8 +109,8 @@ class Cartpole:
         self.reset()
         for i in range(10000):
             obs, r, _, _ = self.step(np.random.randn(self.act_dim))
-            print(obs)
-            time.sleep(0.2)
+            #print(obs)
+            #time.sleep(0.2)
             self.render()
 
 
@@ -144,7 +143,7 @@ class Cartpole:
 
 
 if __name__ == "__main__":
-    cp = Cartpole(animate=True)
+    cp = Pendulum(animate=True)
     print(cp.obs_dim)
     print(cp.act_dim)
     cp.demo()

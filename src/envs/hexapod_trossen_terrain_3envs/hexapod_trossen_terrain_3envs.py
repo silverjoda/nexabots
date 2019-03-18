@@ -24,7 +24,7 @@ class Hexapod:
             self.env_list = [self.env_name]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 600
+        self.max_steps = 400
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -121,7 +121,7 @@ class Hexapod:
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r = velocity_rew * 5 * \
-            (1. - np.minimum(ctrl_effort * 0.05, 1.)) * \
+            (1. - np.minimum(ctrl_effort * 0.03, 1.)) * \
             (1. - np.minimum(np.abs(roll) * 0.1, 1.)) * \
             (1. - np.minimum(np.abs(pitch) * 0.1, 1.)) * \
             (1. - np.minimum(np.abs(yaw) * 0.1, 1.))

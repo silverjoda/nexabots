@@ -4,7 +4,7 @@
   <size nconmax="500" njmax="2000"/>
 
   <default>
-    <joint armature="0.5" damping="3" limited="true"/>
+    <joint armature="0.3" damping="2" limited="true"/>
     <geom conaffinity="0" condim="3" density="5.0" friction="1 0.5 0.5" margin="0.001" rgba="0.0 0.6 0.4 1"/>
   </default>
 
@@ -23,7 +23,7 @@
     <!--geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="40 40 40" type="plane"/-->
     <body name="torso" pos="0 0 0.35">
       <camera name="track" mode="track" pos="1 -7 3.2" xyaxes="1 0 0 0 0.5 1"/>
-      <geom name="torso_geom" pos="0 0 0" size="0.12 0.06 0.02" mass="1" type="ellipsoid"/>
+      <geom name="torso_geom" pos="0 0 0" size="0.12 0.06 0.02" mass="0.9" type="ellipsoid"/>
       <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
 
       <body name="front_left_leg" pos="0.12 0.06 0">
@@ -112,24 +112,24 @@
     </body>
   </worldbody>
   <actuator>
-    <position joint="coxa_fl"   kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="femur_fl"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="tibia_fl"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="coxa_fr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="femur_fr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="tibia_fr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="coxa_rr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="femur_rr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="tibia_rr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="coxa_rl"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="femur_rl"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="tibia_rl"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="coxa_mr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="femur_mr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="tibia_mr"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="coxa_ml"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="femur_ml"  kp="40" forcelimited="true" forcerange="-100 100"/>
-    <position joint="tibia_ml"  kp="40" forcelimited="true" forcerange="-100 100"/>
+    <position joint="coxa_fl"   kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="femur_fl"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="tibia_fl"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="coxa_fr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="femur_fr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="tibia_fr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="coxa_rr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="femur_rr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="tibia_rr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="coxa_rl"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="femur_rl"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="tibia_rl"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="coxa_mr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="femur_mr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="tibia_mr"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="coxa_ml"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="femur_ml"  kp="50" forcelimited="true" forcerange="-15 15"/>
+    <position joint="tibia_ml"  kp="50" forcelimited="true" forcerange="-15 15"/>
 
 <!--
     <motor joint="coxa_fl" gear="100"/>

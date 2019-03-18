@@ -927,6 +927,96 @@ class NN_PG(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
+class NN_PREC_PG(nn.Module):
+    def __init__(self, env, hid_dim=64, tanh=False):
+        super(NN_PREC_PG, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.tanh = tanh
+
+        self.fc1 = nn.Linear(self.obs_dim, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, self.act_dim)
+        self.fc_f = nn.Linear(self.obs_dim + self.act_dim, self.act_dim)
+
+        self.log_std = T.zeros(1, self.act_dim)
+
+
+    def forward(self, input):
+        x = F.selu(self.fc1(input))
+        x = F.selu(self.fc2(x))
+        x = F.selu(self.fc3(x))
+
+        if self.tanh:
+            x = T.tanh(self.fc_f(T.cat((input, x), 1)))
+        else:
+            x = self.fc_f(T.cat((input, x), 1))
+        return x
+
+
+    def print_info(self):
+        print("-------------------------------")
+        print("w_fc1", self.fc1.weight.data.max(), self.fc1.weight.data.min())
+        print("b_fc1", self.fc1.bias.data.max(), self.fc1.weight.data.min())
+        print("w_fc2", self.fc2.weight.data.max(), self.fc2.weight.data.min())
+        print("b_fc2", self.fc2.bias.data.max(), self.fc2.weight.data.min())
+        print("w_fc3", self.fc3.weight.data.max(), self.fc3.weight.data.min())
+        print("b_fc3", self.fc3.bias.data.max(), self.fc3.weight.data.min())
+        print("---")
+        print("w_fc1 grad", self.fc1.weight.grad.max(), self.fc1.weight.grad.min())
+        print("b_fc1 grad", self.fc1.bias.grad.max(), self.fc1.bias.grad.min())
+        print("w_fc2 grad", self.fc2.weight.grad.max(), self.fc2.weight.grad.min())
+        print("b_fc2 grad", self.fc2.bias.grad.max(), self.fc2.bias.grad.min())
+        print("w_fc3 grad", self.fc3.weight.grad.max(), self.fc3.weight.grad.min())
+        print("b_fc3 grad", self.fc3.bias.grad.max(), self.fc3.bias.grad.min())
+        print("-------------------------------")
+
+
+    def clip_grads(self, bnd=1):
+        self.fc1.weight.grad.clamp_(-bnd, bnd)
+        self.fc1.bias.grad.clamp_(-bnd, bnd)
+        self.fc2.weight.grad.clamp_(-bnd, bnd)
+        self.fc2.bias.grad.clamp_(-bnd, bnd)
+        self.fc3.weight.grad.clamp_(-bnd, bnd)
+        self.fc3.bias.grad.clamp_(-bnd, bnd)
+
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            print("Soft clipping gradients")
+            self.fc1.weight.grad = (self.fc1.weight.grad / maxval) * bnd
+            self.fc1.bias.grad = (self.fc1.bias.grad / maxval) * bnd
+            self.fc2.weight.grad = (self.fc2.weight.grad / maxval) * bnd
+            self.fc2.bias.grad = (self.fc2.bias.grad / maxval) * bnd
+            self.fc3.weight.grad = (self.fc3.weight.grad / maxval) * bnd
+            self.fc3.bias.grad = (self.fc3.bias.grad / maxval) * bnd
+
+
+    def sample_action(self, s):
+        return T.normal(self.forward(s), T.exp(self.log_std))
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+
 class NN_PG_MICRO(nn.Module):
     def __init__(self, env):
         super(NN_PG_MICRO, self).__init__()
@@ -1487,6 +1577,109 @@ class RNN_BLEND_PG(nn.Module):
 
             self.fc_wl3_list.append(w3)
             self.fc_bl3_list.append(b3)
+
+        self.log_std_cpu = T.zeros(1, self.act_dim)
+
+
+    def print_info(self):
+        pass
+
+
+    def soft_clip_grads(self, bnd=0.5):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            if p.grad is None: continue
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            print("Soft clipping grads")
+
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def forward(self, input):
+        x, h = input
+
+        batch_dim = x.shape[0]
+        seq_dim = x.shape[1]
+
+        rnn_features = F.selu(self.fc1(x))
+        rnn_output, h = self.rnn(rnn_features, h)
+        coeffs = F.softmax(self.fc2(rnn_output), dim=2)
+        output = T.zeros((x.shape[0], x.shape[1], self.act_dim))
+
+        for b in range(batch_dim):
+            for s in range(seq_dim):
+
+                w1 = T.stack([coeffs[b, s, i] * self.fc_wl1_list[i] for i in range(self.n_experts)]).sum(0)
+                b1 = T.stack([coeffs[b, s, i] * self.fc_bl1_list[i] for i in range(self.n_experts)]).sum(0)
+
+                w2 = T.stack([coeffs[b, s, i] * self.fc_wl2_list[i] for i in range(self.n_experts)]).sum(0)
+                b2 = T.stack([coeffs[b, s, i] * self.fc_bl2_list[i] for i in range(self.n_experts)]).sum(0)
+
+                w3 = T.stack([coeffs[b, s, i] * self.fc_wl3_list[i] for i in range(self.n_experts)]).sum(0)
+                b3 = T.stack([coeffs[b, s, i] * self.fc_bl3_list[i] for i in range(self.n_experts)]).sum(0)
+
+                feat = F.selu(F.linear(x[b,s], w1, bias=b1))
+                feat = F.linear(feat, w2, bias=b2)
+
+                if self.tanh:
+                    feat = T.tanh(F.linear(feat, w3, bias=b3))
+                else:
+                    feat = F.linear(feat, w3, bias=b3)
+
+                output[b,s,:] = feat
+
+            return output, h
+
+
+    def sample_action(self, s):
+        x, h = self.forward(s)
+        return T.normal(x[0], T.exp(self.log_std_cpu)), h
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means, _ = self.forward((batch_states, None))
+
+        # Calculate probabilities
+        if self.to_gpu:
+            log_std_batch = self.log_std_gpu.expand_as(action_means)
+        else:
+            log_std_batch = self.log_std_cpu.expand_as(action_means)
+
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(2, keepdim=True)
+
+
+class RNN_BLEND_2_PG(nn.Module):
+    def __init__(self, env, hid_dim=64, memory_dim=24, n_temp=2, n_experts=4, tanh=False, to_gpu=False):
+        super(RNN_BLEND_2_PG, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = hid_dim
+        self.n_experts = n_experts
+        self.memory_dim = memory_dim
+        self.tanh = tanh
+        self.to_gpu = to_gpu
+
+        self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
+        self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, n_temp, batch_first=True)
+        self.fc2 = nn.Linear(self.memory_dim, self.n_experts)
+
+        self.fc_exp_1 = [nn.Linear(self.obs_dim, self.obs_dim) for _ in range(n_experts)]
+        self.fc_exp_2 = [nn.Linear(self.obs_dim, self.obs_dim) for _ in range(n_experts)]
+        self.fc_exp_3 = [nn.Linear(self.obs_dim, self.obs_dim) for _ in range(n_experts)]
+        self.fc_exp_f = nn.Linear(self.obs_dim, self.act_dim)
 
         self.log_std_cpu = T.zeros(1, self.act_dim)
 

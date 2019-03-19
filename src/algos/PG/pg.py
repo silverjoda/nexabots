@@ -208,10 +208,10 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
-              "note" : "pipe, inc", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
+    params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
+              "note" : "cp, rnd, fo, 3", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
@@ -252,11 +252,15 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 64, tanh=True)
+        policy = policies.NN_PG(env, 16, tanh=True, scale=3)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
-        policy = T.load('agents/Hexapod_NN_PG_1KE_pg.p')
-        #policy = policies.RND(env)
-        env.test(policy)
+
+        p_flat = T.load('agents/Hexapod_NN_PG_TVA_pg.p')
+        p_pipe = T.load('agents/Hexapod_NN_PG_WCM_pg.p')
+        #p_tiles= T.load('agents/Hexapod_NN_PG_5IX_pg.p')
+        #policy = T.load('agents/Hexapod_NN_PG_WCM_pg.p')
+
+        env.test_adapt(p_flat, p_pipe, "B")

@@ -106,7 +106,7 @@ class Hexapod():
 
     def step(self, ctrl):
 
-        ctrl = self.scale_inc(ctrl)
+        ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -198,6 +198,7 @@ class Hexapod():
 
     def demo(self):
         self.reset()
+
         for i in range(1000):
             #self.step(np.random.randn(self.act_dim))
             for i in range(100):
@@ -239,7 +240,7 @@ class Hexapod():
 
             for j in range(self.max_steps):
                 states.append(s)
-                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy
+                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy()
                 acts.append(action)
                 s, r, done, od, = self.step(action)
                 cr += r
@@ -252,8 +253,10 @@ class Hexapod():
         np_states = np.concatenate(episode_states)
         np_acts = np.concatenate(episode_acts)
 
-        np.save("{}_states.npy".format(ID), np_states)
-        np.save("{}_acts.npy".format(ID), np_acts)
+        np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             "data/{}_states.npy".format(ID)) , np_states)
+        np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             "data/{}_acts.npy".format(ID)), np_acts)
 
 
     def test(self, policy):
@@ -261,7 +264,7 @@ class Hexapod():
         for i in range(100):
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(self.max_steps * 2):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
@@ -303,41 +306,52 @@ class Hexapod():
 
         episode_states = []
         episode_acts = []
-        for i in range(100):
+        for i in range(10):
+            print("Iter: {}".format(i))
+            current_policy_name = "p1"
             rnd_x = - 0.1 + np.random.rand() * 0.3 + np.random.randint(0,2) * 1.2
             s = self.reset(init_pos = np.array([rnd_x, 0, 0]))
-
             cr = 0
-
             states = []
             acts = []
+
+            policy = p1
 
             for j in range(self.max_steps):
                 x = self.sim.get_state().qpos.tolist()[0]
 
-                if 2.2 > x > 0.8:
+                if 2.2 > x > 0.8 and current_policy_name == "p1":
                     policy = p2
+                    current_policy_name = "p2"
                     print("Policy switched to p2")
-                else:
+
+                if not (2.2 > x > 0.8) and current_policy_name == "p2":
                     policy = p1
+                    current_policy_name = "p1"
                     print("Policy switched to p1")
 
                 states.append(s)
-                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy
+                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy()
                 acts.append(action)
                 s, r, done, od, = self.step(action)
                 cr += r
 
-            episode_states.append(np.concatenate(states))
-            episode_acts.append(np.concatenate(acts))
+                #self.render()
+
+            if cr < 150:
+                i -= 1
+                continue
+
+            episode_states.append(np.stack(states))
+            episode_acts.append(np.stack(acts))
 
             print("Total episode reward: {}".format(cr))
 
-        np_states = np.concatenate(episode_states)
-        np_acts = np.concatenate(episode_acts)
+        np_states = np.stack(episode_states)
+        np_acts = np.stackconcatenate(episode_acts)
 
-        np.save("{}_states.npy".format(ID), np_states)
-        np.save("{}_acts.npy".format(ID), np_acts)
+        np.save("states_{}.npy".format(ID), np_states)
+        np.save("acts_{}.npy".format(ID), np_acts)
 
     def test_record_hidden(self, policy):
         self.reset()

@@ -157,8 +157,8 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "flatpipe, inc, V3, 64:32:3",
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "comments" : "cp rnd po, V3, 32:16:3",
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
@@ -189,18 +189,21 @@ if __name__=="__main__":
     #from src.envs.cartpole_swingup import cartpole_swingup
     #env = cartpole_swingup.Cartpole()
 
+    #from src.envs.cartpole_swingup import cartpole_swingup
+    #env = cartpole_swingup.Cartpole()
+
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_PG(env, hid_dim=64, memory_dim=32, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_PG(env, hid_dim=32, memory_dim=16, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_PG_OEB_pg.p') # OEB good for holes
+        expert = T.load('agents/Hexapod_RNN_V3_PG_YTE_pg.p') # OEB good for holes
 
         env.test_recurrent(expert)
         #env.test_record(expert_rails, "C")

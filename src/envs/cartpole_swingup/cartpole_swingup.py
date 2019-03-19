@@ -10,21 +10,17 @@ import string
 
 class Cartpole:
     def __init__(self, animate=False):
-        self.modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/inverted_pendulum.xml")
+        self.modelpath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/tst.xml")
         self.max_steps = 200
         self.mem_dim = 0
         self.cumulative_environment_reward = None
+        self.len_as_input = False
+        self.fixed = True
+        print("Cartpole swingup, fo: {}, fixed: {}".format(self.len_as_input, self.fixed))
 
-        self.model = mujoco_py.load_model_from_path(self.modelpath)
-        self.sim = mujoco_py.MjSim(self.model)
+        self.make_env()
 
-        self.model.opt.timestep = 0.02
-
-        # Environment dimensions
-        self.q_dim = self.sim.get_state().qpos.shape[0]
-        self.qvel_dim = self.sim.get_state().qvel.shape[0]
-
-        self.obs_dim = 4
+        self.obs_dim = 4 if not self.len_as_input else 5
         self.act_dim = 1
 
         # Environent inner parameters
@@ -51,8 +47,11 @@ class Cartpole:
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        a = [qpos[0], qpos[1], qvel[0], qvel[1]]
+        a = [qpos[0], qpos[1], np.clip(qvel[0], -10, 10), np.clip(qvel[1], -10, 10)]
+        if self.len_as_input:
+            a += [self.rnd_len]
         return np.asarray(a, dtype=np.float32)
+
 
     def get_state(self):
         return self.sim.get_state()
@@ -80,24 +79,23 @@ class Cartpole:
         self.step_ctr += 1
 
         obs = self.get_obs()
-        r = np.abs(np.sin(obs[1]))
+        r = np.cos(obs[1] + np.pi) - abs(obs[1]) * 0.1
 
         done = self.step_ctr > self.max_steps
 
         return obs, r, done, None
 
 
+
     def reset(self):
         self.step_ctr = 0
+
+        if not self.fixed:
+            self.make_env()
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_qvel = np.zeros(self.qvel_dim, dtype=np.float32)
-
-        if False:
-            rnd_vec = np.random.rand() * 5.0 + 1.0
-            self.model.body_mass[2] = rnd_vec
-            self.model.geom_rgba[2] = [rnd_vec / 7.,0,0,1]
 
         # Set environment state
         self.set_state(init_q, init_qvel)
@@ -106,12 +104,69 @@ class Cartpole:
         return obs
 
 
+    def make_env(self):
+        self.viewer = None
+        if self.fixed:
+            self.rnd_len = -0.6
+        else:
+            self.rnd_len = -(0.4 + np.random.rand() * 0.9)
+
+        # Generate new xml
+        self.generate_new(self.rnd_len)
+
+        while True:
+            try:
+                self.model = mujoco_py.load_model_from_path(self.modelpath)
+                break
+            except Exception:
+                "Retrying xml"
+
+        self.sim = mujoco_py.MjSim(self.model)
+
+        self.model.opt.timestep = 0.02
+
+        # Environment dimensions
+        self.q_dim = self.sim.get_state().qpos.shape[0]
+        self.qvel_dim = self.sim.get_state().qvel.shape[0]
+
+    def generate_new(self, rnd_len):
+        self.test_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/tst.xml")
+        content = """<mujoco model="inverted pendulum">
+        <compiler inertiafromgeom="true"/>
+        <default>
+            <joint armature="0" damping="0.5" limited="true"/>
+            <geom contype="0" friction="1 0.1 0.1" rgba="0.7 0.7 0 1"/>
+            <tendon/>
+            <motor ctrlrange="-3 3"/>
+        </default>
+        <option gravity="0 0 -9.81" integrator="RK4" timestep="0.02"/>
+        <size nstack="3000"/>
+        <worldbody>
+            <!--geom name="ground" type="plane" pos="0 0 0" /-->
+            <geom name="rail" pos="0 0 0" quat="0.707 0 0.707 0" rgba="0.3 0.3 0.7 1" size="0.02 1" type="capsule"/>
+            <body name="cart" pos="0 0 0">
+                <joint axis="1 0 0" limited="true" name="slider" pos="0 0 0" range="-1 1" type="slide"/>
+                <geom name="cart" pos="0 0 0" quat="0.707 0 0.707 0" size="0.1 0.1" type="capsule"/>
+                <body name="pole" pos="0 0 0">
+                    <joint axis="0 1 0" name="hinge" pos="0 0 0" range="-1000 1000" type="hinge"/>
+                    <geom fromto="0 0 0 0.001 0 {}" name="cpole" rgba="0 0.7 0.7 1" size="0.049 0.3" type="capsule"/>
+                    <!--                 <body name="pole2" pos="0.001 0 0.6"><joint name="hinge2" type="hinge" pos="0 0 0" axis="0 1 0"/><geom name="cpole2" type="capsule" fromto="0 0 0 0 0 0.6" size="0.05 0.3" rgba="0.7 0 0.7 1"/><site name="tip2" pos="0 0 .6"/></body>-->
+                </body>
+            </body>
+        </worldbody>
+        <actuator>
+            <motor gear="100" joint="slider" name="slide"/>
+        </actuator>
+    </mujoco>""".format(rnd_len)
+
+        with open(self.test_path, "w") as out_file:
+            out_file.write(content)
+
+
     def demo(self):
         self.reset()
         for i in range(10000):
             obs, r, _, _ = self.step(np.random.randn(self.act_dim))
-            print(obs)
-            time.sleep(0.2)
             self.render()
 
 

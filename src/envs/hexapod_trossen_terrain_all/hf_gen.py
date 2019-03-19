@@ -290,7 +290,7 @@ def gentiles():
 
 
 def genflattiles():
-    N = 180
+    N = 90
     M = 30
     div = 5
 
@@ -298,11 +298,10 @@ def genflattiles():
                                  "assets/flattiles.png")
 
     # Generate stairs
-    mat1 = np.random.randint(0, 70, size=(M // div, N // div), dtype=np.uint8).repeat(div, axis=0).repeat(div,axis=1)
-    mat2 = np.zeros((M, N))
-    mat = np.concatenate((mat1,mat2), 0)
+    mat = np.random.randint(0, 70, size=(M // div, N // div), dtype=np.uint8).repeat(div, axis=0).repeat(div,axis=1)
 
-    mat[30, :] = 255
+    mat[:, :30] = 0
+    mat[:, 60:] = 0
 
     mat[0, :] = 255
     mat[:, 0] = 255
@@ -340,17 +339,17 @@ def gen_flat_pipe():
     M = 30
 
     filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 "assets/pipe.png")
+                                 "assets/flatpipe.png")
 
     # Generate stairs
     mat = np.zeros((M, N))
 
     pipe = np.ones((M, 30))
-    pipe *= np.square(np.linspace(-20, 20, M))
+    pipe *= np.square(np.linspace(-14, 14, M))
 
-    mat[:,  0: 30] = np.transpose(pipe)
+    #mat[:,  0: 30] = np.transpose(pipe)
     mat[:, 30: 60] = np.transpose(pipe)
-    mat[:, 60: 90] = np.transpose(pipe)
+    #mat[:, 60: 90] = np.transpose(pipe)
 
     mat[0, :] = 255
     mat[:, 0] = 255

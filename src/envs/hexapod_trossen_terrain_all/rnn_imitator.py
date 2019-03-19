@@ -20,12 +20,12 @@ def imitate_static():
     loss = T.nn.MSELoss()
 
     # N x EP_LEN x OBS_DIM
-    states_A = np.load("states_A.npy")
+    states_A = np.load("data/states_A.npy")
     # N x EP_LEN x ACT_DIM
-    acts_A = np.load("acts_A.npy")
+    acts_A = np.load("data/acts_A.npy")
 
-    states_B = np.load("states_B.npy")
-    acts_B = np.load("acts_B.npy")
+    states_B = np.load("data/states_B.npy")
+    acts_B = np.load("data/acts_B.npy")
 
     iters = 1000
     batchsize = 32

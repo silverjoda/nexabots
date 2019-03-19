@@ -306,8 +306,9 @@ class Hexapod():
 
         episode_states = []
         episode_acts = []
-        for i in range(10):
-            print("Iter: {}".format(i))
+        ctr = 0
+        while ctr < 10:
+            print("Iter: {}".format(ctr))
             current_policy_name = "p1"
             rnd_x = - 0.1 + np.random.rand() * 0.3 + np.random.randint(0,2) * 1.2
             s = self.reset(init_pos = np.array([rnd_x, 0, 0]))
@@ -339,8 +340,8 @@ class Hexapod():
                 #self.render()
 
             if cr < 150:
-                i -= 1
                 continue
+            ctr += 1
 
             episode_states.append(np.stack(states))
             episode_acts.append(np.stack(acts))
@@ -348,12 +349,15 @@ class Hexapod():
             print("Total episode reward: {}".format(cr))
 
         np_states = np.stack(episode_states)
-        np_acts = np.stackconcatenate(episode_acts)
+        np_acts = np.stack(episode_acts)
 
-        np.save("states_{}.npy".format(ID), np_states)
-        np.save("acts_{}.npy".format(ID), np_acts)
+        np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             "data/states_{}.npy".format(ID)), np_states)
+        np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                             "data/acts_{}.npy".format(ID)), np_acts)
 
-    def test_record_hidden(self, policy):
+
+def test_record_hidden(self, policy):
         self.reset()
         h_episodes = []
         for i in range(10):

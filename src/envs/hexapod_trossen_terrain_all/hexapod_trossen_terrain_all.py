@@ -20,10 +20,10 @@ class Hexapod():
         print("Trossen hexapod terrain all")
 
         #self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["flat"]
+        self.env_list = ["flatpipe"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 400
+        self.max_steps = 600
         self.env_change_prob = 0.05
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
@@ -127,10 +127,11 @@ class Hexapod():
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        r = velocity_rew * 5 * \
+        r = velocity_rew * 10 * \
             (1 - np.minimum(ctrl_effort * 0.005, 1)) * \
-            (1 - np.minimum(np.abs(roll) * 0.1, 1)) * \
+            (1 - np.minimum(np.abs(roll) * 0.3, 1)) * \
             (1 - np.minimum(np.abs(pitch) * 0.1, 1)) * \
+            (1 - np.minimum(np.abs(yaw) * 0.1, 1)) * \
             (1 - np.minimum(np.abs(zd) * 0.1, 1))
         r = np.clip(r, -2, 2)
 

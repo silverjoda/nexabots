@@ -180,14 +180,14 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-   # env = hex_env.Hexapod(mem_dim=0)
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.cartpole_swingup import cartpole_swingup
-    env = cartpole_swingup.Cartpole()
+    #from src.envs.cartpole_swingup import cartpole_swingup
+    #env = cartpole_swingup.Cartpole()
 
 
     print(params, env.__class__.__name__)

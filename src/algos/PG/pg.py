@@ -252,7 +252,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 16, tanh=True)
+        policy = policies.NN_PG(env, 64, tanh=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
@@ -261,6 +261,7 @@ if __name__=="__main__":
         p_flat = T.load('agents/Hexapod_NN_PG_TVA_pg.p')
         p_pipe = T.load('agents/Hexapod_NN_PG_WCM_pg.p')
         #p_tiles= T.load('agents/Hexapod_NN_PG_5IX_pg.p')
-        #policy = T.load('agents/Hexapod_NN_PG_WCM_pg.p')
+        policy = T.load('agents/Cartpole_NN_PG_A6O_pg.p')
 
-        env.test_adapt(p_flat, p_pipe, "B")
+        #env.test(policy)
+        env.test_adapt(p_flat, p_pipe, "C")

@@ -1278,7 +1278,7 @@ class RNN_V2_PG(nn.Module):
                 maxval = m
 
         if maxval > bnd:
-            print("Soft clipping grads")
+            #print("Soft clipping grads")
             self.batch_rnn.weight_hh_l0.grad = (self.batch_rnn.weight_hh_l0.grad / maxval) * bnd
             self.batch_rnn.weight_ih_l0.grad = (self.batch_rnn.weight_ih_l0.grad / maxval) * bnd
             self.batch_rnn.bias_hh_l0.grad = (self.batch_rnn.bias_hh_l0.grad / maxval) * bnd
@@ -1382,7 +1382,7 @@ class RNN_V3_PG(nn.Module):
                 maxval = m
 
         if maxval > bnd:
-            print("Soft clipping grads")
+            #print("Soft clipping grads")
 
             for p in self.parameters():
                 if p.grad is None: continue
@@ -1392,9 +1392,6 @@ class RNN_V3_PG(nn.Module):
     def forward(self, input):
         x, h = input
         x = F.selu(self.fc1(x))
-
-        # Pack
-      #  x_packed = T.nn.utils.rnn.pack_sequence(x)
 
         output, h = self.rnn(x, h)
 

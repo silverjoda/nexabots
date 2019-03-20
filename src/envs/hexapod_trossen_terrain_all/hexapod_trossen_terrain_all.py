@@ -20,10 +20,10 @@ class Hexapod():
         print("Trossen hexapod terrain all")
 
         #self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["flatpipe"]
+        self.env_list = ["flattiles"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 300
+        self.max_steps = 400
         self.env_change_prob = 0.05
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
@@ -307,7 +307,7 @@ class Hexapod():
         episode_states = []
         episode_acts = []
         ctr = 0
-        while ctr < 10:
+        while ctr < 1000:
             print("Iter: {}".format(ctr))
             current_policy_name = "p1"
             rnd_x = - 0.1 + np.random.rand() * 0.3 + np.random.randint(0,2) * 1.2
@@ -339,7 +339,7 @@ class Hexapod():
 
                 #self.render()
 
-            if cr < 150:
+            if cr < 50:
                 continue
             ctr += 1
 

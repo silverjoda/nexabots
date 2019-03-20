@@ -13,7 +13,7 @@ import string
 import socket
 from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
 
-def imitate_static():
+def imitate_static():#
     env = hex_env.Hexapod()
     master = policies.RNN_V3_PG(env, hid_dim=128, memory_dim=128, n_temp=3).cuda()
     optimizer = T.optim.Adam(master.parameters(), lr=3e-4)

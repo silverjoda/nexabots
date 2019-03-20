@@ -846,9 +846,9 @@ class NN_PG(nn.Module):
         #self.scale = scale
 
         self.fc1 = nn.Linear(self.obs_dim, hid_dim)
-        #self.bn1 = nn.BatchNorm1d(64)
+        self.m1 = nn.LayerNorm(hid_dim)
         self.fc2 = nn.Linear(hid_dim, hid_dim)
-        #self.bn2 = nn.BatchNorm2d(64)
+        self.m2 = nn.LayerNorm(hid_dim)
         self.fc3 = nn.Linear(hid_dim, self.act_dim)
 
         #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
@@ -856,10 +856,10 @@ class NN_PG(nn.Module):
 
 
     def forward(self, x):
-        x = F.selu(self.fc1(x))
-        x = F.selu(self.fc2(x))
+        x = F.relu(self.m1(self.fc1(x)))
+        x = F.relu(self.m2(self.fc2(x)))
         if self.tanh:
-            x = T.tanh(self.fc3(x)) * 1#self.scale
+            x = T.tanh(self.fc3(x)) * 1 # self.scale
         else:
             x = self.fc3(x)
         return x

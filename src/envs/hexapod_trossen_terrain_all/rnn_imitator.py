@@ -20,9 +20,9 @@ def imitate_static():#
     lossfun = T.nn.MSELoss()
 
     # N x EP_LEN x OBS_DIM
-    expert_states = np.load("data/states_B.npy")
+    expert_states = np.load("data/states_C.npy")
     # N x EP_LEN x ACT_DIM
-    expert_acts = np.load("data/acts_B.npy")
+    expert_acts = np.load("data/acts_C.npy")
 
     iters = 20000
     batchsize = 32
@@ -66,18 +66,19 @@ def imitate_static():#
             print("Iter: {}/{}, loss: {}".format(i, iters, loss))
 
     master = master.cpu()
-    T.save(master, "master_B.p")
+    T.save(master, "master_C.p")
     print("Done")
 
 
 def test():
     env = hex_env.Hexapod(mem_dim=0)
+    #env.env_list = "flat"
     master = T.load("master_B.p", map_location='cpu')
 
     # Test visually
     while True:
         done = False
-        s = env.reset(init_pos=(np.random.rand() + 0.25, 0, 0.1))
+        s = env.reset(init_pos=(np.random.rand() * 1 + 0.15, 0, 0.1))
         h = None
         episode_reward = 0
         with T.no_grad():
@@ -158,5 +159,5 @@ def imitate_dynamic():
 
 if __name__=="__main__":
     T.set_num_threads(1)
-    imitate_static()
+    test()
 

@@ -157,7 +157,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
               "comments" : "cp rnd po, V3, 32:16:3",
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
@@ -180,17 +180,15 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
+    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+   # env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    #from src.envs.cartpole_swingup import cartpole_swingup
-    #env = cartpole_swingup.Cartpole()
+    from src.envs.cartpole_swingup import cartpole_swingup
+    env = cartpole_swingup.Cartpole()
 
-    #from src.envs.cartpole_swingup import cartpole_swingup
-    #env = cartpole_swingup.Cartpole()
 
     print(params, env.__class__.__name__)
 

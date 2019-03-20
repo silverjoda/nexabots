@@ -20,7 +20,7 @@ class Hexapod():
         print("Trossen hexapod terrain all")
 
         #self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["flattiles"]
+        self.env_list = ["flat"]
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 400

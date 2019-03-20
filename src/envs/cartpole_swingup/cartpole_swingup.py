@@ -47,7 +47,7 @@ class Cartpole:
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        a = [qpos[0], qpos[1], np.clip(qvel[0], -10, 10), np.clip(qvel[1], -10, 10)]
+        a = [qpos[0], qpos[1], qvel[0] / 10, qvel[1] / 10]
         if self.len_as_input:
             a += [self.rnd_len]
         return np.asarray(a, dtype=np.float32)
@@ -79,12 +79,15 @@ class Cartpole:
         self.step_ctr += 1
 
         obs = self.get_obs()
-        r = np.cos(obs[1] + np.pi) - abs(obs[1]) * 0.1
+        r = 1 + np.cos(obs[1] + np.pi) \
+            - np.square(obs[0]) * 0.5 \
+            - np.square(ctrl[0]) * 0.01 \
+            - 0.1 * np.square(obs[3]) \
+            - 0.1 * np.square(obs[2])
 
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps #or np.abs(obs[3]) > 3 or np.abs(obs[0]) > 0.97
 
         return obs, r, done, None
-
 
 
     def reset(self):
@@ -96,6 +99,8 @@ class Cartpole:
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_qvel = np.zeros(self.qvel_dim, dtype=np.float32)
+
+        #init_q[1] = np.pi
 
         # Set environment state
         self.set_state(init_q, init_qvel)
@@ -137,7 +142,7 @@ class Cartpole:
             <joint armature="0" damping="0.5" limited="true"/>
             <geom contype="0" friction="1 0.1 0.1" rgba="0.7 0.7 0 1"/>
             <tendon/>
-            <motor ctrlrange="-3 3"/>
+            <motor ctrlrange="-1 1"/>
         </default>
         <option gravity="0 0 -9.81" integrator="RK4" timestep="0.02"/>
         <size nstack="3000"/>
@@ -155,7 +160,7 @@ class Cartpole:
             </body>
         </worldbody>
         <actuator>
-            <motor gear="100" joint="slider" name="slide"/>
+            <motor gear="300" joint="slider" name="slide"/>
         </actuator>
     </mujoco>""".format(rnd_len)
 

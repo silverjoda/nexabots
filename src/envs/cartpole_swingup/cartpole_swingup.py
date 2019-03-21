@@ -15,7 +15,7 @@ class Cartpole:
         self.mem_dim = 0
         self.cumulative_environment_reward = None
         self.len_as_input = False
-        self.fixed = True
+        self.fixed = False
         print("Cartpole swingup, fo: {}, fixed: {}".format(self.len_as_input, self.fixed))
 
         self.make_env()

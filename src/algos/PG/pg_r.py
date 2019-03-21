@@ -156,9 +156,9 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
+    params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
               "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "cp rnd po, V3, 32:16:3",
+              "comments" : "obst, 64:64:3",
               "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
     if socket.gethostname() == "goedel":
@@ -180,28 +180,27 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
-
-    #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
+    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
+
+    from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env
+    env = hex_env.Hexapod(mem_dim=0)
 
     #from src.envs.cartpole_swingup import cartpole_swingup
     #env = cartpole_swingup.Cartpole()
-
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_PG(env, hid_dim=32, memory_dim=16, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_PG(env, hid_dim=64, memory_dim=64, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_PG_YTE_pg.p') # OEB good for holes
+        expert = T.load('agents/Hexapod_RNN_V3_PG_19M_pg.p') # OEB good for holes
 
         env.test_recurrent(expert)
         #env.test_record(expert_rails, "C")

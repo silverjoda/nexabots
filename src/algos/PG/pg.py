@@ -210,7 +210,7 @@ if __name__=="__main__":
 
 
     params = {"iters": 100000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
               "note" : "cp, rnd, po", "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -237,14 +237,11 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    #env = hex_env.Hexapod()
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    env = hex_env.Hexapod()
 
-    #from src.envs.hexapod_trossen_terrain_3envs import hexapod_trossen_terrain_3envs as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
-
-    from src.envs.cartpole_swingup import cartpole_swingup
-    env = cartpole_swingup.Cartpole()
+    #from src.envs.cartpole_swingup import cartpole_swingup
+    #env = cartpole_swingup.Cartpole()
 
     #from src.envs.double_pendulum_swingup import double_pendulum_swinfgup
     #env = double_pendulum_swingup.Pendulum()
@@ -252,16 +249,16 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 32, tanh=True)
+        policy = policies.NN_PG(env, 64, tanh=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
 
-        p_flat = T.load('agents/Hexapod_NN_PG_TVA_pg.p')
+        p_flat = T.load('agents/Hexapod_NN_PG_1P5_pg.p')
         p_pipe = T.load('agents/Hexapod_NN_PG_WCM_pg.p')
         #p_tiles= T.load('agents/Hexapod_NN_PG_5IX_pg.p')
-        policy = T.load('agents/Cartpole_NN_PG_K03_pg.p')
+        policy = T.load('agents/Cartpole_NN_PG_HXN_pg.p')
 
-        env.test(policy)
+        env.test(p_flat)
         #env.test_adapt(p_flat, p_pipe, "C")

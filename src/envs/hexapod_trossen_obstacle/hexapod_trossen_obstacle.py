@@ -11,6 +11,7 @@ import string
 # import gym
 # from gym import spaces
 # from gym.utils import seeding
+import cv2
 
 class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -19,19 +20,23 @@ class Hexapod():
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        #self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["tiles"]
+        self.env_list = ["obst"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 400
+        self.max_steps = 200
         self.env_change_prob = 0.05
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
-        self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
-        self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
+        self.joints_rads_low = np.array([-0.7, -1.4, -1.4] * 6)
+        self.joints_rads_high = np.array([0.7, 0.7, 1.4] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
+        self.difficulty = 1
+        self.episode_reward = 0
+        self.average_episode_reward = 0
+
+        self.generate()
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -121,19 +126,17 @@ class Hexapod():
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
 
         # Reward conditions
+        ctrl_effort = np.square(ctrl).sum()
         target_vel = 0.25
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        r = velocity_rew * 10 - \
-            np.square(self.sim.data.actuator_force).mean() * 0.0002 - \
-            np.abs(roll) * 0.1 - \
-            np.square(pitch) * 0.1 - \
-            np.square(yaw) * 0.1 - \
-            np.square(zd) * 0.1
+        r = velocity_rew * 5 - \
+            np.square(self.sim.data.actuator_force).mean() * 0.0001
 
         r = np.clip(r, -2, 2)
+        self.episode_reward += r
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps #or abs(roll) > 2 or abs(pitch) > 2
@@ -146,9 +149,18 @@ class Hexapod():
 
 
     def reset(self, init_pos = None):
+
         if np.random.rand() < self.env_change_prob:
-            os.system('python ../../envs/hexapod_trossen_terrain_all/assets/heightmap_generation.py')
+            self.generate()
             time.sleep(0.1)
+
+        if self.episode_reward >= self.average_episode_reward:
+            self.difficulty += 0.01
+        else:
+            self.difficulty = np.maximum(0, self.difficulty - 0.01)
+
+        self.episode_reward = 0
+        self.average_episode_reward = self.average_episode_reward * 0.1 + self.average_episode_reward * 0.99
 
         self.viewer = None
         self.env_name = self.env_list[np.random.randint(0, len(self.env_list))]
@@ -172,7 +184,7 @@ class Hexapod():
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = 0.0 # np.random.rand() * 4 - 4
+        init_q[0] = 0 # np.random.rand() * 4 - 4
         init_q[1] = 0 # np.random.rand() * 8 - 4
         init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
@@ -195,6 +207,32 @@ class Hexapod():
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         return obs
+
+
+    def generate(self):
+        N = 90
+        M = 30
+        div = 6
+        obs_len = 15
+        init_pos = 35
+
+        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                "assets/obst.png")
+
+        # Generate stairs
+        #mat = np.zeros((M, N))
+        #mat[:, init_pos:init_pos+obs_len] = np.random.randint(0,50, size=(M,obs_len))
+
+        mat = np.random.randint(0, self.difficulty * 50, size=(M // div, N // div), dtype=np.uint8).repeat(div, axis=0).repeat(div,
+                                                                                                             axis=1)
+        mat[:, :init_pos] = 0
+        mat[:, init_pos+obs_len:] = 0
+
+        mat[0, :] = 255
+        mat[:, 0] = 255
+        mat[-1, :] = 255
+        mat[:, -1] = 255
+        cv2.imwrite(filename, mat)
 
 
     def demo(self):
@@ -358,31 +396,31 @@ class Hexapod():
                              "data/acts_{}.npy".format(ID)), np_acts)
 
 
-def test_record_hidden(self, policy):
-        self.reset()
-        h_episodes = []
-        for i in range(10):
-            h_list = []
-            obs = self.reset()
-            h = None
-            cr = 0
-            for j in range(self.max_steps  * 2):
-                action, h = policy((my_utils.to_tensor(obs, True), h))
-                obs, r, done, od, = self.step(action[0].detach().numpy())
-                cr += r
-                time.sleep(0.001)
-                self.render()
-                h_list.append(h[0].detach().numpy())
-            print("Total episode reward: {}".format(cr))
-            h_arr = np.concatenate(h_list)
-            h_episodes.append(h_arr)
+    def test_record_hidden(self, policy):
+            self.reset()
+            h_episodes = []
+            for i in range(10):
+                h_list = []
+                obs = self.reset()
+                h = None
+                cr = 0
+                for j in range(self.max_steps  * 2):
+                    action, h = policy((my_utils.to_tensor(obs, True), h))
+                    obs, r, done, od, = self.step(action[0].detach().numpy())
+                    cr += r
+                    time.sleep(0.001)
+                    self.render()
+                    h_list.append(h[0].detach().numpy())
+                print("Total episode reward: {}".format(cr))
+                h_arr = np.concatenate(h_list)
+                h_episodes.append(h_arr)
 
-        h_episodes_arr = np.stack(h_episodes)
+            h_episodes_arr = np.stack(h_episodes)
 
-        # Save hidden states
-        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                     "data/{}_states.npy".format(self.env_name))
-        np.save(filename, h_episodes_arr)
+            # Save hidden states
+            filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         "data/{}_states.npy".format(self.env_name))
+            np.save(filename, h_episodes_arr)
 
 
 if __name__ == "__main__":

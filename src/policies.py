@@ -859,7 +859,7 @@ class NN_PG(nn.Module):
         x = F.relu(self.m1(self.fc1(x)))
         x = F.relu(self.m2(self.fc2(x)))
         if self.tanh:
-            x = T.tanh(self.fc3(x)) * 1 # self.scale
+            x = T.tanh(self.fc3(x))
         else:
             x = self.fc3(x)
         return x

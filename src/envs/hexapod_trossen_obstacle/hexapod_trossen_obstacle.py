@@ -151,13 +151,14 @@ class Hexapod():
     def reset(self, init_pos = None):
 
         if np.random.rand() < self.env_change_prob:
+            print("Obstacle difficulty level: {}".format(self.difficulty))
             self.generate()
             time.sleep(0.1)
 
         if self.episode_reward >= self.average_episode_reward:
             self.difficulty += 0.01
         else:
-            self.difficulty = np.maximum(0, self.difficulty - 0.01)
+            self.difficulty = np.maximum(1, self.difficulty - 0.01)
 
         self.episode_reward = 0
         self.average_episode_reward = self.average_episode_reward * 0.1 + self.average_episode_reward * 0.99

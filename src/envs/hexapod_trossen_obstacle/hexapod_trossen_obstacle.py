@@ -318,6 +318,7 @@ class Hexapod():
         self.reset()
         h_episodes = []
         for i in range(10):
+            self.difficulty = 1.5
             h_list = []
             obs = self.reset()
             h = None

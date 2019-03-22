@@ -3,6 +3,7 @@ import mujoco_py
 import src.my_utils as my_utils
 import time
 import os
+import cv2
 from math import sqrt, acos, fabs
 from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
@@ -19,12 +20,12 @@ class Hexapod():
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        #self.env_list = ["rails", "holes", "desert"]
-        self.env_list = ["tiles"]
+        self.env_list = ["flat", "tiles", "holes"]
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 400
         self.env_change_prob = 0.05
+        self.env_width = 30
         self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
@@ -32,6 +33,7 @@ class Hexapod():
         self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
+        self.generate_hybrid_env(3, self.max_steps + 100)
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -147,13 +149,14 @@ class Hexapod():
 
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
-            os.system('python ../../envs/hexapod_trossen_terrain_all/assets/heightmap_generation.py')
+            #os.system('python ../../envs/hexapod_trossen_terrain_all/assets/heightmap_generation.py')
+            self.generate_hybrid_env(3, self.max_steps + 100)
             time.sleep(0.1)
 
         self.viewer = None
         self.env_name = self.env_list[np.random.randint(0, len(self.env_list))]
 
-        path = Hexapod.MODELPATH + self.env_name + ".xml"
+        path = Hexapod.MODELPATH + "hybrid.xml"
         self.model = mujoco_py.load_model_from_path(path)
         self.sim = mujoco_py.MjSim(self.model)
 
@@ -196,6 +199,66 @@ class Hexapod():
 
         return obs
 
+
+    def generate_hybrid_env(self, n_envs, steps):
+        envs = np.random.choice(self.env_list, n_envs, replace=False)
+        idx_1 = int((steps * 0.33) + np.random.randint(0, 30) - 15)
+        idx_2 = int((steps * 0.66) + np.random.randint(0, 30) - 15)
+        size_list = [idx_1, idx_2 - idx_1, steps - idx_2]
+        maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
+        total_hm = np.concatenate(maplist, 1)
+        cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                 "assets/hybrid.png"), total_hm)
+
+
+    def generate_heightmap(self, env_name, env_length):
+        hm = np.zeros((self.env_width, env_length))
+
+        if env_name == "flat":
+            pass
+
+        if env_name == "tiles":
+            hm = np.random.randint(0, 70,
+                                   size=(self.env_width // 5, env_length // 5),
+                                   dtype=np.uint8).repeat(5, axis=0).repeat(5, axis=1)
+
+        if env_name == "pipe":
+            pipe = np.ones((self.env_width, env_length))
+            pipe *= np.square(np.linspace(-16, 16, env_length))
+            hm = np.transpose(pipe)
+
+        if env_name == "holes":
+            hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
+            h, w, _ = hm.shape
+            patchsize = 30
+            rnd_h = np.random.randint(0, h - patchsize)
+            rnd_w = np.random.randint(0, w - patchsize)
+            hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
+            hm = np.mean(hm, axis=2)
+            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
+
+        if env_name == "bumps":
+            hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/bumps1.png"))
+            h, w, _ = hm.shape
+            patchsize = 30
+            rnd_h = np.random.randint(0, h - patchsize)
+            rnd_w = np.random.randint(0, w - patchsize)
+            hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
+            hm = np.mean(hm, axis=2)
+            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
+
+        if env_name == "poles":
+            pass
+
+        if env_name == "stairs":
+            pass
+
+        hm[0, :] = 255
+        hm[:, 0] = 255
+        hm[-1, :] = 255
+        hm[:, -1] = 255
+
+        return hm
 
     def demo(self):
         self.reset()
@@ -358,31 +421,31 @@ class Hexapod():
                              "data/acts_{}.npy".format(ID)), np_acts)
 
 
-def test_record_hidden(self, policy):
-        self.reset()
-        h_episodes = []
-        for i in range(10):
-            h_list = []
-            obs = self.reset()
-            h = None
-            cr = 0
-            for j in range(self.max_steps  * 2):
-                action, h = policy((my_utils.to_tensor(obs, True), h))
-                obs, r, done, od, = self.step(action[0].detach().numpy())
-                cr += r
-                time.sleep(0.001)
-                self.render()
-                h_list.append(h[0].detach().numpy())
-            print("Total episode reward: {}".format(cr))
-            h_arr = np.concatenate(h_list)
-            h_episodes.append(h_arr)
+    def test_record_hidden(self, policy):
+            self.reset()
+            h_episodes = []
+            for i in range(10):
+                h_list = []
+                obs = self.reset()
+                h = None
+                cr = 0
+                for j in range(self.max_steps  * 2):
+                    action, h = policy((my_utils.to_tensor(obs, True), h))
+                    obs, r, done, od, = self.step(action[0].detach().numpy())
+                    cr += r
+                    time.sleep(0.001)
+                    self.render()
+                    h_list.append(h[0].detach().numpy())
+                print("Total episode reward: {}".format(cr))
+                h_arr = np.concatenate(h_list)
+                h_episodes.append(h_arr)
 
-        h_episodes_arr = np.stack(h_episodes)
+            h_episodes_arr = np.stack(h_episodes)
 
-        # Save hidden states
-        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                     "data/{}_states.npy".format(self.env_name))
-        np.save(filename, h_episodes_arr)
+            # Save hidden states
+            filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         "data/{}_states.npy".format(self.env_name))
+            np.save(filename, h_episodes_arr)
 
 
 if __name__ == "__main__":

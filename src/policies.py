@@ -1476,7 +1476,6 @@ class RNN_CLASSIF_ENV(nn.Module):
         x = self.fc3(x)
 
 
-
 class RNN_VAR_PG(nn.Module):
     def __init__(self, env, hid_dim=64, memory_dim=64, n_temp=3, tanh=False, to_gpu=False):
         super(RNN_VAR_PG, self).__init__()
@@ -1712,7 +1711,7 @@ class RNN_BLEND_PG(nn.Module):
 
 
 class RNN_BLEND_2_PG(nn.Module):
-    def __init__(self, env, hid_dim=64, memory_dim=24, n_temp=2, n_experts=4, tanh=False, to_gpu=False):
+    def __init__(self, env, hid_dim=32, memory_dim=32, n_temp=3, n_experts=4, tanh=False, to_gpu=False):
         super(RNN_BLEND_2_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
@@ -1726,10 +1725,10 @@ class RNN_BLEND_2_PG(nn.Module):
         self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, n_temp, batch_first=True)
         self.fc2 = nn.Linear(self.memory_dim, self.n_experts)
 
-        self.fc_exp_1 = [nn.Linear(self.obs_dim, self.obs_dim) for _ in range(n_experts)]
-        self.fc_exp_2 = [nn.Linear(self.obs_dim, self.obs_dim) for _ in range(n_experts)]
-        self.fc_exp_3 = [nn.Linear(self.obs_dim, self.obs_dim) for _ in range(n_experts)]
-        self.fc_exp_f = nn.Linear(self.obs_dim, self.act_dim)
+        self.fc_exp_1 = [nn.Linear(self.memory_dim, self.memory_dim) for _ in range(n_experts)]
+        self.fc_exp_2 = [nn.Linear(self.memory_dim, self.memory_dim) for _ in range(n_experts)]
+        self.fc_exp_3 = [nn.Linear(self.memory_dim, self.memory_dim) for _ in range(n_experts)]
+        self.fc_exp_f = nn.Linear(self.memory_dim, self.act_dim)
 
         self.log_std_cpu = T.zeros(1, self.act_dim)
 
@@ -1765,31 +1764,17 @@ class RNN_BLEND_2_PG(nn.Module):
         rnn_features = F.selu(self.fc1(x))
         rnn_output, h = self.rnn(rnn_features, h)
         coeffs = F.softmax(self.fc2(rnn_output), dim=2)
-        output = T.zeros((x.shape[0], x.shape[1], self.act_dim))
 
-        for b in range(batch_dim):
-            for s in range(seq_dim):
+        l1 = T.stack([fc(rnn_output) * coeffs[:, :, i:i+1].repeat(1,1,self.memory_dim) for i, fc in enumerate(self.fc_exp_1)]).sum(0, keepdim=False)
+        l2 = T.stack([fc(l1) * coeffs[:, :, i:i+1].repeat(1,1,self.memory_dim) for i, fc in enumerate(self.fc_exp_2)]).sum(0, keepdim=False)
+        l3 = T.stack([fc(l2) * coeffs[:, :, i:i+1].repeat(1,1,self.memory_dim) for i, fc in enumerate(self.fc_exp_3)]).sum(0, keepdim=False)
 
-                w1 = T.stack([coeffs[b, s, i] * self.fc_wl1_list[i] for i in range(self.n_experts)]).sum(0)
-                b1 = T.stack([coeffs[b, s, i] * self.fc_bl1_list[i] for i in range(self.n_experts)]).sum(0)
+        if self.tanh:
+            output = T.tanh(self.fc_exp_f(l3))
+        else:
+            output = self.fc_exp_f(l3)
 
-                w2 = T.stack([coeffs[b, s, i] * self.fc_wl2_list[i] for i in range(self.n_experts)]).sum(0)
-                b2 = T.stack([coeffs[b, s, i] * self.fc_bl2_list[i] for i in range(self.n_experts)]).sum(0)
-
-                w3 = T.stack([coeffs[b, s, i] * self.fc_wl3_list[i] for i in range(self.n_experts)]).sum(0)
-                b3 = T.stack([coeffs[b, s, i] * self.fc_bl3_list[i] for i in range(self.n_experts)]).sum(0)
-
-                feat = F.selu(F.linear(x[b,s], w1, bias=b1))
-                feat = F.linear(feat, w2, bias=b2)
-
-                if self.tanh:
-                    feat = T.tanh(F.linear(feat, w3, bias=b3))
-                else:
-                    feat = F.linear(feat, w3, bias=b3)
-
-                output[b,s,:] = feat
-
-            return output, h
+        return output, h
 
 
     def sample_action(self, s):

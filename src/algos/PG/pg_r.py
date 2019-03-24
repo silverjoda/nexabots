@@ -163,7 +163,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
               "comments" : "64:64:3", "Env_list" : env_list,
               "ID": ID}
 
@@ -200,7 +200,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_PG(env, hid_dim=64, memory_dim=64, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_BLEND_2_PG(env, hid_dim=64, memory_dim=64, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

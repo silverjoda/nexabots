@@ -1758,9 +1758,6 @@ class RNN_BLEND_2_PG(nn.Module):
     def forward(self, input):
         x, h = input
 
-        batch_dim = x.shape[0]
-        seq_dim = x.shape[1]
-
         rnn_features = F.selu(self.fc1(x))
         rnn_output, h = self.rnn(rnn_features, h)
         coeffs = F.softmax(self.fc2(rnn_output), dim=2)

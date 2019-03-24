@@ -139,7 +139,7 @@ class Hexapod():
             np.square(self.sim.data.actuator_force).mean() * 0.0001 - \
             np.abs(roll) * 0.2 - \
             np.square(pitch) * 0.2 - \
-            np.square(yaw) * 0.3 - \
+            np.square(yaw) * 0.9 - \
             np.square(y) * 0.3 - \
             np.square(zd) * 0.2
 

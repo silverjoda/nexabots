@@ -14,7 +14,7 @@ import socket
 from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
 
 
-def make_dataset(self, env_list, expert_dict, ID, N, n_envs):
+def make_dataset(env_list, expert_dict, ID, N, n_envs):
     env = hex_env.Hexapod(env_list)
     max_steps = n_envs * 200
 
@@ -39,9 +39,9 @@ def make_dataset(self, env_list, expert_dict, ID, N, n_envs):
         current_env = envs[current_env_idx]
         policy = expert_dict[current_env]
 
-        s = self.reset()
+        s = env.reset()
         for j in range(max_steps):
-            x = self.sim.get_state().qpos.tolist()[0]
+            x = env.sim.get_state().qpos.tolist()[0]
 
             if x > scaled_indeces_list[current_env_idx]:
                 current_env_idx += 1
@@ -53,10 +53,10 @@ def make_dataset(self, env_list, expert_dict, ID, N, n_envs):
             labels.append(env_list.index(current_env))
             action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy()
             acts.append(action)
-            s, r, done, od, = self.step(action)
+            s, r, done, od, = env.step(action)
             cr += r
 
-            self.render()
+            env.render()
 
         # if cr < 50:
         #     continue
@@ -69,12 +69,92 @@ def make_dataset(self, env_list, expert_dict, ID, N, n_envs):
         print("Total episode reward: {}".format(cr))
 
     np_states = np.stack(episode_states)
+    np_labels= np.stack(episode_labels)
     np_acts = np.stack(episode_acts)
 
     np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                          "data/states_{}.npy".format(ID)), np_states)
     np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                         "data/labels_{}.npy".format(ID)), np_labels)
+    np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                          "data/acts_{}.npy".format(ID)), np_acts)
+
+
+def imitate_expert():
+    env = hex_env.Hexapod()
+    master = policies.RNN_V3_PG(env, hid_dim=32, memory_dim=32, n_temp=3, tanh=True).cuda()
+    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=32, memory_dim=32, n_temp=3, n_classes=5).cuda()
+    optimizer_master = T.optim.Adam(master.parameters(), lr=3e-4)
+    optimizer_classifier = T.optim.Adam(classifier.parameters(), lr=3e-4)
+    lossfun_master = T.nn.MSELoss()
+    lossfun_classifier = T.nn.CrossEntropyLoss()
+
+    # N x EP_LEN x OBS_DIM
+    expert_states = np.load("data/states_A.npy")
+    # N x EP_LEN x ACT_DIM
+    expert_acts = np.load("data/acts_A.npy")
+    # N x EP_LEN x N_CLASSES
+    expert_labels = np.load("data/labels_A.npy")
+
+    iters = 20000
+    batchsize = 32
+
+    assert len(expert_states) == len(expert_acts)
+    N_EPS, EP_LEN, OBS_DIM = expert_states.shape
+    _, _, ACT_DIM = expert_acts.shape
+    _, _, N_CLASSES = expert_labels.shape
+
+    for i in range(iters):
+        # Make batch of episodes
+        batch_states = []
+        batch_acts = []
+        batch_labels = []
+        for _ in range(batchsize):
+            rnd_idx = np.random.randint(0, N_EPS)
+            states = expert_states[rnd_idx]
+            acts = expert_acts[rnd_idx]
+            labels = expert_labels[rnd_idx]
+            batch_states.append(states)
+            batch_acts.append(acts)
+            batch_labels.append(labels)
+
+        batch_states = np.stack(batch_states)
+        batch_acts = np.stack(batch_acts)
+        batch_labels = np.stack(batch_labels)
+
+        assert batch_states.shape == (batchsize, EP_LEN, OBS_DIM)
+        assert batch_acts.shape == (batchsize, EP_LEN, ACT_DIM)
+        assert batch_labels.shape == (batchsize, EP_LEN, N_CLASSES)
+
+        batch_states_T = T.from_numpy(batch_states).float().cuda()
+        expert_acts_T = T.from_numpy(batch_acts).float().cuda()
+        expert_labels_T = T.from_numpy(batch_labels).float().cuda()
+
+        # Perform batch forward pass on episodes
+        master_acts_T, _ = master.forward((batch_states_T, None))
+        master_labels_T, _ = classifier.forward((batch_states_T, None))
+
+        # Update RNN
+        N_WARMUP_STEPS = 20
+        loss_master = lossfun_master(master_acts_T[:, N_WARMUP_STEPS:, :], expert_acts_T[:, N_WARMUP_STEPS:, :])
+        loss_master.backward()
+        master.soft_clip_grads()
+        optimizer_master.step()
+
+        loss_clasifier = lossfun_classifier(master_labels_T[:, N_WARMUP_STEPS:, :], expert_labels_T[:, N_WARMUP_STEPS:, :])
+        loss_clasifier.backward()
+        classifier.soft_clip_grads()
+        optimizer_classifier.step()
+
+        # Print info
+        if i % 10 == 0:
+            print("Iter: {}/{}, loss_master: {}, loss_classifier: {}".format(i, iters, loss_master, loss_clasifier))
+
+    master = master.cpu()
+    classifier = classifier .cpu()
+    T.save(master, "master_C.p")
+    T.save(classifier, "classifier_C.p")
+    print("Done")
 
 
 def imitate_experts():#
@@ -280,5 +360,13 @@ def test():
 
 if __name__=="__main__":
     T.set_num_threads(1)
-    imitate_experts()
+    expert_flat = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
+    expert_tiles = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
+    expert_holes = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
+    expert_pipe = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
+    expert_inverseholes = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
+
+    make_dataset(env_list=["flat", "tiles", "holes", "pipe", "inversholes"],
+                 expert_dict = {"flat" : expert_flat, "tiles" : expert_tiles, "holes" : expert_holes, "pipe" : expert_pipe, "inverseholes" : expert_inverseholes},
+                 ID="A", N=1000, n_envs=3)
 

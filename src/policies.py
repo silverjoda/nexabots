@@ -1425,6 +1425,58 @@ class RNN_V3_PG(nn.Module):
         return log_density.sum(2, keepdim=True)
 
 
+class RNN_CLASSIF_ENV(nn.Module):
+    def __init__(self, env, hid_dim=32, memory_dim=32, n_temp=3, n_classes=5, to_gpu=False):
+        super(RNN_CLASSIF_ENV, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = n_classes
+        self.hid_dim = hid_dim
+        self.memory_dim = memory_dim
+        self.n_classes = n_classes
+        self.to_gpu = to_gpu
+
+        self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, n_temp, batch_first=True)
+        self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
+        self.fc2 = nn.Linear(self.obs_dim + self.memory_dim, self.hid_dim)
+        self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
+
+        #self.log_std_cpu = T.zeros(1, self.act_dim)
+        self.log_std_gpu = T.zeros(1, self.act_dim).cuda()
+
+
+    def print_info(self):
+        pass
+
+
+    def soft_clip_grads(self, bnd=0.5):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            if p.grad is None: continue
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            #print("Soft clipping grads")
+
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def forward(self, input):
+        x, h = input
+        x = F.selu(self.fc1(x))
+
+        output, h = self.rnn(x, h)
+
+        x = self.fc2(T.cat((output, x), 2))
+        x = self.fc3(x)
+
+
+
 class RNN_VAR_PG(nn.Module):
     def __init__(self, env, hid_dim=64, memory_dim=64, n_temp=3, tanh=False, to_gpu=False):
         super(RNN_VAR_PG, self).__init__()

@@ -164,7 +164,7 @@ if __name__=="__main__":
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
               "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
-              "comments" : "64:64:3", "Env_list" : env_list,
+              "comments" : "blend 64:64:3", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":

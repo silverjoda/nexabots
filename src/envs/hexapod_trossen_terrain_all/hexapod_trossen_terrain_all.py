@@ -241,7 +241,9 @@ class Hexapod():
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="2 0.6 0.6 0.1" /> \n '.format(self.ID))
+                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs))
+                elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
+                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(1.0 * n_envs - 0.3))
                 else:
                     out_file.write(line)
 
@@ -255,18 +257,18 @@ class Hexapod():
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 30,
+            hm = np.random.randint(0, 25,
                                    size=(self.env_width // 3, env_length // 16),
                                    dtype=np.uint8).repeat(3, axis=0).repeat(16, axis=1) + 127
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-16, 16, self.env_width)), 0).T + 127
+            hm = pipe * np.expand_dims(np.square(np.linspace(-13, 13, self.env_width)), 0).T + 127
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
             h, w, _ = hm.shape
-            patchsize = 12
+            patchsize = 14
             rnd_h = np.random.randint(0, h - patchsize)
             rnd_w = np.random.randint(0, w - patchsize)
             hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
@@ -276,7 +278,7 @@ class Hexapod():
         if env_name == "inverseholes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
             h, w, _ = hm.shape
-            patchsize = 12
+            patchsize = 10
             rnd_h = np.random.randint(0, h - patchsize)
             rnd_w = np.random.randint(0, w - patchsize)
             hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
@@ -386,7 +388,7 @@ class Hexapod():
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps * 3):
+            for j in range(self.max_steps * 2):
                 action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
                 obs, r, done, od, = self.step(action[0,0].detach().numpy() + np.random.randn(self.act_dim) * 0.1)
                 cr += r

@@ -157,10 +157,13 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     env_list = ["inverseholes"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    if sys.argv is not None:
+        env_list = sys.argv
+
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
               "comments" : "64:64:3", "Env_list" : env_list,
               "ID": ID}
 
@@ -203,7 +206,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_PG_19M_pg.p') # OEB good for holes
+        expert = T.load('agents/Hexapod_RNN_V3_PG_U61_pg.p') # OEB good for holes
 
         env.test_recurrent(expert)
         #env.test_record(expert_rails, "C")

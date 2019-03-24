@@ -19,6 +19,7 @@ def make_dataset(self, env_list, expert_dict, ID, N, n_envs):
     max_steps = n_envs * 200
 
     episode_states = []
+    episode_labels = []
     episode_acts = []
     ctr = 0
     while ctr < N:
@@ -42,26 +43,27 @@ def make_dataset(self, env_list, expert_dict, ID, N, n_envs):
         for j in range(max_steps):
             x = self.sim.get_state().qpos.tolist()[0]
 
-            for i in range(current_env_idx, len(scaled_indeces_list)):
-                if x >
-
-            policy = p1
-            current_policy_name = "p1"
-            print("Policy switched to p1")
+            if x > scaled_indeces_list[current_env_idx]:
+                current_env_idx += 1
+                current_env = env_list[current_env_idx]
+                policy = expert_dict[current_env]
+                print("Policy switched to {} policy".format(env_list[current_env_idx]))
 
             states.append(s)
+            labels.append(env_list.index(current_env))
             action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy()
             acts.append(action)
             s, r, done, od, = self.step(action)
             cr += r
 
-            # self.render()
+            self.render()
 
-        if cr < 50:
-            continue
-        ctr += 1
+        # if cr < 50:
+        #     continue
+        # ctr += 1
 
         episode_states.append(np.stack(states))
+        episode_labels.append(np.stack(labels))
         episode_acts.append(np.stack(acts))
 
         print("Total episode reward: {}".format(cr))

@@ -17,16 +17,20 @@ class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
-    def __init__(self, mem_dim=0):
+    def __init__(self, env_list=None):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["flat", "tiles", "holes", "pipe", "inverseholes"]
+        if env_list is None:
+            self.env_list = ["flat", "tiles", "holes", "pipe", "inverseholes", "bumps"]
+        else:
+            self.env_list = env_list
+
+        self.env_list = ["holes", "tiles", "inverseholes"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 400
+        self.max_steps = len(self.env_list) * 200
         self.env_change_prob = 0.05
         self.env_width = 30
-        self.mem_dim = mem_dim
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
@@ -167,7 +171,7 @@ class Hexapod():
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
         self.obs_dim = 31
-        self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
+        self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Reset env variables
         self.step_ctr = 0
@@ -202,9 +206,18 @@ class Hexapod():
 
     def generate_hybrid_env(self, n_envs, steps):
         envs = np.random.choice(self.env_list, n_envs, replace=False)
-        idx_1 = int((steps * 0.33) + np.random.randint(0, 30) - 15)
-        idx_2 = int((steps * 0.66) + np.random.randint(0, 30) - 15)
-        size_list = [idx_1, idx_2 - idx_1, steps - idx_2]
+
+        size_list = []
+        raw_indeces = np.linspace(0, 1, n_envs + 1)[1:-1]
+        current_idx = 0
+        scaled_indeces_list =  []
+        for idx in raw_indeces:
+            idx_scaled = int(steps * idx) + np.random.randint(0, 50) - 30
+            scaled_indeces_list.append(idx_scaled)
+            size_list.append(idx_scaled - current_idx)
+            current_idx = idx_scaled
+        size_list.append(steps - int(steps * raw_indeces[-1]) + np.random.randint(0, 50) - 30)
+
         maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
         total_hm = np.concatenate(maplist, 1)
         total_hm[0, :] = 255
@@ -214,6 +227,8 @@ class Hexapod():
 
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/hybrid.png"), total_hm)
+
+        return envs, size_list, scaled_indeces_list
 
 
     def generate_heightmap(self, env_name, env_length):
@@ -251,20 +266,17 @@ class Hexapod():
             hm = np.mean(hm, axis=2)
             hm = 255 - cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
             hm *= 0.5
-
+            hm += 127
 
         if env_name == "bumps":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/bumps1.png"))
             h, w, _ = hm.shape
-            patchsize = 30
+            patchsize = 20
             rnd_h = np.random.randint(0, h - patchsize)
             rnd_w = np.random.randint(0, w - patchsize)
             hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
             hm = np.mean(hm, axis=2)
-            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
-
-        if env_name == "poles":
-            pass
+            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2. + 127
 
         if env_name == "stairs":
             pass

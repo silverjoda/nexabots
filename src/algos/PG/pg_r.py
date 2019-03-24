@@ -181,7 +181,7 @@ if __name__=="__main__":
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
     from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(mem_dim=0)
+    env = hex_env.Hexapod()
 
     #from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env
     #env = hex_env.Hexapod(mem_dim=0)

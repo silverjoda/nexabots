@@ -20,7 +20,7 @@ class Hexapod():
     def __init__(self, mem_dim=0):
         print("Trossen hexapod terrain all")
 
-        self.env_list = ["flat", "tiles", "holes"]
+        self.env_list = ["flat", "tiles", "holes", "pipe", "inverseholes"]
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = 400
@@ -207,35 +207,51 @@ class Hexapod():
         size_list = [idx_1, idx_2 - idx_1, steps - idx_2]
         maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
         total_hm = np.concatenate(maplist, 1)
+        total_hm[0, :] = 255
+        total_hm[:, 0] = 255
+        total_hm[-1, :] = 255
+        total_hm[:, -1] = 255
+
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/hybrid.png"), total_hm)
 
 
     def generate_heightmap(self, env_name, env_length):
-        hm = np.zeros((self.env_width, env_length))
+        hm = np.ones((self.env_width, env_length)) * 127
 
         if env_name == "flat":
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 70,
-                                   size=(self.env_width // 5, env_length // 5),
-                                   dtype=np.uint8).repeat(5, axis=0).repeat(5, axis=1)
+            hm = np.random.randint(0, 30,
+                                   size=(self.env_width // 3, env_length // 16),
+                                   dtype=np.uint8).repeat(3, axis=0).repeat(16, axis=1) + 127
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
-            pipe *= np.square(np.linspace(-16, 16, env_length))
-            hm = np.transpose(pipe)
+            hm = pipe * np.expand_dims(np.square(np.linspace(-16, 16, self.env_width)), 0).T + 127
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
             h, w, _ = hm.shape
-            patchsize = 30
+            patchsize = 12
             rnd_h = np.random.randint(0, h - patchsize)
             rnd_w = np.random.randint(0, w - patchsize)
             hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
             hm = np.mean(hm, axis=2)
-            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
+            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2.
+
+        if env_name == "inverseholes":
+            hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
+            h, w, _ = hm.shape
+            patchsize = 12
+            rnd_h = np.random.randint(0, h - patchsize)
+            rnd_w = np.random.randint(0, w - patchsize)
+            hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
+            hm = np.mean(hm, axis=2)
+            hm = 255 - cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
+            hm *= 0.5
+
 
         if env_name == "bumps":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/bumps1.png"))
@@ -252,11 +268,6 @@ class Hexapod():
 
         if env_name == "stairs":
             pass
-
-        hm[0, :] = 255
-        hm[:, 0] = 255
-        hm[-1, :] = 255
-        hm[:, -1] = 255
 
         return hm
 

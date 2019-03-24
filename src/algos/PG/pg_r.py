@@ -156,10 +156,13 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
+    env_list = ["inverseholes"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
+
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "obst, 64:64:3",
-              "ID": ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
+              "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
+              "comments" : "64:64:3", "Env_list" : env_list,
+              "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -181,7 +184,7 @@ if __name__=="__main__":
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
     from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod()
+    env = hex_env.Hexapod(env_list=env_list)
 
     #from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env
     #env = hex_env.Hexapod(mem_dim=0)

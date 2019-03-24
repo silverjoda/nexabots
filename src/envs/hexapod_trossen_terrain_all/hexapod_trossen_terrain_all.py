@@ -18,26 +18,29 @@ class Hexapod():
                              "assets/hexapod_trossen_")
 
     def __init__(self, env_list=None):
-        print("Trossen hexapod terrain all")
+        print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
             self.env_list = ["flat", "tiles", "holes", "pipe", "inverseholes", "bumps"]
         else:
             self.env_list = env_list
 
-        self.env_list = ["holes", "tiles", "inverseholes"]
+        # self.env_list = ["holes", "tiles", "inverseholes"]
+
+        self.ID = '_'.join(self.env_list)
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = len(self.env_list) * 200
         self.env_change_prob = 0.05
         self.env_width = 30
+        self.n_envs = 3
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
         self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.generate_hybrid_env(3, self.max_steps + 100)
+        self.generate_hybrid_env(len(self.env_list), self.max_steps + 100)
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -133,19 +136,19 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r = velocity_rew * 10 - \
-            np.square(self.sim.data.actuator_force).mean() * 0.0002 - \
-            np.abs(roll) * 0.1 - \
-            np.square(pitch) * 0.1 - \
-            np.square(yaw) * 0.1 - \
-            np.square(zd) * 0.1
+            np.square(self.sim.data.actuator_force).mean() * 0.0001 - \
+            np.abs(roll) * 0.2 - \
+            np.square(pitch) * 0.2 - \
+            np.square(yaw) * 0.3 - \
+            np.square(y) * 0.3 - \
+            np.square(zd) * 0.2
 
         r = np.clip(r, -2, 2)
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps #or abs(roll) > 2 or abs(pitch) > 2
-
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                              [roll, pitch, yaw, xd, yd, thd, phid],
+                              [roll, pitch, yaw, y, xd, thd, phid],
                               obs_dict["contacts"]])
 
         return obs, r, done, obs_dict
@@ -153,14 +156,13 @@ class Hexapod():
 
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
-            #os.system('python ../../envs/hexapod_trossen_terrain_all/assets/heightmap_generation.py')
-            self.generate_hybrid_env(3, self.max_steps + 100)
+            self.generate_hybrid_env(len(self.env_list), self.max_steps)
             time.sleep(0.1)
 
         self.viewer = None
         self.env_name = self.env_list[np.random.randint(0, len(self.env_list))]
 
-        path = Hexapod.MODELPATH + "hybrid.xml"
+        path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
         self.model = mujoco_py.load_model_from_path(path)
         self.sim = mujoco_py.MjSim(self.model)
 
@@ -207,26 +209,41 @@ class Hexapod():
     def generate_hybrid_env(self, n_envs, steps):
         envs = np.random.choice(self.env_list, n_envs, replace=False)
 
-        size_list = []
-        raw_indeces = np.linspace(0, 1, n_envs + 1)[1:-1]
-        current_idx = 0
-        scaled_indeces_list =  []
-        for idx in raw_indeces:
-            idx_scaled = int(steps * idx) + np.random.randint(0, 50) - 30
-            scaled_indeces_list.append(idx_scaled)
-            size_list.append(idx_scaled - current_idx)
-            current_idx = idx_scaled
-        size_list.append(steps - int(steps * raw_indeces[-1]) + np.random.randint(0, 50) - 30)
+        if n_envs == 1:
+            size_list = [steps]
+            scaled_indeces_list = [0]
+        else:
+            size_list = []
+            raw_indeces = np.linspace(0, 1, n_envs + 1)[1:-1]
+            current_idx = 0
+            scaled_indeces_list =  []
+            for idx in raw_indeces:
+                idx_scaled = int(steps * idx) + np.random.randint(0, 50) - 30
+                scaled_indeces_list.append(idx_scaled)
+                size_list.append(idx_scaled - current_idx)
+                current_idx = idx_scaled
+            size_list.append(steps - int(steps * raw_indeces[-1]) + np.random.randint(0, 50) - 30)
 
         maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
         total_hm = np.concatenate(maplist, 1)
+
         total_hm[0, :] = 255
         total_hm[:, 0] = 255
         total_hm[-1, :] = 255
         total_hm[:, -1] = 255
 
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 "assets/hybrid.png"), total_hm)
+                                 "assets/{}.png".format(self.ID)), total_hm)
+
+        with open(Hexapod.MODELPATH + "template.xml", "r") as in_file:
+            buf = in_file.readlines()
+
+        with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
+            for line in buf:
+                if line.startswith('    <hfield name="hill"'):
+                    out_file.write('    <hfield name="hill" file="{}.png" size="2 0.6 0.6 0.1" /> \n '.format(self.ID))
+                else:
+                    out_file.write(line)
 
         return envs, size_list, scaled_indeces_list
 
@@ -469,6 +486,7 @@ class Hexapod():
             filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                          "data/{}_states.npy".format(self.env_name))
             np.save(filename, h_episodes_arr)
+
 
 
 if __name__ == "__main__":

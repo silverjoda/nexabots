@@ -32,7 +32,7 @@ class Hexapod():
         self.joints_rads_high = np.array([0.7, 0.7, 1.4] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.difficulty = 1
+        self.difficulty = 3.
         self.episode_reward = 0
         self.average_episode_reward = 0
 
@@ -110,7 +110,6 @@ class Hexapod():
 
 
     def step(self, ctrl):
-
         ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
@@ -224,7 +223,7 @@ class Hexapod():
         #mat = np.zeros((M, N))
         #mat[:, init_pos:init_pos+obs_len] = np.random.randint(0,50, size=(M,obs_len))
 
-        mat = np.random.randint(0, self.difficulty * 50, size=(M // div, N // div), dtype=np.uint8).repeat(div, axis=0).repeat(div,
+        mat = np.random.randint(0, 75, size=(M // div, N // div), dtype=np.uint8).repeat(div, axis=0).repeat(div,
                                                                                                              axis=1)
         mat[:, :init_pos] = 0
         mat[:, init_pos+obs_len:] = 0

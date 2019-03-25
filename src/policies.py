@@ -1363,8 +1363,10 @@ class RNN_V3_PG(nn.Module):
         self.fc2 = nn.Linear(self.obs_dim + self.memory_dim, self.hid_dim)
         self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
-        self.log_std_cpu = T.zeros(1, self.act_dim)
-        #self.log_std_gpu = T.zeros(1, self.act_dim).cuda()
+        if to_gpu:
+            self.log_std_gpu = T.zeros(1, self.act_dim).cuda()
+        else:
+            self.log_std_cpu = T.zeros(1, self.act_dim)
 
 
     def print_info(self):
@@ -1440,9 +1442,6 @@ class RNN_CLASSIF_ENV(nn.Module):
         self.fc2 = nn.Linear(self.obs_dim + self.memory_dim, self.hid_dim)
         self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
-        #self.log_std_cpu = T.zeros(1, self.act_dim)
-        self.log_std_gpu = T.zeros(1, self.act_dim).cuda()
-
 
     def print_info(self):
         pass
@@ -1474,6 +1473,8 @@ class RNN_CLASSIF_ENV(nn.Module):
 
         x = self.fc2(T.cat((output, x), 2))
         x = self.fc3(x)
+
+        return x, h
 
 
 class RNN_VAR_PG(nn.Module):

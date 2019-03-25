@@ -16,7 +16,9 @@ from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as 
 
 def make_dataset(env_list, expert_dict, ID, N, n_envs):
     env = hex_env.Hexapod(env_list)
-    max_steps = n_envs * 200
+    length = n_envs * 200
+
+    h = None
 
     episode_states = []
     episode_labels = []
@@ -28,7 +30,8 @@ def make_dataset(env_list, expert_dict, ID, N, n_envs):
         print("Iter: {}".format(ctr))
 
         # Generate new environment
-        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, max_steps)
+        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, length)
+        scaled_indeces_list.append(length)
 
         cr = 0
         states = []
@@ -39,28 +42,34 @@ def make_dataset(env_list, expert_dict, ID, N, n_envs):
         current_env = envs[current_env_idx]
         policy = expert_dict[current_env]
 
+        print(envs, scaled_indeces_list, current_env)
+
         s = env.reset()
-        for j in range(max_steps):
-            x = env.sim.get_state().qpos.tolist()[0]
+        for j in range(n_envs * 400):
+            x = env.sim.get_state().qpos.tolist()[0] * 100 + 30
 
             if x > scaled_indeces_list[current_env_idx]:
+                print(x)
                 current_env_idx += 1
-                current_env = env_list[current_env_idx]
+                current_env = envs[current_env_idx]
+                print(current_env)
                 policy = expert_dict[current_env]
-                print("Policy switched to {} policy".format(env_list[current_env_idx]))
+                h = None
+                print("Policy switched to {} policy".format(envs[current_env_idx]))
 
             states.append(s)
             labels.append(env_list.index(current_env))
-            action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy()
+            action, h = policy((my_utils.to_tensor(s, True).unsqueeze(0), h))
+            action = action[0][0].detach().numpy()
             acts.append(action)
             s, r, done, od, = env.step(action)
             cr += r
 
-            env.render()
+            #env.render()
 
         # if cr < 50:
         #     continue
-        # ctr += 1
+        ctr += 1
 
         episode_states.append(np.stack(states))
         episode_labels.append(np.stack(labels))
@@ -69,7 +78,7 @@ def make_dataset(env_list, expert_dict, ID, N, n_envs):
         print("Total episode reward: {}".format(cr))
 
     np_states = np.stack(episode_states)
-    np_labels= np.stack(episode_labels)
+    np_labels = np.stack(episode_labels)
     np_acts = np.stack(episode_acts)
 
     np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -80,10 +89,10 @@ def make_dataset(env_list, expert_dict, ID, N, n_envs):
                          "data/acts_{}.npy".format(ID)), np_acts)
 
 
-def imitate_expert():
+def imitate_multiple(n_classes):
     env = hex_env.Hexapod()
-    master = policies.RNN_V3_PG(env, hid_dim=32, memory_dim=32, n_temp=3, tanh=True).cuda()
-    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=32, memory_dim=32, n_temp=3, n_classes=5).cuda()
+    master = policies.RNN_V3_PG(env, hid_dim=64, memory_dim=64, n_temp=3, tanh=True, to_gpu=True).cuda()
+    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=32, memory_dim=32, n_temp=3, n_classes=n_classes, to_gpu=True).cuda()
     optimizer_master = T.optim.Adam(master.parameters(), lr=3e-4)
     optimizer_classifier = T.optim.Adam(classifier.parameters(), lr=3e-4)
     lossfun_master = T.nn.MSELoss()
@@ -96,13 +105,12 @@ def imitate_expert():
     # N x EP_LEN x N_CLASSES
     expert_labels = np.load("data/labels_A.npy")
 
-    iters = 20000
+    iters = 10000
     batchsize = 32
 
     assert len(expert_states) == len(expert_acts)
     N_EPS, EP_LEN, OBS_DIM = expert_states.shape
     _, _, ACT_DIM = expert_acts.shape
-    _, _, N_CLASSES = expert_labels.shape
 
     for i in range(iters):
         # Make batch of episodes
@@ -124,11 +132,10 @@ def imitate_expert():
 
         assert batch_states.shape == (batchsize, EP_LEN, OBS_DIM)
         assert batch_acts.shape == (batchsize, EP_LEN, ACT_DIM)
-        assert batch_labels.shape == (batchsize, EP_LEN, N_CLASSES)
 
         batch_states_T = T.from_numpy(batch_states).float().cuda()
         expert_acts_T = T.from_numpy(batch_acts).float().cuda()
-        expert_labels_T = T.from_numpy(batch_labels).float().cuda()
+        expert_labels_T = T.from_numpy(batch_labels).long().cuda()
 
         # Perform batch forward pass on episodes
         master_acts_T, _ = master.forward((batch_states_T, None))
@@ -136,22 +143,23 @@ def imitate_expert():
 
         # Update RNN
         N_WARMUP_STEPS = 20
+
+        loss_clasifier = lossfun_classifier(master_labels_T[:, N_WARMUP_STEPS:].contiguous().view(-1, 4), expert_labels_T[:, N_WARMUP_STEPS:].contiguous().view(-1))
+        loss_clasifier.backward()
+        classifier.soft_clip_grads()
+        optimizer_classifier.step()
+
         loss_master = lossfun_master(master_acts_T[:, N_WARMUP_STEPS:, :], expert_acts_T[:, N_WARMUP_STEPS:, :])
         loss_master.backward()
         master.soft_clip_grads()
         optimizer_master.step()
-
-        loss_clasifier = lossfun_classifier(master_labels_T[:, N_WARMUP_STEPS:, :], expert_labels_T[:, N_WARMUP_STEPS:, :])
-        loss_clasifier.backward()
-        classifier.soft_clip_grads()
-        optimizer_classifier.step()
 
         # Print info
         if i % 10 == 0:
             print("Iter: {}/{}, loss_master: {}, loss_classifier: {}".format(i, iters, loss_master, loss_clasifier))
 
     master = master.cpu()
-    classifier = classifier .cpu()
+    classifier = classifier.cpu()
     T.save(master, "master_C.p")
     T.save(classifier, "classifier_C.p")
     print("Done")
@@ -358,15 +366,22 @@ def test():
         print("Episode reward: {}".format(episode_reward))
 
 
-if __name__=="__main__":
+if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
-    expert_flat = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
-    expert_tiles = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
-    expert_holes = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
-    expert_pipe = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
-    expert_inverseholes = T.load('agents/Hexapod_RNN_V3_PG_xxx_pg.p')
+    expert_flat = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),                                                            
+                         '../../algos/PG/agents/Hexapod_RNN_V3_PG_F57_pg.p'))
+    expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                      '../../algos/PG/agents/Hexapod_RNN_V3_PG_GIW_pg.p'))
+    expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                      '../../algos/PG/agents/Hexapod_RNN_V3_PG_IPI_pg.p'))
+    expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                      '../../algos/PG/agents/Hexapod_RNN_V3_PG_LT3_pg.p'))
+    expert_inversholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                      '../../algos/PG/agents/Hexapod_RNN_V3_PG_MEQ_pg.p'))
 
-    make_dataset(env_list=["flat", "tiles", "holes", "pipe", "inversholes"],
-                 expert_dict = {"flat" : expert_flat, "tiles" : expert_tiles, "holes" : expert_holes, "pipe" : expert_pipe, "inverseholes" : expert_inverseholes},
-                 ID="A", N=1000, n_envs=3)
-
+    if False:
+        make_dataset(env_list=["flat", "tiles", "holes", "pipe"],
+                     expert_dict = {"flat" : expert_flat, "tiles" : expert_tiles, "holes" : expert_holes, "pipe" : expert_pipe},
+                     ID="A", N=10, n_envs=3)
+    if True:
+        imitate_multiple(n_classes=4)

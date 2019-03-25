@@ -36,11 +36,13 @@ class Hexapod():
         self.n_envs = 3
         self.cumulative_environment_reward = None
 
-        self.joints_rads_low = np.array([-0.6, -1., -1.] * 6)
+        self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
         self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
+        #self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
+        #self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.generate_hybrid_env(len(self.env_list), self.max_steps + 100)
+        self.generate_hybrid_env(len(self.env_list), self.max_steps)
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -137,9 +139,9 @@ class Hexapod():
 
         r = velocity_rew * 10 - \
             np.square(self.sim.data.actuator_force).mean() * 0.0001 - \
-            np.abs(roll) * 0.2 - \
-            np.square(pitch) * 0.2 - \
-            np.square(yaw) * 0.9 - \
+            np.abs(roll) * 0.01 - \
+            np.square(pitch) * 0.01 - \
+            np.square(yaw) * 0.1 - \
             np.square(y) * 0.3 - \
             np.square(zd) * 0.2
 
@@ -157,13 +159,20 @@ class Hexapod():
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(len(self.env_list), self.max_steps)
-            time.sleep(0.1)
+            time.sleep(0.3)
 
         self.viewer = None
         self.env_name = self.env_list[np.random.randint(0, len(self.env_list))]
 
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
-        self.model = mujoco_py.load_model_from_path(path)
+
+        while True:
+            try:
+                self.model = mujoco_py.load_model_from_path(path)
+                break
+            except Exception:
+                pass
+
         self.sim = mujoco_py.MjSim(self.model)
 
         self.model.opt.timestep = 0.02
@@ -279,18 +288,23 @@ class Hexapod():
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
             h, w, _ = hm.shape
             patchsize = 10
-            rnd_h = np.random.randint(0, h - patchsize)
-            rnd_w = np.random.randint(0, w - patchsize)
-            hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
-            hm = np.mean(hm, axis=2)
-            hm = 255 - cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
+            while True:
+                rnd_h = np.random.randint(0, h - patchsize)
+                rnd_w = np.random.randint(0, w - patchsize)
+                hm_tmp = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
+                #assert hm.shape == (10,10,3)
+                if np.min(hm_tmp[:, :2, :]) > 160: break
+
+            hm = np.mean(hm_tmp, axis=2)
+            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
+            hm = 255 - hm
             hm *= 0.5
             hm += 127
 
         if env_name == "bumps":
-            hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/bumps1.png"))
+            hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/bumps2.png"))
             h, w, _ = hm.shape
-            patchsize = 20
+            patchsize = 50
             rnd_h = np.random.randint(0, h - patchsize)
             rnd_w = np.random.randint(0, w - patchsize)
             hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]

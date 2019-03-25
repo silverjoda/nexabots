@@ -162,9 +162,9 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
-              "comments" : "blend 64:64:3", "Env_list" : env_list,
+    params = {"iters": 100000, "batchsize": 28, "gamma": 0.97, "lr": 0.001, "decay" : 0.001, "ppo": True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : True,
+              "comments" : "inverseholes V3 64:64:3", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -200,13 +200,14 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_BLEND_2_PG(env, hid_dim=64, memory_dim=64, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_PG(env, hid_dim=64, memory_dim=64, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_PG_U61_pg.p') # OEB good for holes
+        expert = T.load('agents/Hexapod_RNN_V3_PG_FYI_pg.p')
+        #expert = T.load('agents/Hexapod_RNN_BLEND_2_PG_K9Q_pg.p')
 
         env.test_recurrent(expert)
         #env.test_record(expert_rails, "C")

@@ -13,7 +13,7 @@ import string
 # from gym.utils import seeding
 
 class Hexapod:
-    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_tiles.xml")
+    MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_flat.xml")
     def __init__(self, animate=False):
 
         print("Trossen hexapod")
@@ -21,7 +21,7 @@ class Hexapod:
         self.leg_list = ["coxa_fl_geom","coxa_fr_geom","coxa_rr_geom","coxa_rl_geom","coxa_mr_geom","coxa_ml_geom"]
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 600
+        self.max_steps = 300
         self.mem_dim = 0
         self.cumulative_environment_reward = None
 
@@ -156,13 +156,14 @@ class Hexapod:
         # Reward conditions
         target_vel = 0.25
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
-        height_pen = np.square(zd)
 
-        r = velocity_rew * 4 * \
-             np.minimum(1 - abs(yaw) * 0.2, 1) * \
-             np.minimum(1 - height_pen * 0.1, 1) * \
-             np.minimum(1 - yd * 0.3, 1)
-
+        r = velocity_rew * 10 - \
+            np.square(self.sim.data.actuator_force).mean() * 0.0001 - \
+            np.abs(roll) * 0.1 - \
+            np.square(pitch) * 0.1 - \
+            np.square(yaw) * .1 - \
+            np.square(y) * 0.1 - \
+            np.square(zd) * 0.01
         r = np.clip(r, -2, 2)
 
         self.cumulative_environment_reward += r
@@ -175,12 +176,12 @@ class Hexapod:
                               obs_dict["contacts"],
                               mem])
 
-        if np.random.rand() < self.dead_leg_prob:
-            idx = np.random.randint(0,6)
-            self.dead_leg_vector[idx] = 1
-            self.dead_leg_sums[idx] += 1
-            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
-            self.dead_leg_prob = 0.
+        # if np.random.rand() < self.dead_leg_prob:
+        #     idx = np.random.randint(0,6)
+        #     self.dead_leg_vector[idx] = 1
+        #     self.dead_leg_sums[idx] += 1
+        #     self.model.geom_rgba[self.model._geom_name2id[self.leg_list[idx]]] = [1, 0, 0, 1]
+        #     self.dead_leg_prob = 0.
 
         return obs, r, done, obs_dict
 
@@ -193,7 +194,10 @@ class Hexapod:
         self.step_ctr = 0
 
         for i in range(6):
-            self.model.geom_rgba[self.model._geom_name2id[self.leg_list[i]]] = [0.0, 0.6, 0.4, 1]
+            if self.dead_leg_vector[i] ==0:
+                self.model.geom_rgba[self.model._geom_name2id[self.leg_list[i]]] = [0.0, 0.6, 0.4, 1]
+            else:
+                self.model.geom_rgba[self.model._geom_name2id[self.leg_list[i]]] = [1, 0, 0, 1]
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
@@ -207,11 +211,7 @@ class Hexapod:
 
         self.prev_act = np.zeros((self.act_dim - self.mem_dim))
 
-        obs_dict = self.get_obs_dict()
-        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[3:]),
-                              [0, 0],
-                              obs_dict["contacts"],
-                              np.zeros(self.mem_dim)])
+        obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         return obs
 

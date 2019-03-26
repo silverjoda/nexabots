@@ -1726,6 +1726,122 @@ class RNN_BLEND_2_PG(nn.Module):
         self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, n_temp, batch_first=True)
         self.fc2 = nn.Linear(self.memory_dim, self.n_experts)
 
+        self.fc_1_exp_1 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.fc_2_exp_1 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.fc_3_exp_1 = nn.Linear(self.memory_dim, self.memory_dim)
+
+        self.fc_1_exp_2 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.fc_2_exp_2 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.fc_3_exp_2 = nn.Linear(self.memory_dim, self.memory_dim)
+
+        self.fc_1_exp_3 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.fc_2_exp_3 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.fc_3_exp_3 = nn.Linear(self.memory_dim, self.memory_dim)
+
+        self.fc_1_exp_4 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.fc_2_exp_4 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.fc_3_exp_4 = nn.Linear(self.memory_dim, self.memory_dim)
+
+        self.fc_exp_f = nn.Linear(self.memory_dim, self.act_dim)
+
+        self.log_std_cpu = T.zeros(1, self.act_dim)
+
+
+    def print_info(self):
+        pass
+
+
+    def soft_clip_grads(self, bnd=0.5):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            if p.grad is None: continue
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            print("Soft clipping grads")
+
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def forward(self, input):
+        x, h = input
+
+        rnn_features = F.selu(self.fc1(x))
+        rnn_output, h = self.rnn(rnn_features, h)
+        coeffs = F.softmax(self.fc2(rnn_output), dim=2)
+
+        l1_cum = []
+        l1_cum.append(self.fc_1_exp_1(rnn_output) * coeffs[:, :, 0:1].repeat(1, 1, self.memory_dim))
+        l1_cum.append(self.fc_1_exp_2(rnn_output) * coeffs[:, :, 1:2].repeat(1, 1, self.memory_dim))
+        l1_cum.append(self.fc_1_exp_3(rnn_output) * coeffs[:, :, 2:3].repeat(1, 1, self.memory_dim))
+        l1_cum.append(self.fc_1_exp_4(rnn_output) * coeffs[:, :, 3:4].repeat(1, 1, self.memory_dim))
+        l1 = F.selu(T.stack(l1_cum).sum(0, keepdim=False))
+
+        l2_cum = []
+        l2_cum.append(self.fc_2_exp_1(l1) * coeffs[:, :, 0:1].repeat(1, 1, self.memory_dim))
+        l2_cum.append(self.fc_2_exp_2(l1) * coeffs[:, :, 1:2].repeat(1, 1, self.memory_dim))
+        l2_cum.append(self.fc_2_exp_3(l1) * coeffs[:, :, 2:3].repeat(1, 1, self.memory_dim))
+        l2_cum.append(self.fc_2_exp_4(l1) * coeffs[:, :, 3:4].repeat(1, 1, self.memory_dim))
+        l2 = F.selu(T.stack(l2_cum).sum(0, keepdim=False))
+
+        l3_cum = []
+        l3_cum.append(self.fc_3_exp_1(l2) * coeffs[:, :, 0:1].repeat(1, 1, self.memory_dim))
+        l3_cum.append(self.fc_3_exp_2(l2) * coeffs[:, :, 1:2].repeat(1, 1, self.memory_dim))
+        l3_cum.append(self.fc_3_exp_3(l2) * coeffs[:, :, 2:3].repeat(1, 1, self.memory_dim))
+        l3_cum.append(self.fc_3_exp_4(l2) * coeffs[:, :, 3:4].repeat(1, 1, self.memory_dim))
+        l3 = F.selu(T.stack(l3_cum).sum(0, keepdim=False))
+
+        if self.tanh:
+            output = T.tanh(self.fc_exp_f(l3))
+        else:
+            output = self.fc_exp_f(l3)
+
+        return output, h
+
+
+    def sample_action(self, s):
+        x, h = self.forward(s)
+        return T.normal(x[0], T.exp(self.log_std_cpu)), h
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means, _ = self.forward((batch_states, None))
+
+        # Calculate probabilities
+        if self.to_gpu:
+            log_std_batch = self.log_std_gpu.expand_as(action_means)
+        else:
+            log_std_batch = self.log_std_cpu.expand_as(action_means)
+
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(2, keepdim=True)
+
+
+class RNN_BLEND_3_PG(nn.Module):
+    def __init__(self, env, hid_dim=32, memory_dim=32, n_temp=3, n_experts=3, tanh=False, to_gpu=False):
+        super(RNN_BLEND_3_PG, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = hid_dim
+        self.n_experts = n_experts
+        self.memory_dim = memory_dim
+        self.tanh = tanh
+        self.to_gpu = to_gpu
+
+        self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
+        self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, n_temp, batch_first=True)
+        self.fc2 = nn.Linear(self.memory_dim, self.n_experts)
+
         self.fc_exp_1 = [nn.Linear(self.memory_dim, self.memory_dim) for _ in range(n_experts)]
         self.fc_exp_2 = [nn.Linear(self.memory_dim, self.memory_dim) for _ in range(n_experts)]
         self.fc_exp_3 = [nn.Linear(self.memory_dim, self.memory_dim) for _ in range(n_experts)]
@@ -1762,6 +1878,7 @@ class RNN_BLEND_2_PG(nn.Module):
         rnn_features = F.selu(self.fc1(x))
         rnn_output, h = self.rnn(rnn_features, h)
         coeffs = F.softmax(self.fc2(rnn_output), dim=2)
+        selection = None
 
         l1 = T.stack([fc(rnn_output) * coeffs[:, :, i:i+1].repeat(1,1,self.memory_dim) for i, fc in enumerate(self.fc_exp_1)]).sum(0, keepdim=False)
         l2 = T.stack([fc(l1) * coeffs[:, :, i:i+1].repeat(1,1,self.memory_dim) for i, fc in enumerate(self.fc_exp_2)]).sum(0, keepdim=False)

@@ -38,8 +38,8 @@ class Hexapod():
 
         self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
         self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
-        #self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
-        #self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
+        # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
+        # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.generate_hybrid_env(len(self.env_list), self.max_steps)
@@ -137,15 +137,18 @@ class Hexapod():
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        r = velocity_rew * 10 - \
-            np.square(self.sim.data.actuator_force).mean() * 0.0002 - \
-            np.abs(roll) * 0.3 - \
-            np.square(pitch) * 0.3 - \
-            np.square(yaw) * 1.0 - \
-            np.square(y) * 0.3 - \
-            np.square(zd) * 0.2
+        r_pos = velocity_rew * 5
+        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.0001 + \
+            np.abs(roll) * 0.05 + \
+            np.square(pitch) * 0.05 + \
+            np.square(yaw) * 0.3 + \
+            np.square(y) * 0.1 + \
+            np.square(zd) * 0.01
 
-        r = np.clip(r, -2, 2)
+
+        r_neg = np.clip(r_neg, 0, 1)
+        r_pos = np.clip(r_pos, -2, 2)
+        r = r_pos - r_neg
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps #or abs(roll) > 2 or abs(pitch) > 2

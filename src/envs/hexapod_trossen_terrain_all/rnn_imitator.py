@@ -370,15 +370,15 @@ def test():
 if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
     expert_flat = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),                                                            
-                         '../../algos/PG/agents/Hexapod_RNN_V3_PG_F57_pg.p'))
+                         '../../algos/PG/agents/Hexapod_RNN_V3_PG_XLZ_pg.p'))
     expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_RNN_V3_PG_GIW_pg.p'))
+                                      '../../algos/PG/agents/Hexapod_RNN_V3_PG_EEU_pg.p'))
     expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                       '../../algos/PG/agents/Hexapod_RNN_V3_PG_IPI_pg.p'))
     expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                       '../../algos/PG/agents/Hexapod_RNN_V3_PG_LT3_pg.p'))
-    expert_inversholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_RNN_V3_PG_MEQ_pg.p'))
+    # expert_inversholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                                   '../../algos/PG/agents/Hexapod_RNN_V3_PG_MEQ_pg.p'))
 
     if True:
         make_dataset(env_list=["flat", "tiles", "holes", "pipe"],

@@ -14,7 +14,7 @@ import socket
 from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
 
 
-def make_dataset(env_list, expert_dict, ID, N, n_envs):
+def make_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
     env = hex_env.Hexapod(env_list)
     length = n_envs * 200
 
@@ -65,7 +65,8 @@ def make_dataset(env_list, expert_dict, ID, N, n_envs):
             s, r, done, od, = env.step(action)
             cr += r
 
-            #env.render()
+            if render:
+                env.render()
 
         # if cr < 50:
         #     continue
@@ -379,9 +380,9 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     expert_inversholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                       '../../algos/PG/agents/Hexapod_RNN_V3_PG_MEQ_pg.p'))
 
-    if False:
+    if True:
         make_dataset(env_list=["flat", "tiles", "holes", "pipe"],
                      expert_dict = {"flat" : expert_flat, "tiles" : expert_tiles, "holes" : expert_holes, "pipe" : expert_pipe},
-                     ID="A", N=10, n_envs=3)
-    if True:
+                     ID="A", N=10, n_envs=3, render=True)
+    if False:
         imitate_multiple(n_classes=4)

@@ -1394,6 +1394,8 @@ class RNN_V3_PG(nn.Module):
     def forward(self, input):
         x, h = input
         x = F.selu(self.fc1(x))
+dd
+        # TODO: FIx here !! Wrong input
 
         output, h = self.rnn(x, h)
 

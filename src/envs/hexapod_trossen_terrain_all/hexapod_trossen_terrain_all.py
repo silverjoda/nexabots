@@ -31,7 +31,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.max_steps = len(self.env_list) * 200
-        self.env_change_prob = 0.05
+        self.env_change_prob = 0.2
         self.env_width = 30
         self.n_envs = 3
         self.cumulative_environment_reward = None
@@ -138,10 +138,11 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r_pos = velocity_rew * 5
-        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.0001 + \
+        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00003 + \
+            np.square(ctrl) * 0.001 + \
             np.abs(roll) * 0.05 + \
             np.square(pitch) * 0.05 + \
-            np.square(yaw) * 0.3 + \
+            np.square(yaw) * 0.5 + \
             np.square(y) * 0.1 + \
             np.square(zd) * 0.01
 
@@ -269,7 +270,7 @@ class Hexapod():
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 25,
+            hm = np.random.randint(0, 18,
                                    size=(self.env_width // 3, env_length // 16),
                                    dtype=np.uint8).repeat(3, axis=0).repeat(16, axis=1) + 127
 

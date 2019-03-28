@@ -1,0 +1,4 @@
+# My aliases
+alias sync_nexabots_goedel='rsync -r /home/silverjoda/PycharmProjects/nexabots azayetey@goedel:/home.stud/azayetey/SW/'
+alias retrieve_pg_agents='rsync -r azayetey@goedel:/home.stud/azayetey/SW/nexabots/src/algos/PG/agents/ /home/silverjoda/PycharmProjects/nexabots/src/algos/PG/agents/'
+alias ssh_goedel='ssh azayetey@goedel'

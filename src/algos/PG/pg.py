@@ -208,7 +208,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["inverseholes"]  # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["flat"]  # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
@@ -261,10 +261,12 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        # p_flat = T.load('agents/Hexapod_NN_PG_1P5_pg.p')
-        # p_pipe = T.load('agents/Hexapod_NN_PG_WCM_pg.p')
-        #p_tiles= T.load('agents/Hexapod_NN_PG_5IX_pg.p')
-        policy = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
+        p_flat = T.load('agents/Hexapod_NN_PG_K55_pg.p')
+        p_tiles = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
+        p_holes = T.load('agents/Hexapod_NN_PG_OEO_pg.p')
+        p_pipe = T.load('agents/Hexapod_NN_PG_HIS_pg.p')
+        p_inverseholes = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
+        #policy = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
 
-        env.test(policy)
+        env.test(p_inverseholes)
         #env.test_adapt(p_flat, p_pipe, "C")

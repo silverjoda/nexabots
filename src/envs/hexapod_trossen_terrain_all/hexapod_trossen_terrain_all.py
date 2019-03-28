@@ -17,7 +17,7 @@ class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
-    def __init__(self, env_list=None):
+    def __init__(self, env_list=None, max_n_envs=3):
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
@@ -30,10 +30,10 @@ class Hexapod():
         self.ID = '_'.join(self.env_list)
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = len(self.env_list) * 200
+        self.n_envs = np.minimum(max_n_envs, len(self.env_list))
+        self.max_steps = self.n_envs * 200
         self.env_change_prob = 0.2
         self.env_width = 30
-        self.n_envs = 3
         self.cumulative_environment_reward = None
 
         self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
@@ -42,7 +42,7 @@ class Hexapod():
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.generate_hybrid_env(len(self.env_list), self.max_steps)
+        self.generate_hybrid_env(self.n_envs, self.max_steps)
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -138,14 +138,13 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r_pos = velocity_rew * 5
-        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00003 + \
-            np.square(ctrl) * 0.001 + \
-            np.abs(roll) * 0.05 + \
-            np.square(pitch) * 0.05 + \
-            np.square(yaw) * 0.5 + \
+        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00005 + \
+            np.square(ctrl).mean() * 0.03 + \
+            np.abs(roll) * 0.1 + \
+            np.square(pitch) * 0.1 + \
+            np.square(yaw) * 0.3 + \
             np.square(y) * 0.1 + \
-            np.square(zd) * 0.01
-
+            np.square(zd) * 0.3
 
         r_neg = np.clip(r_neg, 0, 1)
         r_pos = np.clip(r_pos, -2, 2)
@@ -162,12 +161,10 @@ class Hexapod():
 
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
-            self.generate_hybrid_env(len(self.env_list), self.max_steps)
+            self.generate_hybrid_env(self.n_envs, self.max_steps)
             time.sleep(0.3)
 
         self.viewer = None
-        self.env_name = self.env_list[np.random.randint(0, len(self.env_list))]
-
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
 
         while True:
@@ -388,7 +385,7 @@ class Hexapod():
         for i in range(100):
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps * 2):
+            for j in range(self.max_steps):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r

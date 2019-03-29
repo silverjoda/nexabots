@@ -216,7 +216,7 @@ if __name__=="__main__":
 
     params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "cp, rnd, po", "ID" : ID}
+              "note" : "high ctrl pen", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -261,12 +261,13 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        p_flat = T.load('agents/Hexapod_NN_PG_K55_pg.p')
+        #p_flat = T.load('agents/Hexapod_NN_PG_K55_pg.p')
+        p_flat = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
         p_tiles = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
         p_holes = T.load('agents/Hexapod_NN_PG_OEO_pg.p')
         p_pipe = T.load('agents/Hexapod_NN_PG_HIS_pg.p')
         p_inverseholes = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
         #policy = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
 
-        env.test(p_inverseholes)
+        env.test(p_flat)
         #env.test_adapt(p_flat, p_pipe, "C")

@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["flat", "tiles", "holes", "pipe", "inverseholes", "bumps"]
+            self.env_list = ["flat", "tiles", "holes", "pipe", "inverseholes"]
         else:
             self.env_list = env_list
 
@@ -35,6 +35,12 @@ class Hexapod():
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
+
+        self.difficulty = 1.
+        self.episode_reward = 0
+        self.max_episode_reward = 0
+        self.average_episode_reward = 0
+
 
         self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
         self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
@@ -92,6 +98,7 @@ class Hexapod():
 
         # Contacts:
         od['contacts'] = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
+
         return od
 
 
@@ -138,17 +145,19 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r_pos = velocity_rew * 5
-        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00005 + \
-            np.square(ctrl).mean() * 0.03 + \
+        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00003 + \
+            np.square(ctrl).mean() * 0.5 + \
             np.abs(roll) * 0.1 + \
             np.square(pitch) * 0.1 + \
             np.square(yaw) * 0.3 + \
             np.square(y) * 0.1 + \
-            np.square(zd) * 0.3
+            np.square(zd) * 0.2 + \
+            np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
-        r_neg = np.clip(r_neg, 0, 1)
+        r_neg = np.clip(r_neg, 0, 1) * 1
         r_pos = np.clip(r_pos, -2, 2)
         r = r_pos - r_neg
+        self.episode_reward += r
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps #or abs(roll) > 2 or abs(pitch) > 2
@@ -162,7 +171,21 @@ class Hexapod():
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(self.n_envs, self.max_steps)
+            #print("Difficulty: {}".format(self.difficulty))
             time.sleep(0.3)
+
+        self.max_episode_reward = np.maximum(self.max_episode_reward, self.episode_reward)
+
+        # if self.episode_reward >= self.average_episode_reward + np.abs(self.average_episode_reward) * 0.0:
+        #     self.difficulty = np.minimum(self.difficulty + 0.01, 7)
+        # else:
+        #     self.difficulty = np.maximum(self.difficulty - 0.002, 1)
+
+        if self.episode_reward >= self.max_episode_reward:
+            self.difficulty = np.minimum(self.difficulty + 0.1, 7)
+
+        self.episode_reward = 0
+        self.average_episode_reward = self.average_episode_reward * 0.1 + self.average_episode_reward * 0.99
 
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)

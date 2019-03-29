@@ -163,7 +163,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
               "comments" : "V3 - LN, all 96:96:3", "Env_list" : env_list,
               "ID": ID}
 

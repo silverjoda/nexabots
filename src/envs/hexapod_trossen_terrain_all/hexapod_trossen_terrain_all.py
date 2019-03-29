@@ -22,6 +22,7 @@ class Hexapod():
 
         if env_list is None:
             self.env_list = ["flat", "tiles", "holes", "pipe", "inverseholes"]
+            self.env_list = ["flat"]
         else:
             self.env_list = env_list
 
@@ -147,7 +148,7 @@ class Hexapod():
 
         r_pos = velocity_rew * 5
         r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00003 + \
-            np.square(ctrl).mean() * 0.5 + \
+            np.square(ctrl).mean() * 0.1 + \
             np.abs(roll) * 0.1 + \
             np.square(pitch) * 0.1 + \
             np.square(yaw) * 0.3 + \
@@ -218,11 +219,12 @@ class Hexapod():
             self.hf_data = self.model.hfield_data
             self.hf_ncol = self.model.hfield_ncol[0]
             self.hf_nrow = self.model.hfield_nrow[0]
-            self.hf_column_meters = self.model.hfield_size[0][0]
-            self.hf_row_meters = self.model.hfield_size[0][1]
+            self.hf_column_meters = self.model.hfield_size[0][0] * 2
+            self.hf_row_meters = self.model.hfield_size[0][1] * 2
             self.hf_grid = self.hf_data.reshape((self.hf_nrow, self.hf_ncol))
             self.hf_grid_aug = np.zeros((self.hf_nrow * 2, self.hf_ncol * 2))
-            self.hf_grid_aug[self.hf_nrow:, self.hf_ncol:] = self.hf_grid
+            self.hf_grid_aug[int(self.hf_nrow / 2):self.hf_nrow + int(self.hf_nrow / 2),
+            int(self.hf_ncol / 2):self.hf_ncol + int(self.hf_ncol / 2)] = self.hf_grid
             self.pixels_per_column = self.hf_ncol / float(self.hf_column_meters)
             self.pixels_per_row = self.hf_nrow / float(self.hf_row_meters)
             self.x_offset = 0.3
@@ -254,7 +256,7 @@ class Hexapod():
 
         x,y = self.sim.get_state().qpos.tolist()[:2]
         #print("x,y: ", x , y)
-        #test_patch = self.get_local_hf(x,y)
+        test_patch = self.get_local_hf(x,y)
 
         return obs
 

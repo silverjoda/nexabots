@@ -13,7 +13,6 @@ import string
 import socket
 from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
 
-
 def make_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
     env = hex_env.Hexapod(env_list)
     length = n_envs * 200
@@ -503,7 +502,7 @@ def test_classifier_reactive_policies(policy_dict, env_list):
     # Test visually
     while True:
         current_env = "flat"
-        env_idx = np.random.randint(0,3)
+        env_idx = np.random.randint(0, 3)
         rnd_idx = np.random.randint(0, 3)
         s = env.reset()
         h_c = None
@@ -567,6 +566,6 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         classify_multiple(n_classes=3, iters=20000)
     if True:
-        #test(env_list)
+        test(env_list)
         #test_classifier(expert_dict, env_list)
-        test_classifier_reactive_policies(expert_dict, env_list)
+        #test_classifier_reactive_policies(expert_dict, env_list)

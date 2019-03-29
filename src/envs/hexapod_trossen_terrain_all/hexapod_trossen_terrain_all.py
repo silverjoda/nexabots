@@ -25,8 +25,6 @@ class Hexapod():
         else:
             self.env_list = env_list
 
-        # self.env_list = ["holes", "tiles", "inverseholes"]
-
         self.ID = '_'.join(self.env_list)
 
         self.modelpath = Hexapod.MODELPATH
@@ -41,12 +39,15 @@ class Hexapod():
         self.max_episode_reward = 0
         self.average_episode_reward = 0
 
-
         self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
         self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
         # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.use_HF = True
+        self.HF_width = 6
+        self.HF_length = 10
 
         self.generate_hybrid_env(self.n_envs, self.max_steps)
         self.reset()
@@ -163,7 +164,8 @@ class Hexapod():
         done = self.step_ctr > self.max_steps #or abs(roll) > 2 or abs(pitch) > 2
         obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
                               [roll, pitch, yaw, y, xd, thd, phid],
-                              obs_dict["contacts"]])
+                              obs_dict["contacts"],
+                              self.get_local_hf(x,y).flatten()])
 
         return obs, r, done, obs_dict
 
@@ -205,17 +207,31 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 31
+        self.obs_dim = 31 + self.HF_width * self.HF_length
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Reset env variables
         self.step_ctr = 0
         self.episodes = 0
 
+        if self.use_HF:
+            self.hf_data = self.model.hfield_data
+            self.hf_ncol = self.model.hfield_ncol[0]
+            self.hf_nrow = self.model.hfield_nrow[0]
+            self.hf_column_meters = self.model.hfield_size[0][0]
+            self.hf_row_meters = self.model.hfield_size[0][1]
+            self.hf_grid = self.hf_data.reshape((self.hf_nrow, self.hf_ncol))
+            self.hf_grid_aug = np.zeros((self.hf_nrow * 2, self.hf_ncol * 2))
+            self.hf_grid_aug[self.hf_nrow:, self.hf_ncol:] = self.hf_grid
+            self.pixels_per_column = self.hf_ncol / float(self.hf_column_meters)
+            self.pixels_per_row = self.hf_nrow / float(self.hf_row_meters)
+            self.x_offset = 0.3
+            self.y_offset = 0.6
+
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = 0.0 # np.random.rand() * 4 - 4
-        init_q[1] = 0 # np.random.rand() * 8 - 4
+        init_q[1] = 0.0 # np.random.rand() * 8 - 4
         init_q[2] = 0.10
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
@@ -236,7 +252,24 @@ class Hexapod():
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
+        x,y = self.sim.get_state().qpos.tolist()[:2]
+        #print("x,y: ", x , y)
+        #test_patch = self.get_local_hf(x,y)
+
         return obs
+
+
+    def get_local_hf(self, x, y):
+        x_coord = int((x + self.x_offset) * self.pixels_per_column)
+        y_coord = int((y + self.y_offset) * self.pixels_per_row)
+
+        # Get heighfield patch
+        patch = self.hf_grid_aug[self.hf_nrow + (y_coord - int(0.3 * self.pixels_per_row)):self.hf_nrow + y_coord + int(0.3 * self.pixels_per_row),
+                self.hf_ncol + x_coord - int(0.4 * self.pixels_per_column):self.hf_ncol + x_coord + int(0.6 * self.pixels_per_column)]
+
+        # Resize patch to correct dims
+        patch_rs = cv2.resize(patch, (self.HF_length, self.HF_width), interpolation=cv2.INTER_NEAREST)
+        return patch_rs
 
 
     def generate_hybrid_env(self, n_envs, steps):

@@ -22,9 +22,9 @@ class Hexapod():
 
         if env_list is None:
             self.env_list = ["flat", "tiles", "holes", "pipe", "inverseholes"]
-            self.env_list = ["flat"]
         else:
             self.env_list = env_list
+
 
         self.ID = '_'.join(self.env_list)
 
@@ -147,10 +147,10 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r_pos = velocity_rew * 5
-        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00003 + \
+        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00005 + \
             np.square(ctrl).mean() * 0.1 + \
-            np.abs(roll) * 0.1 + \
-            np.square(pitch) * 0.1 + \
+            np.abs(roll) * 0.2 + \
+            np.square(pitch) * 0.2 + \
             np.square(yaw) * 0.3 + \
             np.square(y) * 0.1 + \
             np.square(zd) * 0.2 + \
@@ -163,10 +163,16 @@ class Hexapod():
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps #or abs(roll) > 2 or abs(pitch) > 2
-        obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                              [roll, pitch, yaw, y, xd, thd, phid],
-                              obs_dict["contacts"],
-                              self.get_local_hf(x,y).flatten()])
+
+
+        if self.use_HF:
+            obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
+                                  [roll, pitch, yaw, y, xd, thd, phid],
+                                  obs_dict["contacts"], self.get_local_hf(x,y).flatten()])
+        else:
+            obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
+                                  [roll, pitch, yaw, y, xd, thd, phid],
+                                  obs_dict["contacts"]])
 
         return obs, r, done, obs_dict
 
@@ -208,8 +214,11 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 31 + self.HF_width * self.HF_length
+        self.obs_dim = 31
         self.act_dim = self.sim.data.actuator_length.shape[0]
+
+        if self.use_HF:
+            self.obs_dim += self.HF_width * self.HF_length
 
         # Reset env variables
         self.step_ctr = 0
@@ -256,7 +265,7 @@ class Hexapod():
 
         x,y = self.sim.get_state().qpos.tolist()[:2]
         #print("x,y: ", x , y)
-        test_patch = self.get_local_hf(x,y)
+        #test_patch = self.get_local_hf(x,y)
 
         return obs
 
@@ -266,8 +275,8 @@ class Hexapod():
         y_coord = int((y + self.y_offset) * self.pixels_per_row)
 
         # Get heighfield patch
-        patch = self.hf_grid_aug[self.hf_nrow + (y_coord - int(0.3 * self.pixels_per_row)):self.hf_nrow + y_coord + int(0.3 * self.pixels_per_row),
-                self.hf_ncol + x_coord - int(0.4 * self.pixels_per_column):self.hf_ncol + x_coord + int(0.6 * self.pixels_per_column)]
+        patch = self.hf_grid_aug[self.hf_nrow + (y_coord - int(0.35 * self.pixels_per_row)):self.hf_nrow + y_coord + int(0.35 * self.pixels_per_row),
+                self.hf_ncol + x_coord - int(0.4 * self.pixels_per_column):self.hf_ncol + x_coord + int(0.65 * self.pixels_per_column)]
 
         # Resize patch to correct dims
         patch_rs = cv2.resize(patch, (self.HF_length, self.HF_width), interpolation=cv2.INTER_NEAREST)
@@ -373,7 +382,18 @@ class Hexapod():
         if env_name == "stairs":
             pass
 
+        if env_name == "verts":
+            wdiv = 4
+            ldiv = 14
+            hm = np.random.randint(0, 75,
+                                   size=(self.env_width // wdiv, env_length // ldiv),
+                                   dtype=np.uint8).repeat(wdiv, axis=0).repeat(ldiv, axis=1)
+            hm[:, :50] = 0
+            hm[hm < 50] = 0
+            hm = 75 - hm
+
         return hm
+
 
     def demo(self):
         self.reset()
@@ -440,10 +460,11 @@ class Hexapod():
 
     def test(self, policy):
         #self.envgen.load()
+        self.env_change_prob = 1
         for i in range(100):
             obs = self.reset()
             cr = 0
-            for j in range(self.max_steps):
+            for j in range(int(self.max_steps * 1.5)):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r

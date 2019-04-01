@@ -163,7 +163,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
-              "tanh" : True, "ppo_update_iters": 6, "animate": False, "train" : True,
+              "tanh" : True, "ppo_update_iters": 6, "animate": True, "train" : False,
               "comments" : "V3 - LN, all 96:96:3", "Env_list" : env_list,
               "ID": ID}
 
@@ -187,7 +187,7 @@ if __name__=="__main__":
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
     from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(env_list=env_list, max_n_envs=2)
+    env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
 
     #from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
@@ -206,7 +206,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_NS1_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_T0Z_pg.p')
         #expert = T.load('agents/Hexapod_RNN_BLEND_2_PG_K9Q_pg.p')
 
         env.test_recurrent(expert)

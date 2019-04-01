@@ -132,7 +132,7 @@ def make_reactive_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
             states.append(s)
             labels.append(env_list.index(current_env))
             action = policy((my_utils.to_tensor(s, True)))
-            action = action[0].detach().numpy()
+            action = action[0].detach().numpy() + np.random.randn(env.act_dim) * 0.1
             acts.append(action)
             s, r, done, od, = env.step(action)
             cr += r
@@ -140,7 +140,7 @@ def make_reactive_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
             if render:
                 env.render()
 
-        if cr < 100:
+        if cr < 50:
             continue
         ctr += 1
 
@@ -536,6 +536,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     # expert_inversholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
     #                                   '../../algos/PG/agents/Hexapod_RNN_V3_PG_MEQ_pg.p'))
 
+
     reactive_expert_flat = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                       '../../algos/PG/agents/Hexapod_NN_PG_K55_pg.p'))
     reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -543,29 +544,29 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     reactive_expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                        '../../algos/PG/agents/Hexapod_NN_PG_OEO_pg.p'))
     reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_NN_PG_HIS_pg.p'))
+                                      '../../algos/PG/agents/Hexapod_NN_PG_HM3_pg.p'))
     reactive_expert_inverseholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                '../../algos/PG/agents/Hexapod_NN_PG_K9B_pg.p'))
 
-    env_list = ["flat", "holes", "pipe"]
+    env_list = ["tiles", "holes", "pipe"]
     expert_dict = {"flat" : reactive_expert_flat, "tiles" : reactive_expert_tiles, "holes" : reactive_expert_holes, "pipe" : reactive_expert_pipe}
-    # if False:
-    #     make_dataset(env_list=env_list,
-    #                  expert_dict = expert_dict,
-    #                  ID="A", N=1000, n_envs=3, render=False)
     if False:
+        make_dataset(env_list=env_list,
+                     expert_dict = expert_dict,
+                     ID="A", N=1000, n_envs=3, render=False)
+    if True:
         make_reactive_dataset(env_list=env_list,
                      expert_dict = expert_dict,
-                     ID="REACTIVE", N=1000, n_envs=3, render=False)
+                     ID="REACTIVE", N=3000, n_envs=3, render=False)
     if False:
         make_classif_dataset(env_list=env_list,
                               expert_dict=expert_dict,
                               ID="A", N=1000, n_envs=3, render=False)
     if False:
         imitate_multiple(n_classes=3, iters=20000)
-    if False:
-        classify_multiple(n_classes=3, iters=20000)
     if True:
+        classify_multiple(n_classes=3, iters=20000)
+    if False:
         test(env_list)
         #test_classifier(expert_dict, env_list)
         #test_classifier_reactive_policies(expert_dict, env_list)

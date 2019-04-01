@@ -208,14 +208,14 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["inverseholes"]  # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["verts"]# ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "HF", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -255,19 +255,20 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 128, tanh=False)
+        policy = policies.NN_PG(env, 96, tanh=False)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
 
-        #p_flat = T.load('agents/Hexapod_NN_PG_K55_pg.p')
-        p_flat = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
+        p_flat = T.load('agents/Hexapod_NN_PG_AJX_pg.p')
+        #p_flat = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
         p_tiles = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
         p_holes = T.load('agents/Hexapod_NN_PG_OEO_pg.p')
-        p_pipe = T.load('agents/Hexapod_NN_PG_HIS_pg.p')
+        p_pipe = T.load('agents/Hexapod_NN_PG_HM3_pg.p')
         p_inverseholes = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
-        #policy = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
 
-        env.test(p_flat)
+        policy = T.load('agents/Hexapod_NN_PG_3S8_pg.p')
+
+        env.test(policy)
         #env.test_adapt(p_flat, p_pipe, "C")

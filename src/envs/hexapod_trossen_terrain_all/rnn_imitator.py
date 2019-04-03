@@ -140,7 +140,7 @@ def make_reactive_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
             if render:
                 env.render()
 
-        if cr < 50:
+        if cr < 200:
             continue
         ctr += 1
 
@@ -323,7 +323,6 @@ def classify_multiple(n_classes, iters):
 
     N_EPS, EP_LEN, OBS_DIM = expert_states.shape
 
-
     for i in range(iters):
         # Make batch of episodes
         batch_states = []
@@ -366,7 +365,6 @@ def classify_multiple(n_classes, iters):
             tst_loss_clasifier = (pred == labs).sum().cpu().detach().numpy() / (pred.shape[0] / 1.0)
 
             print("Iter: {}/{}, trn_loss_classifier: {}, tst_loss_classifier: {}".format(i, iters, trn_loss_clasifier, tst_loss_clasifier))
-
 
 
     classifier = classifier.cpu()
@@ -548,25 +546,27 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     reactive_expert_inverseholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                '../../algos/PG/agents/Hexapod_NN_PG_K9B_pg.p'))
 
+
+
     env_list = ["tiles", "holes", "pipe"]
     expert_dict = {"flat" : reactive_expert_flat, "tiles" : reactive_expert_tiles, "holes" : reactive_expert_holes, "pipe" : reactive_expert_pipe}
     if False:
         make_dataset(env_list=env_list,
                      expert_dict = expert_dict,
                      ID="A", N=1000, n_envs=3, render=False)
-    if True:
+    if False:
         make_reactive_dataset(env_list=env_list,
                      expert_dict = expert_dict,
-                     ID="REACTIVE", N=3000, n_envs=3, render=False)
+                     ID="REACTIVE", N=1000, n_envs=3, render=False)
     if False:
         make_classif_dataset(env_list=env_list,
                               expert_dict=expert_dict,
-                              ID="A", N=1000, n_envs=3, render=False)
+                              ID="A", N=2000, n_envs=3, render=False)
     if False:
         imitate_multiple(n_classes=3, iters=20000)
-    if True:
-        classify_multiple(n_classes=3, iters=20000)
     if False:
-        test(env_list)
+        classify_multiple(n_classes=3, iters=20000)
+    if True:
+        #test(env_list)
         #test_classifier(expert_dict, env_list)
-        #test_classifier_reactive_policies(expert_dict, env_list)
+        test_classifier_reactive_policies(expert_dict, env_list)

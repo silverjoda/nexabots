@@ -46,7 +46,7 @@ class Hexapod():
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.use_HF = True
+        self.use_HF = False
         self.HF_width = 6
         self.HF_length = 10
 
@@ -174,6 +174,7 @@ class Hexapod():
                                   [roll, pitch, yaw, y, xd, thd, phid],
                                   obs_dict["contacts"]])
 
+
         return obs, r, done, obs_dict
 
 
@@ -263,7 +264,7 @@ class Hexapod():
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
-        x,y = self.sim.get_state().qpos.tolist()[:2]
+        #x,y = self.sim.get_state().qpos.tolist()[:2]
         #print("x,y: ", x , y)
         #test_patch = self.get_local_hf(x,y)
 
@@ -334,7 +335,7 @@ class Hexapod():
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 18,
+            hm = np.random.randint(0, 24,
                                    size=(self.env_width // 3, env_length // 16),
                                    dtype=np.uint8).repeat(3, axis=0).repeat(16, axis=1) + 127
 

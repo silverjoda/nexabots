@@ -1378,6 +1378,8 @@ class RNN_CLASSIF_ENV(nn.Module):
         self.n_classes = n_classes
         self.to_gpu = to_gpu
 
+        self.m1 = nn.LayerNorm(self.obs_dim)
+
         self.rnn = nn.LSTM(self.obs_dim, self.memory_dim, n_temp, batch_first=True)
         self.fc1 = nn.Linear(self.obs_dim, self.obs_dim)
         self.fc2 = nn.Linear(self.obs_dim + self.memory_dim, self.hid_dim)
@@ -1408,7 +1410,7 @@ class RNN_CLASSIF_ENV(nn.Module):
 
     def forward(self, input):
         x, h = input
-        x = F.selu(self.fc1(x))
+        x = F.selu(self.m1(self.fc1(x)))
 
         output, h = self.rnn(x, h)
 

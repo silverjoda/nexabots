@@ -46,9 +46,15 @@ class Hexapod():
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.use_HF = True
-        self.HF_width = 6
-        self.HF_length = 10
+        # self.criteria_pen_range_dict = {"vel" : [0.15, 0.4],
+        #                                 "height" : [-0.46, -0.35],
+        #                                 "torque" : [0.00001, 0.0007],
+        #                                 "joints" : [0.01, 0.3],
+        #                                 "level" : [0.01, 0.3]}
+
+        self.criteria_pen_range_dict = {
+                                        "height": [-0.46, -0.35]
+                                       }
 
         self.generate_hybrid_env(self.n_envs, self.max_steps)
         self.reset()
@@ -134,68 +140,48 @@ class Hexapod():
         self.step_ctr += 1
 
         obs = self.get_obs()
+        obs_dict = self.get_obs_dict()
 
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
-        xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
         # Reward conditions
         target_vel = 0.25
-        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
+        velocity_rew = (1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)) * (1 / target_vel)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        r_pos = velocity_rew * 5
-        #
-        # r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
-        #         np.square(ctrl).mean() * 0.01 + \
-        #         np.clip(np.square(xa) * 0.03, -0.5, 0.5) + \
-        #         np.square(thd) * 0.1 + \
-        #         np.square(phid) * 0.1 + \
-        #         np.square(psid) * 0.1 + \
-        #         np.square(roll) * 0.3 + \
-        #         np.square(pitch) * 0.3 + \
-        #         np.square(yaw) * 0.6 + \
-        #         np.square(y) * 0.1 + \
-        #         np.square(yd) * 1.5 + \
-        #         np.square(zd) * 1.5 + \
-        #         np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
+        r_pos = velocity_rew
+        # r_neg = np.square(self.target_criteria_dict["height"] - z) + \
+        #         np.square(self.sim.data.actuator_force).mean() * self.target_criteria_dict["torque"] + \
+        #         np.square(ctrl).mean() * self.target_criteria_dict["joints"] + \
+        #         np.square(roll) * self.target_criteria_dict["level"] + \
+        #         np.square(pitch) * self.target_criteria_dict["level"] + \
+        #         np.square(yaw) * 0.2
 
-        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
-            np.square(ctrl).mean() * 0.01 + \
-            np.square(roll) * 0.1 + \
-            np.square(pitch) * 0.1 + \
-            np.square(yaw) * 0.2 + \
-            np.square(y) * 0.1 + \
-            np.square(yd) * 0.5 + \
-            np.square(zd) * 0.5 + \
-            np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
+        r_neg = np.square(self.target_criteria_dict["height"] - z) * 50 + \
+                np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
+                np.square(roll) * 0.1 + \
+                np.square(pitch) * 0.1 + \
+                np.square(yaw) * 0.2
 
-        r_neg = np.clip(r_neg, 0, 1) * 1
+        r_neg = np.clip(r_neg, 0, 2.0) * 1
         r_pos = np.clip(r_pos, -2, 2)
         r = r_pos - r_neg
         self.episode_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
-
-        contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
+        done = self.step_ctr > self.max_steps # or abs(roll) > 2 or abs(pitch) > 2
 
 
-        if self.use_HF:
-            obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                                  np.array(self.sim.get_state().qvel.tolist()),
-                                  [roll, pitch, yaw, y],
-                                  contacts, self.get_local_hf(x,y).flatten()])
-        else:
-            obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                                  np.array(self.sim.get_state().qvel.tolist()),
-                                  [roll, pitch, yaw, y],
-                                  contacts])
+        obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+                              self.sim.get_state().qvel.tolist()[6:],
+                              self.target_criteria_norm,
+                              [roll, pitch, yaw, y, z, xd, yd, thd, phid],
+                              obs_dict["contacts"]])
 
-
-        return obs, r, done, None
+        return obs, r, done, obs_dict
 
 
     def reset(self, init_pos = None):
@@ -228,37 +214,24 @@ class Hexapod():
                 pass
 
         self.sim = mujoco_py.MjSim(self.model)
-
         self.model.opt.timestep = 0.02
+
+        # Set episode targets
+        self.target_criteria_norm = np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1
+        self.target_criteria_dict = {}
+        for i, (k, v) in enumerate(self.criteria_pen_range_dict.items()):
+            self.target_criteria_dict[k] = ((self.target_criteria_norm[i] + 1) * 0.5) * abs(v[1] - v[0]) + v[0]
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 18 * 2 + 6 + 4 + 6
+        self.obs_dim = 18 * 2 + 9 + len(self.target_criteria_dict) + 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
-
-        if self.use_HF:
-            self.obs_dim += self.HF_width * self.HF_length
 
         # Reset env variables
         self.step_ctr = 0
         self.episodes = 0
-
-        if self.use_HF:
-            self.hf_data = self.model.hfield_data
-            self.hf_ncol = self.model.hfield_ncol[0]
-            self.hf_nrow = self.model.hfield_nrow[0]
-            self.hf_column_meters = self.model.hfield_size[0][0] * 2
-            self.hf_row_meters = self.model.hfield_size[0][1] * 2
-            self.hf_grid = self.hf_data.reshape((self.hf_nrow, self.hf_ncol))
-            self.hf_grid_aug = np.zeros((self.hf_nrow * 2, self.hf_ncol * 2))
-            self.hf_grid_aug[int(self.hf_nrow / 2):self.hf_nrow + int(self.hf_nrow / 2),
-            int(self.hf_ncol / 2):self.hf_ncol + int(self.hf_ncol / 2)] = self.hf_grid
-            self.pixels_per_column = self.hf_ncol / float(self.hf_column_meters)
-            self.pixels_per_row = self.hf_nrow / float(self.hf_row_meters)
-            self.x_offset = 0.3
-            self.y_offset = 0.6
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
@@ -271,40 +244,20 @@ class Hexapod():
             init_q[0:3] += init_pos
 
         # Init_quat
-        self.rnd_yaw = np.random.randn() * 0.2
+        self.rnd_yaw = np.random.randn() * 0.3
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(40):
+        for i in range(30):
             self.sim.forward()
             self.sim.step()
 
-        # self.render()
-        # time.sleep(3)
-
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
-        #x,y = self.sim.get_state().qpos.tolist()[:2]
-        #print("x,y: ", x , y)
-        #test_patch = self.get_local_hf(x,y)
-
         return obs
-
-
-    def get_local_hf(self, x, y):
-        x_coord = int((x + self.x_offset) * self.pixels_per_column)
-        y_coord = int((y + self.y_offset) * self.pixels_per_row)
-
-        # Get heighfield patch
-        patch = self.hf_grid_aug[self.hf_nrow + (y_coord - int(0.35 * self.pixels_per_row)):self.hf_nrow + y_coord + int(0.35 * self.pixels_per_row),
-                self.hf_ncol + x_coord - int(0.4 * self.pixels_per_column):self.hf_ncol + x_coord + int(0.65 * self.pixels_per_column)]
-
-        # Resize patch to correct dims
-        patch_rs = cv2.resize(patch, (self.HF_length, self.HF_width), interpolation=cv2.INTER_NEAREST)
-        return patch_rs
 
 
     def generate_hybrid_env(self, n_envs, steps):

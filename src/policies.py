@@ -838,7 +838,7 @@ class ConvPolicy30_PG(nn.Module):
 
 
 class NN_PG(nn.Module):
-    def __init__(self, env, hid_dim=64, tanh=False):
+    def __init__(self, env, hid_dim=64, tanh=False, std_fixed=True):
         super(NN_PG, self).__init__()
         self.obs_dim = env.obs_dim
         self.act_dim = env.act_dim
@@ -851,8 +851,97 @@ class NN_PG(nn.Module):
         self.m2 = nn.LayerNorm(hid_dim)
         self.fc3 = nn.Linear(hid_dim, self.act_dim)
 
-        #self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
-        self.log_std = T.zeros(1, self.act_dim)
+        if std_fixed:
+            self.log_std = T.zeros(1, self.act_dim)
+        else:
+            self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
+
+
+    def forward(self, x):
+        x = F.relu(self.m1(self.fc1(x)))
+        x = F.relu(self.m2(self.fc2(x)))
+        if self.tanh:
+            x = T.tanh(self.fc3(x))
+        else:
+            x = self.fc3(x)
+        return x
+
+
+    def print_info(self):
+        print("-------------------------------")
+        print("w_fc1", self.fc1.weight.data.max(), self.fc1.weight.data.min())
+        print("b_fc1", self.fc1.bias.data.max(), self.fc1.weight.data.min())
+        print("w_fc2", self.fc2.weight.data.max(), self.fc2.weight.data.min())
+        print("b_fc2", self.fc2.bias.data.max(), self.fc2.weight.data.min())
+        print("w_fc3", self.fc3.weight.data.max(), self.fc3.weight.data.min())
+        print("b_fc3", self.fc3.bias.data.max(), self.fc3.weight.data.min())
+        print("---")
+        print("w_fc1 grad", self.fc1.weight.grad.max(), self.fc1.weight.grad.min())
+        print("b_fc1 grad", self.fc1.bias.grad.max(), self.fc1.bias.grad.min())
+        print("w_fc2 grad", self.fc2.weight.grad.max(), self.fc2.weight.grad.min())
+        print("b_fc2 grad", self.fc2.bias.grad.max(), self.fc2.bias.grad.min())
+        print("w_fc3 grad", self.fc3.weight.grad.max(), self.fc3.weight.grad.min())
+        print("b_fc3 grad", self.fc3.bias.grad.max(), self.fc3.bias.grad.min())
+        print("-------------------------------")
+
+
+    def clip_grads(self, bnd=1):
+        self.fc1.weight.grad.clamp_(-bnd, bnd)
+        self.fc1.bias.grad.clamp_(-bnd, bnd)
+        self.fc2.weight.grad.clamp_(-bnd, bnd)
+        self.fc2.bias.grad.clamp_(-bnd, bnd)
+        self.fc3.weight.grad.clamp_(-bnd, bnd)
+        self.fc3.bias.grad.clamp_(-bnd, bnd)
+
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            print("Soft clipping gradients")
+            self.fc1.weight.grad = (self.fc1.weight.grad / maxval) * bnd
+            self.fc1.bias.grad = (self.fc2.bias.grad / maxval) * bnd
+            self.fc2.weight.grad = (self.fc2.weight.grad / maxval) * bnd
+            self.fc2.bias.grad = (self.fc2.bias.grad / maxval) * bnd
+            self.fc3.weight.grad = (self.fc3.weight.grad / maxval) * bnd
+            self.fc3.bias.grad = (self.fc3.bias.grad / maxval) * bnd
+
+
+    def sample_action(self, s):
+        return T.normal(self.forward(s), T.exp(self.log_std))
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+
+class NN_PG_STD(nn.Module):
+    def __init__(self, env, hid_dim=64, tanh=False):
+        super(NN_PG_STD, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.tanh = tanh
+
+        self.fc1 = nn.Linear(self.obs_dim, hid_dim)
+        self.m1 = nn.LayerNorm(hid_dim)
+        self.fc2 = nn.Linear(hid_dim, hid_dim)
+        self.m2 = nn.LayerNorm(hid_dim)
+        self.fc3 = nn.Linear(hid_dim, self.act_dim)
 
 
     def forward(self, x):

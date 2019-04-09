@@ -208,15 +208,15 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["flat"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
-              "note" : "HF, holes, std_fixed=True", "ID" : ID}
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "note" : "Criteria, height + vel + torque, std_fixed=True", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -268,7 +268,7 @@ if __name__=="__main__":
         p_pipe = T.load('agents/Hexapod_NN_PG_HM3_pg.p')
         p_inverseholes = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
 
-        policy = T.load('agents/Hexapod_NN_PG_9IN_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_4DP_pg.p')
 
         env.test(policy)
         #env.test_adapt(p_flat, p_pipe, "C")

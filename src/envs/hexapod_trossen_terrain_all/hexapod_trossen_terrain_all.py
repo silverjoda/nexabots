@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["flat"]
+            self.env_list = ["flat", "holes", "tiles", "pipe"]
         else:
             self.env_list = env_list
 

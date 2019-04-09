@@ -1,15 +1,19 @@
-import torch
-import torch.nn.utils.rnn as rnn_utils
-import torch.nn as nn
+from tkinter import *
+from threading import Thread
+
+def show_values(x):
+    print(x)
 
 
-a = torch.Tensor([[1,2], [2,2], [3,2]])
-b = torch.Tensor([[4,2], [5,2]])
-c = torch.Tensor([[6,2]])
-packed = rnn_utils.pack_sequence([a, b, c])
+def makeslider():
+    master = Tk()
+    w = Scale(master, from_=-100, to=100, command=show_values)
+    w.pack()
+    mainloop()
 
-lstm = nn.LSTM(input_size=2,hidden_size=3)
+thread = Thread(target = makeslider)
+thread.start()
 
-packed_output, (h,c) = lstm(packed)
+print("Hello")
 
-y = rnn_utils.pad_packed_sequence(packed_output)
+thread.join()

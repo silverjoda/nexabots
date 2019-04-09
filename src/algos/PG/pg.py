@@ -125,6 +125,45 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         policy.soft_clip_grads(1.)
         policy_optim.step()
 
+    # Symmetry loss
+    batch_states_rev = batch_states.clone()
+
+    # Joint angles
+    batch_states_rev[:, 0:3] = batch_states[:, 6:9]
+    batch_states_rev[:, 3:6] = batch_states[:, 9:12]
+    batch_states_rev[:, 15:18] = batch_states[:, 12:15]
+
+    batch_states_rev[:, 6:9] = batch_states[:, 0:3]
+    batch_states_rev[:, 9:12] = batch_states[:, 3:6]
+    batch_states_rev[:, 12:15] = batch_states[:, 15:18]
+
+    # Joint angle velocities
+    batch_states_rev[:, 0 + 18:3 + 18] = batch_states[:, 6 + 18:9 + 18]
+    batch_states_rev[:, 3 + 18:6 + 18] = batch_states[:, 9 + 18:12 + 18]
+    batch_states_rev[:, 15 + 18:18 + 18] = batch_states[:, 12 + 18:15 + 18]
+
+    batch_states_rev[:, 6 + 18:9 + 18] = batch_states[:, 0 + 18:3 + 18]
+    batch_states_rev[:, 9 + 18:12 + 18] = batch_states[:, 3 + 18:6 + 18]
+    batch_states_rev[:, 12 + 18:15 + 18] = batch_states[:, 15 + 18:18 + 18]
+
+    # Actions
+    actions = policy(batch_states)
+    actions_rev = T.zeros_like(actions)
+
+    actions_rev[:, 0:3] = actions[:, 6:9]
+    actions_rev[:, 3:6] = actions[:, 9:12]
+    actions_rev[:, 15:18] = actions[:, 12:15]
+
+    actions_rev[:, 6:9] = actions[:, 0:3]
+    actions_rev[:, 9:12] = actions[:, 3:6]
+    actions_rev[:, 12:15] = actions[:, 15:18]
+
+    loss = (actions - actions_rev).pow(2).mean()
+    policy_optim.zero_grad()
+    loss.backward()
+    policy.soft_clip_grads(1.)
+    policy_optim.step()
+
     #policy.print_info()
 
 
@@ -216,7 +255,7 @@ if __name__=="__main__":
 
     params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Criteria, height + vel + torque, std_fixed=True", "ID" : ID}
+              "note" : "flat, symm, std_fixed=True", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -243,7 +282,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all_criteria as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     env = hex_env.Hexapod(env_list=env_list)
 
     #from src.envs.cartpole_swingup import cartpole_swingup

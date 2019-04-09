@@ -46,7 +46,7 @@ class Hexapod():
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.use_HF = True
+        self.use_HF = False
         self.HF_width = 6
         self.HF_length = 10
 
@@ -184,13 +184,15 @@ class Hexapod():
 
 
         if self.use_HF:
-            obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                                  np.array(self.sim.get_state().qvel.tolist()),
+            obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+                                  self.sim.get_state().qvel.tolist()[6:],
+                                  self.sim.get_state().qvel.tolist()[:6],
                                   [roll, pitch, yaw, y],
                                   contacts, self.get_local_hf(x,y).flatten()])
         else:
-            obs = np.concatenate([np.array(self.sim.get_state().qpos.tolist()[7:]),
-                                  np.array(self.sim.get_state().qvel.tolist()),
+            obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+                                  self.sim.get_state().qvel.tolist()[6:],
+                                  self.sim.get_state().qvel.tolist()[:6],
                                   [roll, pitch, yaw, y],
                                   contacts])
 

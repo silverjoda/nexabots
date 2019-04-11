@@ -164,7 +164,7 @@ if __name__=="__main__":
 
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.001, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
-              "comments" : "V3 - LN, all 96:96:3", "Env_list" : env_list,
+              "comments" : "incremental, +inverseholes, 3 envs", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -186,7 +186,7 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all_incremental as hex_env
     env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
 
     #from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env

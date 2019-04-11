@@ -13,26 +13,18 @@ import string
 # from gym import spaces
 # from gym.utils import seeding
 
-# from tkinter import *
-# from threading import Thread
-
-
 class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
-
-
 
     def __init__(self, env_list=None, max_n_envs=3):
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["flat"]
+            self.env_list = ["flat", "holes", "tiles", "pipe"]
         else:
             self.env_list = env_list
 
-        # thread = Thread(target=self.makeslider)
-        # thread.start()
 
         self.ID = '_'.join(self.env_list)
 
@@ -54,21 +46,9 @@ class Hexapod():
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        # self.criteria_pen_range_dict = {"vel" : [0.15, 0.4],
-        #                                 "height" : [-0.46, -0.35],
-        #                                 "torque" : [0.00001, 0.0007],
-        #                                 "joints" : [0.01, 0.3],
-        #                                 "level" : [0.01, 0.3]}
-
-        # self.criteria_pen_range_dict = {
-        #                                 "height": [-0.42, -0.33],
-        #                                 "vel": [0.15, 0.5],
-        #                                 "contacts": [2, 5]
-        #                               }
-
-        self.criteria_pen_range_dict = {
-            "vel": [0.3, 0.8]
-        }
+        self.use_HF = False
+        self.HF_width = 6
+        self.HF_length = 10
 
         self.generate_hybrid_env(self.n_envs, self.max_steps)
         self.reset()
@@ -76,16 +56,6 @@ class Hexapod():
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
         #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
-
-    # def show_values(self, x):
-    #     self.target_criteria_norm = np.array([0,0,float(x)/100.])
-    #
-    #
-    # def makeslider(self):
-    #     master = Tk()
-    #     w = Scale(master, from_=-100, to=100, command=self.show_values)
-    #     w.pack()
-    #     mainloop()
 
     def setupcam(self):
         if self.viewer is None:
@@ -99,19 +69,11 @@ class Hexapod():
 
 
     def scale_action(self, action):
-        return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
-
-
-    def scale_inc(self, action):
         action *= (self.joints_rads_diff / 2.)
         joint_list = np.array(self.sim.get_state().qpos.tolist()[7:7 + self.act_dim])
         joint_list += action
         ctrl = np.clip(joint_list, self.joints_rads_low, self.joints_rads_high)
         return ctrl
-
-
-    def scale_torque(self, action):
-        return action
 
 
     def get_obs(self):
@@ -164,73 +126,49 @@ class Hexapod():
         self.step_ctr += 1
 
         obs = self.get_obs()
-        obs_dict = self.get_obs_dict()
 
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
 
         # Reward conditions
-        target_vel = self.target_criteria_dict["vel"]
-        velocity_rew = (1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)) * (1 / target_vel)
+        target_vel = 0.30
+        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        r_pos = velocity_rew
-        # r_neg = np.square(self.target_criteria_dict["height"] - z) + \
-        #         np.square(self.sim.data.actuator_force).mean() * self.target_criteria_dict["torque"] + \
-        #         np.square(ctrl).mean() * self.target_criteria_dict["joints"] + \
-        #         np.square(roll) * self.target_criteria_dict["level"] + \
-        #         np.square(pitch) * self.target_criteria_dict["level"] + \
-        #         np.square(yaw) * 0.2
+        r_pos = velocity_rew * 5
 
-        # r_neg = abs(sum(obs_dict["contacts"]) - self.target_criteria_dict["contacts"]) * 0.1 + \
-        #         np.square(roll) * 0.1 + \
-        #         np.square(pitch) * 0.1 + \
-        #         np.square(yaw) * 0.3
-        #
+        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
+            np.square(ctrl).mean() * 0.01 + \
+            np.square(roll) * 0.1 + \
+            np.square(pitch) * 0.1 + \
+            np.square(yaw) * 0.3 + \
+            np.square(y) * 0.1
 
-        r_neg = np.square(roll) * 0.1 + \
-                np.square(pitch) * 0.1 + \
-                np.square(yaw) * 0.3
-
-        r_neg = np.clip(r_neg, 0, 2.0)
+        r_neg = np.clip(r_neg, 0, 1) * 1
         r_pos = np.clip(r_pos, -2, 2)
         r = r_pos - r_neg
         self.episode_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps # or abs(roll) > 2 or abs(pitch) > 2
+        done = self.step_ctr > self.max_steps
 
-
+        contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(
+            np.float32)
         obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
                               self.sim.get_state().qvel.tolist()[6:],
-                              self.target_criteria_norm,
-                              [roll, pitch, yaw, y, z, xd, yd, thd, phid],
-                              obs_dict["contacts"]])
+                              self.sim.get_state().qvel.tolist()[:6],
+                              [roll, pitch, yaw, y],
+                              contacts])
 
-
-        return obs, r, done, obs_dict
+        return obs, r, done, None
 
 
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(self.n_envs, self.max_steps)
-            #print("Difficulty: {}".format(self.difficulty))
             time.sleep(0.1)
-
-        self.max_episode_reward = np.maximum(self.max_episode_reward, self.episode_reward)
-
-        # if self.episode_reward >= self.average_episode_reward + np.abs(self.average_episode_reward) * 0.0:
-        #     self.difficulty = np.minimum(self.difficulty + 0.01, 7)
-        # else:
-        #     self.difficulty = np.maximum(self.difficulty - 0.002, 1)
-
-        if self.episode_reward >= self.max_episode_reward:
-            self.difficulty = np.minimum(self.difficulty + 0.1, 7)
-
-        self.episode_reward = 0
-        self.average_episode_reward = self.average_episode_reward * 0.1 + self.average_episode_reward * 0.99
 
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
@@ -243,24 +181,23 @@ class Hexapod():
                 pass
 
         self.sim = mujoco_py.MjSim(self.model)
-        self.model.opt.timestep = 0.02
 
-        # Set episode targets
-        self.target_criteria_norm = np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
-        self.target_criteria_dict = {}
-        for i, (k, v) in enumerate(self.criteria_pen_range_dict.items()):
-            self.target_criteria_dict[k] = ((self.target_criteria_norm[i] + 1) * 0.5) * abs(v[1] - v[0]) + v[0]
+        self.model.opt.timestep = 0.02
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 18 * 2 + 9 + len(self.target_criteria_dict) + 6
+        self.obs_dim = 18 * 2 + 6 + 4 + 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
+
+        if self.use_HF:
+            self.obs_dim += self.HF_width * self.HF_length
 
         # Reset env variables
         self.step_ctr = 0
         self.episodes = 0
+
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
@@ -273,20 +210,28 @@ class Hexapod():
             init_q[0:3] += init_pos
 
         # Init_quat
-        self.rnd_yaw = np.random.randn() * 0.3
+        self.rnd_yaw = np.random.randn() * 0.2
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(30):
+        for i in range(40):
             self.sim.forward()
             self.sim.step()
 
+        # self.render()
+        # time.sleep(3)
+
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
+        #x,y = self.sim.get_state().qpos.tolist()[:2]
+        #print("x,y: ", x , y)
+        #test_patch = self.get_local_hf(x,y)
+
         return obs
+
 
 
     def generate_hybrid_env(self, n_envs, steps):

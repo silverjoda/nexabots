@@ -146,7 +146,7 @@ class Hexapod():
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        r_pos = velocity_rew * 5
+        r_pos = velocity_rew * 6
         #
         # r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
         #         np.square(ctrl).mean() * 0.01 + \
@@ -164,15 +164,15 @@ class Hexapod():
 
         r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
             np.square(ctrl).mean() * 0.01 + \
-            np.square(roll) * 0.9 + \
-            np.square(pitch) * 0.9 + \
-            np.square(tha) * 0.1 + \
-            np.square(phia) * 0.1 + \
-            np.square(psia) * 0.1 + \
-            np.square(yaw) * 0.4 + \
+            np.square(roll) * 0.2 + \
+            np.square(pitch) * 0.2 + \
+            np.square(tha) * 0.001 + \
+            np.square(phia) * 0.001 + \
+            np.square(psia) * 0.001 + \
+            np.square(yaw) * 0.3 + \
             np.square(y) * 0.3 + \
             np.square(yd) * 0.1 + \
-            np.square(zd) * 0.5 + \
+            np.square(zd) * 0.2 + \
             np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
         r_neg = np.clip(r_neg, 0, 1) * 1

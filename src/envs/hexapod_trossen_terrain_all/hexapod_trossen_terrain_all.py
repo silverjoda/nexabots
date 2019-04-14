@@ -25,7 +25,6 @@ class Hexapod():
         else:
             self.env_list = env_list
 
-
         self.ID = '_'.join(self.env_list)
 
         self.modelpath = Hexapod.MODELPATH
@@ -34,6 +33,7 @@ class Hexapod():
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
+        self.walls = False
 
         self.difficulty = 1.
         self.episode_reward = 0
@@ -225,6 +225,7 @@ class Hexapod():
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
 
+
         while True:
             try:
                 self.model = mujoco_py.load_model_from_path(path)
@@ -333,10 +334,13 @@ class Hexapod():
         maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
         total_hm = np.concatenate(maplist, 1)
 
-        total_hm[0, :] = 255
-        total_hm[:, 0] = 255
-        total_hm[-1, :] = 255
-        total_hm[:, -1] = 255
+        if self.walls:
+            total_hm[0, :] = 255
+            total_hm[:, 0] = 255
+            total_hm[-1, :] = 255
+            total_hm[:, -1] = 255
+        else:
+            total_hm[0, 0] = 255
 
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/{}.png".format(self.ID)), total_hm)

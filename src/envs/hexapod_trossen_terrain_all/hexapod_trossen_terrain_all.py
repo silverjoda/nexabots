@@ -164,11 +164,14 @@ class Hexapod():
 
         r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
             np.square(ctrl).mean() * 0.01 + \
-            np.square(roll) * 0.1 + \
-            np.square(pitch) * 0.1 + \
-            np.square(yaw) * 0.2 + \
-            np.square(y) * 0.1 + \
-            np.square(yd) * 0.5 + \
+            np.square(roll) * 0.9 + \
+            np.square(pitch) * 0.9 + \
+            np.square(tha) * 0.1 + \
+            np.square(phia) * 0.1 + \
+            np.square(psia) * 0.1 + \
+            np.square(yaw) * 0.4 + \
+            np.square(y) * 0.3 + \
+            np.square(yd) * 0.1 + \
             np.square(zd) * 0.5 + \
             np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
@@ -360,7 +363,7 @@ class Hexapod():
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 24,
+            hm = np.random.randint(0, 18,
                                    size=(self.env_width // 3, env_length // 16),
                                    dtype=np.uint8).repeat(3, axis=0).repeat(16, axis=1) + 127
 

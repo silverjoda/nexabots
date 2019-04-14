@@ -13,15 +13,12 @@ import string
 # from gym import spaces
 # from gym.utils import seeding
 
-# from tkinter import *
-# from threading import Thread
-
+from tkinter import *
+from threading import Thread
 
 class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
-
-
 
     def __init__(self, env_list=None, max_n_envs=3):
         print("Trossen hexapod envs: {}".format(env_list))
@@ -31,8 +28,8 @@ class Hexapod():
         else:
             self.env_list = env_list
 
-        # thread = Thread(target=self.makeslider)
-        # thread.start()
+        thread = Thread(target=self.makeslider)
+        thread.start()
 
         self.ID = '_'.join(self.env_list)
 
@@ -77,15 +74,15 @@ class Hexapod():
         #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
 
-    # def show_values(self, x):
-    #     self.target_criteria_norm = np.array([0,0,float(x)/100.])
-    #
-    #
-    # def makeslider(self):
-    #     master = Tk()
-    #     w = Scale(master, from_=-100, to=100, command=self.show_values)
-    #     w.pack()
-    #     mainloop()
+    def show_values(self, x):
+        self.target_criteria_norm = np.array([float(x)/100.])
+
+
+    def makeslider(self):
+        master = Tk()
+        w = Scale(master, from_=-100, to=100, command=self.show_values)
+        w.pack()
+        mainloop()
 
     def setupcam(self):
         if self.viewer is None:
@@ -192,7 +189,9 @@ class Hexapod():
 
         r_neg = np.square(roll) * 0.1 + \
                 np.square(pitch) * 0.1 + \
-                np.square(yaw) * 0.3
+                np.square(yaw) * 0.5 + \
+                np.square(y) * 0.5
+
 
         r_neg = np.clip(r_neg, 0, 2.0)
         r_pos = np.clip(r_pos, -2, 2)
@@ -246,7 +245,7 @@ class Hexapod():
         self.model.opt.timestep = 0.02
 
         # Set episode targets
-        self.target_criteria_norm = np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
+        self.target_criteria_norm = np.array([-1])#np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
         self.target_criteria_dict = {}
         for i, (k, v) in enumerate(self.criteria_pen_range_dict.items()):
             self.target_criteria_dict[k] = ((self.target_criteria_norm[i] + 1) * 0.5) * abs(v[1] - v[0]) + v[0]

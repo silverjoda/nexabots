@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["flat", "holes", "tiles", "pipe"]
+            self.env_list = ["flat","tiles","holes","pipe"]
         else:
             self.env_list = env_list
 
@@ -413,7 +413,23 @@ class Hexapod():
             hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2. + 127
 
         if env_name == "stairs":
-            pass
+            stair_height = 20
+            stair_width = 10
+            current_height = 0
+
+            for i in range(6):
+                hm[:, 0 + i * stair_width: 0 + i * stair_width + stair_width] = current_height
+                current_height += stair_height
+
+            # for i in range(3):
+            #     hm[:, 80 + i * stair_width:  80 + i * stair_width + stair_width] = current_height
+            #
+            # for i in range(4):
+            #     hm[:, 60 + i * stair_width: 60 + i * stair_width + stair_width] = current_height
+            #     current_height -= stair_height
+            #
+            #
+
 
         if env_name == "verts":
             wdiv = 4

@@ -113,6 +113,11 @@
           </body>
       </body>
 
+      <body name="dir_arrow" pos="0 0 1">
+         <geom conaffinity='0' condim='3' fromto="-0.1 0 0 0.1 0 0" size='0.01' rgba='1 0 0 1' mass='1' type='capsule'/>
+         <geom conaffinity='0' condim='3' pos="0.1 0 0" size='0.03' rgba='1 0 0 1' mass='1' type='sphere'/>
+      </body>
+
     </body>
   </worldbody>
   <actuator>

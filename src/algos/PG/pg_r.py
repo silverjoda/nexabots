@@ -156,14 +156,14 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["flat", "holes", "tiles", "pipe"]
+    env_list = ["holes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 300000, "batchsize": 24, "gamma": 0.999, "lr": 0.0005, "decay" : 0.001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
+    params = {"iters": 300000, "batchsize": 24, "gamma": 0.995, "lr": 0.0005, "decay" : 0.001, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
               "comments" : "all", "Env_list" : env_list,
               "ID": ID}
 
@@ -186,7 +186,7 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_dir as hex_env
     env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
 
     #from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env
@@ -200,7 +200,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_LN_PG(env, hid_dim=96, memory_dim=64, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

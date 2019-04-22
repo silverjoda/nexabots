@@ -248,13 +248,13 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["flat","flat","flat"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["flat"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 100000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+    params = {"iters": 100000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
               "note" : "incremental, std_fixed=True", "ID" : ID}
 
@@ -271,7 +271,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
     #env = env.Hexapod()
 
-    #from src.envs.hexapod_trossen_control import hexapod_trossen_control
+    #from src.envs.hexapod_trossen_cfontrol import hexapod_trossen_control
     #env = hexapod_trossen_control.Hexapod()
 
     #from src.envs.memory_env import memory_env
@@ -283,7 +283,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_dir as hex_env
     env = hex_env.Hexapod(env_list=env_list)
 
     #from src.envs.cartpole_swingup import cartpole_swingup

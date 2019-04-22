@@ -34,7 +34,7 @@ class Hexapod():
 
         self.viewer = None
 
-        path = Hexapod.MODELPATH + "dir.xml"
+        path = Hexapod.MODELPATH + "gotoxy.xml"
 
         self.model = mujoco_py.load_model_from_path(path)
         self.sim = mujoco_py.MjSim(self.model)
@@ -45,7 +45,7 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 18 * 2 + 6 + 4 + 6 + 1
+        self.obs_dim = 18 * 2 + 6 + 4 + 6 + 2
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         self.reset()
@@ -138,20 +138,17 @@ class Hexapod():
 
         # Reward conditions
         target_vel = 0.25
-        t_x = target_vel * np.cos(self.target_yaw)
-        t_y = target_vel * np.sin(self.target_yaw)
+        to_goal_vel = np.sqrt((self.prev_xy[0] - self.goal_xy[0]) ** 2 + (self.prev_xy[1] - self.goal_xy[1]) ** 2) \
+                    - np.sqrt((x - self.goal_xy[0]) ** 2 + (y - self.goal_xy[1]) ** 2)
+        to_goal_vel *= 50.
+        velocity_rew = 1. / (abs(to_goal_vel - target_vel) + 1.) - 1. / (target_vel + 1.)
 
-        velocity_rew_x = 1. / (abs(xd - t_x) + 1.) - 1. / (t_x + 1.)
-        velocity_rew_y = 1. / (abs(yd - t_y) + 1.) - 1. / (t_y + 1.)
+        roll, pitch, yaw = my_utils.quat_to_rpy([qw, qx, qy, qz])
 
-        roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
-
-        r_pos = velocity_rew_x * 6 + velocity_rew_y * 6
-
+        r_pos = velocity_rew * 6
         r_neg = np.square(roll) * 0.1 + \
                 np.square(pitch) * 0.1 + \
-                np.square(zd) * 0.1 + \
-                np.square(yaw - self.target_yaw) * 0.3
+                np.square(zd) * 0.1
 
         r_neg = np.clip(r_neg, 0, 1) * 1.
         r_pos = np.clip(r_pos, -2, 2)
@@ -161,17 +158,16 @@ class Hexapod():
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
 
+        self.prev_xy = [x, y]
+
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
         obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
                               self.sim.get_state().qvel.tolist()[6:],
                               self.sim.get_state().qvel.tolist()[:6],
                               [roll, pitch, yaw, y],
-                              [self.target_yaw],
+                              [x - self.goal_xy[0], y - self.goal_xy[1]],
                               contacts])
-
-        self.model.body_quat[20] = my_utils.rpy_to_quat(0, 0, self.target_yaw)
-        self.model.body_pos[20] = [x, y, 1]
 
         return obs, r, done, None
 
@@ -193,7 +189,7 @@ class Hexapod():
         rnd_quat = my_utils.rpy_to_quat(0, 0, self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
-        self.target_yaw = np.random.rand() * 1. - 0.5
+        self.goal_xy = [np.random.rand() * 3. - 1.5, np.random.rand() * 3 - 1.5]
 
         # Set environment state
         self.set_state(init_q, init_qvel)
@@ -202,8 +198,8 @@ class Hexapod():
             self.sim.forward()
             self.sim.step()
 
-        # self.render()
-        # time.sleep(3)
+        self.prev_xy = [0, 0]
+        self.model.body_pos[20] = [*self.goal_xy, 0]
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 

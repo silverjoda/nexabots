@@ -67,7 +67,20 @@ class Hexapod():
             "vel": [0.3, 0.8]
         }
 
-        self.generate_hybrid_env(self.n_envs, self.max_steps)
+        self.viewer = None
+        path = Hexapod.MODELPATH + "criteria.xml".format(self.ID)
+
+        self.model = mujoco_py.load_model_from_path(path)
+        self.sim = mujoco_py.MjSim(self.model)
+        self.model.opt.timestep = 0.02
+
+        # Environment dimensions
+        self.q_dim = self.sim.get_state().qpos.shape[0]
+        self.qvel_dim = self.sim.get_state().qvel.shape[0]
+
+        self.obs_dim = 18 * 2 + 9 + len(self.criteria_pen_range_dict) + 6
+        self.act_dim = self.sim.data.actuator_length.shape[0]
+
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -83,6 +96,7 @@ class Hexapod():
         w = Scale(master, from_=-100, to=100, command=self.show_values)
         w.pack()
         mainloop()
+
 
     def setupcam(self):
         if self.viewer is None:
@@ -174,6 +188,7 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         r_pos = velocity_rew
+
         # r_neg = np.square(self.target_criteria_dict["height"] - z) + \
         #         np.square(self.sim.data.actuator_force).mean() * self.target_criteria_dict["torque"] + \
         #         np.square(ctrl).mean() * self.target_criteria_dict["joints"] + \
@@ -189,9 +204,9 @@ class Hexapod():
 
         r_neg = np.square(roll) * 0.1 + \
                 np.square(pitch) * 0.1 + \
+                np.square(zd) * 0.1 + \
                 np.square(yaw) * 0.5 + \
                 np.square(y) * 0.5
-
 
         r_neg = np.clip(r_neg, 0, 2.0)
         r_pos = np.clip(r_pos, -2, 2)
@@ -201,61 +216,22 @@ class Hexapod():
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps # or abs(roll) > 2 or abs(pitch) > 2
 
-
         obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
                               self.sim.get_state().qvel.tolist()[6:],
                               self.target_criteria_norm,
                               [roll, pitch, yaw, y, z, xd, yd, thd, phid],
                               obs_dict["contacts"]])
 
-
         return obs, r, done, obs_dict
 
 
     def reset(self, init_pos = None):
-        if np.random.rand() < self.env_change_prob:
-            self.generate_hybrid_env(self.n_envs, self.max_steps)
-            #print("Difficulty: {}".format(self.difficulty))
-            time.sleep(0.1)
-
-        self.max_episode_reward = np.maximum(self.max_episode_reward, self.episode_reward)
-
-        # if self.episode_reward >= self.average_episode_reward + np.abs(self.average_episode_reward) * 0.0:
-        #     self.difficulty = np.minimum(self.difficulty + 0.01, 7)
-        # else:
-        #     self.difficulty = np.maximum(self.difficulty - 0.002, 1)
-
-        if self.episode_reward >= self.max_episode_reward:
-            self.difficulty = np.minimum(self.difficulty + 0.1, 7)
-
-        self.episode_reward = 0
-        self.average_episode_reward = self.average_episode_reward * 0.1 + self.average_episode_reward * 0.99
-
-        self.viewer = None
-        path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
-
-        while True:
-            try:
-                self.model = mujoco_py.load_model_from_path(path)
-                break
-            except Exception:
-                pass
-
-        self.sim = mujoco_py.MjSim(self.model)
-        self.model.opt.timestep = 0.02
 
         # Set episode targets
-        self.target_criteria_norm = np.array([-1])#np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
+        self.target_criteria_norm = np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
         self.target_criteria_dict = {}
         for i, (k, v) in enumerate(self.criteria_pen_range_dict.items()):
             self.target_criteria_dict[k] = ((self.target_criteria_norm[i] + 1) * 0.5) * abs(v[1] - v[0]) + v[0]
-
-        # Environment dimensions
-        self.q_dim = self.sim.get_state().qpos.shape[0]
-        self.qvel_dim = self.sim.get_state().qvel.shape[0]
-
-        self.obs_dim = 18 * 2 + 9 + len(self.target_criteria_dict) + 6
-        self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Reset env variables
         self.step_ctr = 0
@@ -286,118 +262,6 @@ class Hexapod():
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         return obs
-
-
-    def generate_hybrid_env(self, n_envs, steps):
-        envs = np.random.choice(self.env_list, n_envs, replace=False)
-
-        if n_envs == 1:
-            size_list = [steps]
-            scaled_indeces_list = [0]
-        else:
-            size_list = []
-            raw_indeces = np.linspace(0, 1, n_envs + 1)[1:-1]
-            current_idx = 0
-            scaled_indeces_list =  []
-            for idx in raw_indeces:
-                idx_scaled = int(steps * idx) + np.random.randint(0, 50) - 30
-                scaled_indeces_list.append(idx_scaled)
-                size_list.append(idx_scaled - current_idx)
-                current_idx = idx_scaled
-            size_list.append(steps - int(steps * raw_indeces[-1]) + np.random.randint(0, 50) - 30)
-
-        maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
-        total_hm = np.concatenate(maplist, 1)
-
-        total_hm[0, :] = 255
-        total_hm[:, 0] = 255
-        total_hm[-1, :] = 255
-        total_hm[:, -1] = 255
-
-        cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 "assets/{}.png".format(self.ID)), total_hm)
-
-        with open(Hexapod.MODELPATH + "template.xml", "r") as in_file:
-            buf = in_file.readlines()
-
-        with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
-            for line in buf:
-                if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs))
-                elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
-                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(1.0 * n_envs - 0.3))
-                else:
-                    out_file.write(line)
-
-        return envs, size_list, scaled_indeces_list
-
-
-    def generate_heightmap(self, env_name, env_length):
-        hm = np.ones((self.env_width, env_length)) * 127
-
-        if env_name == "flat":
-            pass
-
-        if env_name == "tiles":
-            hm = np.random.randint(0, 24,
-                                   size=(self.env_width // 3, env_length // 16),
-                                   dtype=np.uint8).repeat(3, axis=0).repeat(16, axis=1) + 127
-
-        if env_name == "pipe":
-            pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-13, 13, self.env_width)), 0).T + 127
-
-        if env_name == "holes":
-            hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
-            h, w, _ = hm.shape
-            patchsize = 14
-            rnd_h = np.random.randint(0, h - patchsize)
-            rnd_w = np.random.randint(0, w - patchsize)
-            hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
-            hm = np.mean(hm, axis=2)
-            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2.
-
-        if env_name == "inverseholes":
-            hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
-            h, w, _ = hm.shape
-            patchsize = 10
-            while True:
-                rnd_h = np.random.randint(0, h - patchsize)
-                rnd_w = np.random.randint(0, w - patchsize)
-                hm_tmp = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
-                #assert hm.shape == (10,10,3)
-                if np.min(hm_tmp[:, :2, :]) > 160: break
-
-            hm = np.mean(hm_tmp, axis=2)
-            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC)
-            hm = 255 - hm
-            hm *= 0.5
-            hm += 127
-
-        if env_name == "bumps":
-            hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/bumps2.png"))
-            h, w, _ = hm.shape
-            patchsize = 50
-            rnd_h = np.random.randint(0, h - patchsize)
-            rnd_w = np.random.randint(0, w - patchsize)
-            hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
-            hm = np.mean(hm, axis=2)
-            hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2. + 127
-
-        if env_name == "stairs":
-            pass
-
-        if env_name == "verts":
-            wdiv = 4
-            ldiv = 14
-            hm = np.random.randint(0, 75,
-                                   size=(self.env_width // wdiv, env_length // ldiv),
-                                   dtype=np.uint8).repeat(wdiv, axis=0).repeat(ldiv, axis=1)
-            hm[:, :50] = 0
-            hm[hm < 50] = 0
-            hm = 75 - hm
-
-        return hm
 
 
     def demo(self):

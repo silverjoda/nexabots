@@ -1,9 +1,13 @@
 On holes environment train RNN with:
-Angle direction goal
-goto(x,y) goal
+- Angle direction goal
+- goto(x,y) goal
 
-On flat ground train Reactive policy to:
-Walk with variable speed and body height
-Enforce various leg constraints for symmetric motion (symmetricity gait from paper, joint energy penalty)
+On flat ground train Reactive policy do:
+- Walk with variable speed and body height
+- Enforce various leg constraints for symmetric motion (symmetricity gait from paper, joint energy penalty)
 
-Gather gait pattern data
+On holes, tiles, pipe with Reactive policy train
+- Expert policies
+- Train observer
+
+- Gather gait pattern data on various gaits

@@ -145,10 +145,14 @@ class Hexapod():
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw, qx, qy, qz])
 
+        tar_angle = np.arctan2(self.goal_xy[1] - y, self.goal_xy[0] - x)
+        yaw_pen = np.min((abs((yaw % 6.183) - (tar_angle % 6.183)), abs(yaw - tar_angle)))
+
         r_pos = velocity_rew * 6
-        r_neg = np.square(roll) * 0.1 + \
-                np.square(pitch) * 0.1 + \
-                np.square(zd) * 0.1
+        r_neg = np.square(roll) * 0.3 + \
+                np.square(pitch) * 0.3 + \
+                np.square(zd) * 0.3 + \
+                np.square(tar_angle) * 0.3
 
         r_neg = np.clip(r_neg, 0, 1) * 1.
         r_pos = np.clip(r_pos, -2, 2)

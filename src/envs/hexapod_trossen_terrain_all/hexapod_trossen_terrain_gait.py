@@ -48,6 +48,8 @@ class Hexapod():
         self.obs_dim = 18 * 2 + 6 + 4 + 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
+        self.n_episodes = 0
+
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -146,6 +148,8 @@ class Hexapod():
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(
             np.float32)
 
+        difficulty = np.minimum(self.n_episodes * 0.0001, 1)
+
         # mean_used_energy = self.used_energy / self.step_ctr
         # mean_used_energy_coxa = mean_used_energy[0::3]
         # mean_used_energy_femur = mean_used_energy[1::3]
@@ -155,12 +159,12 @@ class Hexapod():
         # tibia_penalty = np.mean(np.square(mean_used_energy_tibia - np.mean(mean_used_energy_tibia)))
 
         r_pos = velocity_rew_x * 5 #+ np.mean(contacts) * 0.2
-        r_neg = np.square(roll) * 1.5 + \
-                np.square(pitch) * 1.5 + \
-                np.square(zd) * 1.5 + \
+        r_neg = np.square(roll) * 3.5 * difficulty + \
+                np.square(pitch) * 3.5 * difficulty + \
+                np.square(zd) * 3.5 * difficulty + \
                 np.square(yaw) * 0.7 + \
-                np.square(self.sim.data.actuator_force).mean() * 0.0007 + \
-                np.mean(ctrl) * 0.01 #+ \
+                np.square(self.sim.data.actuator_force).mean() * 0.001 * difficulty + \
+                np.mean(ctrl) * 0.0 #+ \
                 #(coxa_penalty * .1 + femur_penalty * .1 + tibia_penalty * .1) * self.step_ctr > 30
 
 
@@ -184,7 +188,7 @@ class Hexapod():
     def reset(self, init_pos = None):
         # Reset env variables
         self.step_ctr = 0
-        self.episodes = 0
+        self.n_episodes += 1
         self.used_energy = np.zeros((self.act_dim))
 
         # Sample initial configuration

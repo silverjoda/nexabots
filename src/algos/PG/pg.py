@@ -254,9 +254,9 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 100000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
-              "note" : "Gait, mix, hard", "ID" : ID}
+    params = {"iters": 200000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "note" : "Gait, very hard with increasing difficulty", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -308,7 +308,7 @@ if __name__=="__main__":
         p_pipe = T.load('agents/Hexapod_NN_PG_HM3_pg.p')
         p_inverseholes = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
 
-        policy = T.load('agents/Hexapod_NN_PG_1I4_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_WQM_pg.p')
 
         env.test(policy)
         #env.test_adapt(p_flat, p_pipe, "C")

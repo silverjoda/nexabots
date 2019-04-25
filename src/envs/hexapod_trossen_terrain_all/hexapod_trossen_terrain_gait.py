@@ -26,8 +26,8 @@ class Hexapod():
         self.episode_reward = 0
         self.max_episode_reward = 0
 
-        self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
-        self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
+        self.joints_rads_low = np.array([-0.3, -1.0, -0.8] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 0.4] * 6)
         # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
@@ -48,8 +48,6 @@ class Hexapod():
         self.obs_dim = 18 * 2 + 6 + 4 + 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
-        self.n_episodes = 0
-
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -69,6 +67,12 @@ class Hexapod():
 
     def scale_action(self, action):
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
+
+
+    def scale_joints(self, joints):
+        sjoints = np.array(joints)
+        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        return sjoints
 
 
     def scale_inc(self, action):
@@ -124,6 +128,7 @@ class Hexapod():
 
 
     def step(self, ctrl):
+        ctrl_penalty = np.mean(ctrl)
         ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
@@ -148,8 +153,6 @@ class Hexapod():
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(
             np.float32)
 
-        difficulty = np.minimum(self.n_episodes * 0.0001, 1)
-
         # mean_used_energy = self.used_energy / self.step_ctr
         # mean_used_energy_coxa = mean_used_energy[0::3]
         # mean_used_energy_femur = mean_used_energy[1::3]
@@ -158,15 +161,15 @@ class Hexapod():
         # femur_penalty = np.mean(np.square(mean_used_energy_femur - np.mean(mean_used_energy_femur)))
         # tibia_penalty = np.mean(np.square(mean_used_energy_tibia - np.mean(mean_used_energy_tibia)))
 
-        r_pos = velocity_rew_x * 5 #+ np.mean(contacts) * 0.2
-        r_neg = np.square(roll) * 3.5 * difficulty + \
-                np.square(pitch) * 3.5 * difficulty + \
-                np.square(zd) * 3.5 * difficulty + \
-                np.square(yaw) * 0.7 + \
-                np.square(self.sim.data.actuator_force).mean() * 0.001 * difficulty + \
-                np.mean(ctrl) * 0.0 #+ \
+        r_pos = velocity_rew_x * 5. # + np.mean(contacts) * 0.2
+        r_neg = np.square(roll) * 4. + \
+                np.square(pitch) * 4. + \
+                np.square(zd) * 4. + \
+                np.square(yd) * 4. + \
+                np.square(yaw) * 4.0 + \
+                np.square(self.sim.data.actuator_force).mean() * 0.000 + \
+                ctrl_penalty * 0.0 # + \
                 #(coxa_penalty * .1 + femur_penalty * .1 + tibia_penalty * .1) * self.step_ctr > 30
-
 
         r_neg = np.clip(r_neg, 0, 1) * 1.
         r_pos = np.clip(r_pos, -2, 2)
@@ -176,11 +179,11 @@ class Hexapod():
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
 
-        obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+        obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                               self.sim.get_state().qvel.tolist()[6:],
                               self.sim.get_state().qvel.tolist()[:6],
                               [roll, pitch, yaw, y],
-                              contacts])
+                              contacts]) # 46,47,48,49,50,51
 
         return obs, r, done, None
 
@@ -188,7 +191,7 @@ class Hexapod():
     def reset(self, init_pos = None):
         # Reset env variables
         self.step_ctr = 0
-        self.n_episodes += 1
+        self.episodes = 0
         self.used_energy = np.zeros((self.act_dim))
 
         # Sample initial configuration

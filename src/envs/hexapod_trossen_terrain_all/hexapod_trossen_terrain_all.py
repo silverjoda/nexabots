@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["flat","tiles","holes","pipe"]
+            self.env_list = ["flat","tiles","holes","pipe", "inverseholes"]
         else:
             self.env_list = env_list
 
@@ -33,15 +33,15 @@ class Hexapod():
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = False
+        self.walls = True
 
         self.difficulty = 1.
         self.episode_reward = 0
         self.max_episode_reward = 0
         self.average_episode_reward = 0
 
-        self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
-        self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
+        self.joints_rads_low = np.array([-0.3, -1.0, -0.8] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 0.4] * 6)
         # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
@@ -66,6 +66,12 @@ class Hexapod():
         self.viewer.cam.lookat[1] = 0
         self.viewer.cam.lookat[2] = 0.5
         self.viewer.cam.elevation = -20
+
+
+    def scale_joints(self, joints):
+        sjoints = np.array(joints)
+        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        return sjoints
 
 
     def scale_action(self, action):
@@ -125,7 +131,8 @@ class Hexapod():
 
 
     def step(self, ctrl):
-
+        ctrl = np.clip(ctrl, -1, 1)
+        ctrl_pen = np.square(ctrl).mean()
         ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
@@ -141,7 +148,7 @@ class Hexapod():
         xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
         # Reward conditions
-        target_vel = 0.25
+        target_vel = 0.3
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
@@ -162,18 +169,13 @@ class Hexapod():
         #         np.square(zd) * 1.5 + \
         #         np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
-        r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
-            np.square(ctrl).mean() * 0.01 + \
-            np.square(roll) * 0.2 + \
-            np.square(pitch) * 0.2 + \
-            np.square(tha) * 0.001 + \
-            np.square(phia) * 0.001 + \
-            np.square(psia) * 0.001 + \
-            np.square(yaw) * 0.3 + \
-            np.square(y) * 0.3 + \
-            np.square(yd) * 0.1 + \
-            np.square(zd) * 0.2 + \
-            np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
+        r_neg = np.square(roll) * 2. + \
+                np.square(pitch) * 2. + \
+                np.square(zd) * 2. + \
+                np.square(yd) * 2. + \
+                np.square(yaw) * 2.0 + \
+                np.square(self.sim.data.actuator_force).mean() * 0.000 + \
+                np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.2
 
         r_neg = np.clip(r_neg, 0, 1) * 1
         r_pos = np.clip(r_pos, -2, 2)
@@ -187,13 +189,13 @@ class Hexapod():
 
 
         if self.use_HF:
-            obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+            obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                                   self.sim.get_state().qvel.tolist()[6:],
                                   self.sim.get_state().qvel.tolist()[:6],
                                   [roll, pitch, yaw, y],
                                   contacts, self.get_local_hf(x,y).flatten()])
         else:
-            obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+            obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                                   self.sim.get_state().qvel.tolist()[6:],
                                   self.sim.get_state().qvel.tolist()[:6],
                                   [roll, pitch, yaw, y],
@@ -367,9 +369,9 @@ class Hexapod():
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 18,
-                                   size=(self.env_width // 3, env_length // 16),
-                                   dtype=np.uint8).repeat(3, axis=0).repeat(16, axis=1) + 127
+            hm = np.random.randint(0, 14,
+                                   size=(self.env_width // 3, env_length // 14),
+                                   dtype=np.uint8).repeat(3, axis=0).repeat(14, axis=1) + 127
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
@@ -383,7 +385,9 @@ class Hexapod():
             rnd_w = np.random.randint(0, w - patchsize)
             hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
             hm = np.mean(hm, axis=2)
+            hm = hm * 0.7 + 255 * 0.3
             hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2.
+
 
         if env_name == "inverseholes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))

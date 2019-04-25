@@ -69,6 +69,12 @@ class Hexapod():
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
 
+    def scale_joints(self, joints):
+        sjoints = np.array(joints)
+        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        return sjoints
+
+
     def scale_inc(self, action):
         action *= (self.joints_rads_diff / 2.)
         joint_list = np.array(self.sim.get_state().qpos.tolist()[7:7 + self.act_dim])
@@ -147,13 +153,12 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
         yaw_pen = np.min((abs((yaw % 6.183) - (self.target_yaw % 6.183)), abs(yaw - self.target_yaw)))
-        #print(yaw_pen)
 
         r_pos = velocity_rew_x * 6 + velocity_rew_y * 6
-        r_neg = np.square(roll) * 0.3 + \
-                np.square(pitch) * 0.3 + \
-                np.square(zd) * 0.3 + \
-                np.square(yaw_pen) * 0.5
+        r_neg = np.square(roll) * 0.5 + \
+                np.square(pitch) * 0.5 + \
+                np.square(zd) * 0.5 + \
+                np.square(yaw_pen) * 0.2
 
         r_neg = np.clip(r_neg, 0, 1) * 1.
         r_pos = np.clip(r_pos, -2, 2)
@@ -165,7 +170,7 @@ class Hexapod():
 
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
-        obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+        obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                               self.sim.get_state().qvel.tolist()[6:],
                               self.sim.get_state().qvel.tolist()[:6],
                               [roll, pitch, yaw, y],
@@ -195,7 +200,7 @@ class Hexapod():
         rnd_quat = my_utils.rpy_to_quat(0, 0, self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
-        self.target_yaw = np.random.rand() * 3. - 1.5
+        self.target_yaw = np.random.rand() * 2. - 1.
 
         # Set environment state
         self.set_state(init_q, init_qvel)

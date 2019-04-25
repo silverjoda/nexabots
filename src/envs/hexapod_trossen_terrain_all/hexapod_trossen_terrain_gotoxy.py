@@ -81,6 +81,12 @@ class Hexapod():
         return action
 
 
+    def scale_joints(self, joints):
+        sjoints = np.array(joints)
+        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        return sjoints
+
+
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
@@ -138,35 +144,37 @@ class Hexapod():
 
         # Reward conditions
         target_vel = 0.25
-        to_goal_vel = np.sqrt((self.prev_xy[0] - self.goal_xy[0]) ** 2 + (self.prev_xy[1] - self.goal_xy[1]) ** 2) \
-                    - np.sqrt((x - self.goal_xy[0]) ** 2 + (y - self.goal_xy[1]) ** 2)
+        dprev = np.sqrt((self.prev_xy[0] - self.goal_xy[0]) ** 2 + (self.prev_xy[1] - self.goal_xy[1]) ** 2)
+        dcur = np.sqrt((x - self.goal_xy[0]) ** 2 + (y - self.goal_xy[1]) ** 2)
+        to_goal_vel =  dprev - dcur
         to_goal_vel *= 50.
         velocity_rew = 1. / (abs(to_goal_vel - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw, qx, qy, qz])
 
         tar_angle = np.arctan2(self.goal_xy[1] - y, self.goal_xy[0] - x)
-        yaw_pen = np.min((abs((yaw % 6.183) - (tar_angle % 6.183)), abs(yaw - tar_angle)))
+        yaw_deviation = np.min((abs((yaw % 6.183) - (tar_angle % 6.183)), abs(yaw - tar_angle)))
 
-        r_pos = velocity_rew * 6
-        r_neg = np.square(roll) * 0.3 + \
-                np.square(pitch) * 0.3 + \
-                np.square(zd) * 0.3 + \
-                np.square(tar_angle) * 0.3
+        r_pos = velocity_rew * 4 + (self.prev_deviation - yaw_deviation) * 8
+        r_neg = np.square(roll) * 2.0 + \
+                np.square(pitch) * 2.0 + \
+                np.square(zd) * 2.0
 
-        r_neg = np.clip(r_neg, 0, 1) * 1.
+        self.prev_deviation = yaw_deviation
+
+        r_neg = np.clip(r_neg, 0, 2) * 1.
         r_pos = np.clip(r_pos, -2, 2)
         r = r_pos - r_neg
         self.episode_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps or dcur < 0.15
 
         self.prev_xy = [x, y]
 
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
-        obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+        obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                               self.sim.get_state().qvel.tolist()[6:],
                               self.sim.get_state().qvel.tolist()[:6],
                               [roll, pitch, yaw, y],
@@ -193,7 +201,7 @@ class Hexapod():
         rnd_quat = my_utils.rpy_to_quat(0, 0, self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
-        self.goal_xy = [np.random.rand() * 3. - 1.5, np.random.rand() * 3 - 1.5]
+        self.goal_xy = [np.random.rand() * 1. + .5, np.random.rand() * 3 - 1.5]
 
         # Set environment state
         self.set_state(init_q, init_qvel)
@@ -204,6 +212,9 @@ class Hexapod():
 
         self.prev_xy = [0, 0]
         self.model.body_pos[20] = [*self.goal_xy, 0]
+
+        tar_angle = np.arctan2(self.goal_xy[1] - 0, self.goal_xy[0] - 0)
+        self.prev_deviation = np.min((abs((self.rnd_yaw % 6.183) - (tar_angle % 6.183)), abs(self.rnd_yaw - tar_angle)))
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
@@ -285,6 +296,8 @@ class Hexapod():
                 cr += r
                 time.sleep(0.001)
                 self.render()
+                if np.sqrt((self.prev_xy[0] - self.goal_xy[0]) ** 2 + (self.prev_xy[1] - self.goal_xy[1]) ** 2) < 0.15:
+                    break
             print("Total episode reward: {}".format(cr))
 
 

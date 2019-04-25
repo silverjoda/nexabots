@@ -147,23 +147,37 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         batch_states_rev[:, 9 + 18:12 + 18] = batch_states[:, 3 + 18:6 + 18]
         batch_states_rev[:, 12 + 18:15 + 18] = batch_states[:, 15 + 18:18 + 18]
 
+        # Reverse yaw and y
+        batch_states_rev[44] = - batch_states[44]
+        batch_states_rev[45] = - batch_states[45]
+
+        # Reverse contacts
+        batch_states_rev[46] = batch_states[48]
+        batch_states_rev[47] = batch_states[49]
+        batch_states_rev[51] = batch_states[50]
+
+        batch_states_rev[48] = batch_states[46]
+        batch_states_rev[49] = batch_states[47]
+        batch_states_rev[50] = batch_states[51]
+
         # Actions
-        actions = policy(batch_states)
-        actions_rev = T.zeros_like(actions)
+        for i in range(3):
+            actions = policy(batch_states)
+            actions_rev = T.zeros_like(actions)
 
-        actions_rev[:, 0:3] = actions[:, 6:9]
-        actions_rev[:, 3:6] = actions[:, 9:12]
-        actions_rev[:, 15:18] = actions[:, 12:15]
+            actions_rev[:, 0:3] = actions[:, 6:9]
+            actions_rev[:, 3:6] = actions[:, 9:12]
+            actions_rev[:, 15:18] = actions[:, 12:15]
 
-        actions_rev[:, 6:9] = actions[:, 0:3]
-        actions_rev[:, 9:12] = actions[:, 3:6]
-        actions_rev[:, 12:15] = actions[:, 15:18]
+            actions_rev[:, 6:9] = actions[:, 0:3]
+            actions_rev[:, 9:12] = actions[:, 3:6]
+            actions_rev[:, 12:15] = actions[:, 15:18]
 
-        loss = (actions - actions_rev).pow(2).mean()
-        policy_optim.zero_grad()
-        loss.backward()
-        policy.soft_clip_grads(1.)
-        policy_optim.step()
+            loss = (actions - actions_rev).pow(2).mean()
+            policy_optim.zero_grad()
+            loss.backward()
+            policy.soft_clip_grads(1.)
+            policy_optim.step()
 
     #policy.print_info()
 
@@ -256,7 +270,7 @@ if __name__=="__main__":
 
     params = {"iters": 200000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Gait, very hard with increasing difficulty", "ID" : ID}
+              "note" : "Terrain", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -283,7 +297,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_gait as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     env = hex_env.Hexapod(env_list=env_list)
 
     #from src.envs.cartpole_swingup import cartpole_swingup
@@ -301,14 +315,13 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        p_flat = T.load('agents/Hexapod_NN_PG_AJX_pg.p')
-        #p_flat = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
+        p_flat = T.load('agents/Hexapod_NN_PG_58N_pg.p')
         p_tiles = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
         p_holes = T.load('agents/Hexapod_NN_PG_OEO_pg.p')
         p_pipe = T.load('agents/Hexapod_NN_PG_HM3_pg.p')
-        p_inverseholes = T.load('agents/Hexapod_NN_PG_K9B_pg.p')
+        p_gotoxy = T.load('agents/Hexapod_NN_PG_WRO_pg.p')
 
-        policy = T.load('agents/Hexapod_NN_PG_WQM_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_PIG_pg.p')
 
         env.test(policy)
         #env.test_adapt(p_flat, p_pipe, "C")

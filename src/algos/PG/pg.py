@@ -269,8 +269,8 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 200000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
-              "note" : "Terrain, fixed clip issue", "ID" : ID}
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "note" : "Gait, sym", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -309,19 +309,19 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_HEX(env, 64, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 64, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
 
-        p_flat = T.load('agents/Hexapod_NN_PG_58N_pg.p')
-        p_tiles = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
-        p_holes = T.load('agents/Hexapod_NN_PG_OEO_pg.p')
-        p_pipe = T.load('agents/Hexapod_NN_PG_HM3_pg.p')
-        p_gotoxy = T.load('agents/Hexapod_NN_PG_WRO_pg.p')
+        #p_flat = T.load('agents/Hexapod_NN_PG_58N_pg.p')
+        #p_tiles = T.load('agents/Hexapod_NN_PG_P4D_pg.p')
+        #p_holes = T.load('agents/Hexapod_NN_PG_OEO_pg.p')
+        #p_pipe = T.load('agents/Hexapod_NN_PG_HM3_pg.p')
+        #p_gotoxy = T.load('agents/Hexapod_NN_PG_WRO_pg.p')
 
-        policy = T.load('agents/Hexapod_NN_PG_L5C_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_WT4_pg.p')
 
         env.test(policy)
         #env.test_adapt(p_flat, p_pipe, "C")

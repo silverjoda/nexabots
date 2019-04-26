@@ -867,24 +867,6 @@ class NN_PG(nn.Module):
         return x
 
 
-    def print_info(self):
-        print("-------------------------------")
-        print("w_fc1", self.fc1.weight.data.max(), self.fc1.weight.data.min())
-        print("b_fc1", self.fc1.bias.data.max(), self.fc1.weight.data.min())
-        print("w_fc2", self.fc2.weight.data.max(), self.fc2.weight.data.min())
-        print("b_fc2", self.fc2.bias.data.max(), self.fc2.weight.data.min())
-        print("w_fc3", self.fc3.weight.data.max(), self.fc3.weight.data.min())
-        print("b_fc3", self.fc3.bias.data.max(), self.fc3.weight.data.min())
-        print("---")
-        print("w_fc1 grad", self.fc1.weight.grad.max(), self.fc1.weight.grad.min())
-        print("b_fc1 grad", self.fc1.bias.grad.max(), self.fc1.bias.grad.min())
-        print("w_fc2 grad", self.fc2.weight.grad.max(), self.fc2.weight.grad.min())
-        print("b_fc2 grad", self.fc2.bias.grad.max(), self.fc2.bias.grad.min())
-        print("w_fc3 grad", self.fc3.weight.grad.max(), self.fc3.weight.grad.min())
-        print("b_fc3 grad", self.fc3.bias.grad.max(), self.fc3.bias.grad.min())
-        print("-------------------------------")
-
-
     def clip_grads(self, bnd=1):
         self.fc1.weight.grad.clamp_(-bnd, bnd)
         self.fc1.bias.grad.clamp_(-bnd, bnd)
@@ -903,14 +885,72 @@ class NN_PG(nn.Module):
             if m > maxval:
                 maxval = m
 
+
         if maxval > bnd:
-            print("Soft clipping gradients")
-            self.fc1.weight.grad = (self.fc1.weight.grad / maxval) * bnd
-            self.fc1.bias.grad = (self.fc2.bias.grad / maxval) * bnd
-            self.fc2.weight.grad = (self.fc2.weight.grad / maxval) * bnd
-            self.fc2.bias.grad = (self.fc2.bias.grad / maxval) * bnd
-            self.fc3.weight.grad = (self.fc3.weight.grad / maxval) * bnd
-            self.fc3.bias.grad = (self.fc3.bias.grad / maxval) * bnd
+            # print("Soft clipping grads")
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def sample_action(self, s):
+        return T.normal(self.forward(s), T.exp(self.log_std))
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+
+
+class NN_PG_SHORT(nn.Module):
+    def __init__(self, env, hid_dim=64, tanh=False, std_fixed=True):
+        super(NN_PG_SHORT, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.tanh = tanh
+        #self.scale = scale
+
+        self.fc1 = nn.Linear(self.obs_dim, hid_dim)
+        self.m1 = nn.LayerNorm(hid_dim)
+        self.fc2 = nn.Linear(hid_dim, self.act_dim)
+
+        if std_fixed:
+            self.log_std = T.zeros(1, self.act_dim)
+        else:
+            self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
+
+
+    def forward(self, x):
+        x = F.relu(self.m1(self.fc1(x)))
+        if self.tanh:
+            x = T.tanh(self.fc2(x))
+        else:
+            x = self.fc2(x)
+        return x
+
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            # print("Soft clipping grads")
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
 
 
     def sample_action(self, s):
@@ -2806,3 +2846,105 @@ class FB_RNN(nn.Module):
 
     def wstats(self):
         return self.rnn.weight_ih.data.min(), self.rnn.weight_ih.data.max()
+
+
+class NN_HEX(nn.Module):
+    def __init__(self, env, hid_dim=64, tanh=False, std_fixed=True):
+        super(NN_HEX, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.tanh = tanh
+
+        self.fc_in_1 = nn.Linear(7, 6)
+        self.fc_in_2 = nn.Linear(6, 3)
+
+        self.fc_m_1 = nn.Linear(3 * 6 + 4, 24)
+        self.fc_m_2 = nn.Linear(24, 3 * 6)
+
+        self.fc_out_1 = nn.Linear(7 + 3, 6)
+        self.fc_out_2 = nn.Linear(6, 3)
+
+        if std_fixed:
+            self.log_std = T.zeros(1, self.act_dim)
+        else:
+            self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
+
+
+    def forward(self, x):
+
+        # Leg features
+        l0 = T.cat([x[:, 0 * 3:0 * 3 + 3], x[:, 6 + 0 * 3: 6 + 0 * 3 + 3], x[:, 12 + 0:12 + 0 + 1]], 1)
+        l1 = T.cat([x[:, 1 * 3:1 * 3 + 3], x[:, 6 + 1 * 3: 6 + 1 * 3 + 3], x[:, 12 + 1:12 + 1 + 1]], 1)
+        l2 = T.cat([x[:, 2 * 3:2 * 3 + 3], x[:, 6 + 2 * 3: 6 + 2 * 3 + 3], x[:, 12 + 2:12 + 2 + 1]], 1)
+        l3 = T.cat([x[:, 3 * 3:3 * 3 + 3], x[:, 6 + 3 * 3: 6 + 3 * 3 + 3], x[:, 12 + 3:12 + 3 + 1]], 1)
+        l4 = T.cat([x[:, 4 * 3:4 * 3 + 3], x[:, 6 + 4 * 3: 6 + 4 * 3 + 3], x[:, 12 + 4:12 + 4 + 1]], 1)
+        l5 = T.cat([x[:, 5 * 3:5 * 3 + 3], x[:, 6 + 5 * 3: 6 + 5 * 3 + 3], x[:, 12 + 5:12 + 5 + 1]], 1)
+
+        in_f1_0 = F.relu(self.fc_in_1(l0))
+        in_f1_1 = F.relu(self.fc_in_1(l1))
+        in_f1_2 = F.relu(self.fc_in_1(l2))
+        in_f1_3 = F.relu(self.fc_in_1(l3))
+        in_f1_4 = F.relu(self.fc_in_1(l4))
+        in_f1_5 = F.relu(self.fc_in_1(l5))
+
+        in_f2_0 = F.relu(self.fc_in_2(in_f1_0))
+        in_f2_1 = F.relu(self.fc_in_2(in_f1_1))
+        in_f2_2 = F.relu(self.fc_in_2(in_f1_2))
+        in_f2_3 = F.relu(self.fc_in_2(in_f1_3))
+        in_f2_4 = F.relu(self.fc_in_2(in_f1_4))
+        in_f2_5 = F.relu(self.fc_in_2(in_f1_5))
+
+        in_cat = T.cat([x[:, 12:16], in_f2_0, in_f2_1, in_f2_2, in_f2_3, in_f2_4, in_f2_5], 1)
+
+        m_1 = F.relu(self.fc_m_1(in_cat))
+        m_2 = F.relu(self.fc_m_2(m_1))
+
+        out_1_0 = F.relu(self.fc_out_1(T.cat([l0, m_2[:, 0 * 3:0 * 3 + 3]], 1)))
+        out_1_1 = F.relu(self.fc_out_1(T.cat([l1, m_2[:, 1 * 3:1 * 3 + 3]], 1)))
+        out_1_2 = F.relu(self.fc_out_1(T.cat([l2, m_2[:, 2 * 3:2 * 3 + 3]], 1)))
+        out_1_3 = F.relu(self.fc_out_1(T.cat([l3, m_2[:, 3 * 3:3 * 3 + 3]], 1)))
+        out_1_4 = F.relu(self.fc_out_1(T.cat([l4, m_2[:, 4 * 3:4 * 3 + 3]], 1)))
+        out_1_5 = F.relu(self.fc_out_1(T.cat([l5, m_2[:, 5 * 3:5 * 3 + 3]], 1)))
+
+        out_2_0 = self.fc_out_2(out_1_0)
+        out_2_1 = self.fc_out_2(out_1_1)
+        out_2_2 = self.fc_out_2(out_1_2)
+        out_2_3 = self.fc_out_2(out_1_3)
+        out_2_4 = self.fc_out_2(out_1_4)
+        out_2_5 = self.fc_out_2(out_1_5)
+
+        return T.cat([out_2_0, out_2_1, out_2_2, out_2_3, out_2_4, out_2_5], 1)
+
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            # print("Soft clipping grads")
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def sample_action(self, s):
+        return T.normal(self.forward(s), T.exp(self.log_std))
+
+
+    def log_probs(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means = self.forward(batch_states)
+
+        # Calculate probabilities
+        log_std_batch = self.log_std.expand_as(action_means)
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(1, keepdim=True)
+

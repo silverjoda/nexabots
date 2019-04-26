@@ -26,8 +26,8 @@ class Hexapod():
         self.episode_reward = 0
         self.max_episode_reward = 0
 
-        self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
-        self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
+        self.joints_rads_low = np.array([-0.3, -1.0, -0.8] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 0.4] * 6)
         # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low

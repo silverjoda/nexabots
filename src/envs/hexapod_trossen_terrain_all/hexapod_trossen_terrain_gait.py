@@ -181,9 +181,9 @@ class Hexapod():
 
         obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                               self.sim.get_state().qvel.tolist()[6:],
-                              self.sim.get_state().qvel.tolist()[:6],
+                              contacts,
                               [roll, pitch, yaw, y],
-                              contacts]) # 46,47,48,49,50,51
+                              self.sim.get_state().qvel.tolist()[:6]]) # 46,47,48,49,50,51
 
         return obs, r, done, None
 

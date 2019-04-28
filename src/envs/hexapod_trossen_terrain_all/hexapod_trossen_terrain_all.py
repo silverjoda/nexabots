@@ -40,8 +40,8 @@ class Hexapod():
         self.max_episode_reward = 0
         self.average_episode_reward = 0
 
-        self.joints_rads_low = np.array([-0.3, -1.0, -0.8] * 6)
-        self.joints_rads_high = np.array([0.3, 0.0, 0.4] * 6)
+        self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
+        self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
         # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
         # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
@@ -173,7 +173,8 @@ class Hexapod():
                 np.square(pitch) * 2. + \
                 np.square(zd) * 2. + \
                 np.square(yd) * 2. + \
-                np.square(yaw) * 2.0 + \
+                np.square(y) * 2. + \
+                np.square(yaw) * 4.0 + \
                 np.square(self.sim.data.actuator_force).mean() * 0.000 + \
                 np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.2
 

@@ -155,10 +155,10 @@ class Hexapod():
         tar_angle = np.arctan2(self.goal_xy[1] - y, self.goal_xy[0] - x)
         yaw_deviation = np.min((abs((yaw % 6.183) - (tar_angle % 6.183)), abs(yaw - tar_angle)))
 
-        r_pos = velocity_rew * 4 + (self.prev_deviation - yaw_deviation) * 8
-        r_neg = np.square(roll) * 2.0 + \
-                np.square(pitch) * 2.0 + \
-                np.square(zd) * 2.0
+        r_pos = velocity_rew * 3 + (self.prev_deviation - yaw_deviation) * 9
+        r_neg = np.square(roll) * 1.2 + \
+                np.square(pitch) * 1.2 + \
+                np.square(zd) * 1.5
 
         self.prev_deviation = yaw_deviation
 

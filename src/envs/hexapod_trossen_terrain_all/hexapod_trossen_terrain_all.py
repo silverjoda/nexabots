@@ -176,7 +176,7 @@ class Hexapod():
                 np.square(y) * 2. + \
                 np.square(yaw) * 4.0 + \
                 np.square(self.sim.data.actuator_force).mean() * 0.000 + \
-                np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.2
+                np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.4
 
         r_neg = np.clip(r_neg, 0, 1) * 1
         r_pos = np.clip(r_pos, -2, 2)

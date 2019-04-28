@@ -262,7 +262,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["inverseholes"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["verts"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
@@ -321,7 +321,7 @@ if __name__=="__main__":
         #p_pipe = T.load('agents/Hexapod_NN_PG_2LB_pg.p')
         #p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p')
 
-        policy = T.load('agents/Hexapod_NN_PG_49N_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_ZQB_pg.p')
 
         env.test(policy)
         #env.test_adapt(p_flat, p_pipe, "C")

@@ -262,15 +262,15 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["verts"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["flat"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 200000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Terrain, tuning", "ID" : ID}
+              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
+              "note" : "Gotoxy_holes", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -297,7 +297,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_gotoxy_holes as hex_env
     env = hex_env.Hexapod(env_list=env_list)
 
     #from src.envs.cartpole_swingup import cartpole_swingup
@@ -309,7 +309,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 64, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 96, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
@@ -319,9 +319,9 @@ if __name__=="__main__":
         #p_tiles = T.load('agents/Hexapod_NN_PG_Q44_pg.p')
         #p_holes = T.load('agents/Hexapod_NN_PG_27Y_pg.p')
         #p_pipe = T.load('agents/Hexapod_NN_PG_2LB_pg.p')
-        #p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p')
+        #p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
 
-        policy = T.load('agents/Hexapod_NN_PG_ZQB_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_LZD_pg.p')
 
         env.test(policy)
         #env.test_adapt(p_flat, p_pipe, "C")

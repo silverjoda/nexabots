@@ -13,9 +13,11 @@ import string
 import socket
 from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
 
+
 def make_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
     env = hex_env.Hexapod(env_list)
     length = n_envs * 200
+    env.env_change_prob = 0.
 
     h = None
 
@@ -91,6 +93,7 @@ def make_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
 
 def make_reactive_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
     env = hex_env.Hexapod(env_list)
+    env.env_change_prob = 0.
     length = n_envs * 200
 
     episode_states = []
@@ -166,6 +169,7 @@ def make_classif_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
     env = hex_env.Hexapod(env_list)
     length = n_envs * 200
     change_prob = 0.01
+    env.env_change_prob = 0.
 
     episode_states = []
     episode_labels = []

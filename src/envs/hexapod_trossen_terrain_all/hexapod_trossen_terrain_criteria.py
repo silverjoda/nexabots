@@ -28,14 +28,14 @@ class Hexapod():
         else:
             self.env_list = env_list
 
-        thread = Thread(target=self.makeslider)
-        thread.start()
+        #thread = Thread(target=self.makeslider)
+        #thread.start()
 
         self.ID = '_'.join(self.env_list)
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.max_steps = self.n_envs * 200
+        self.max_steps = 200
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
@@ -64,7 +64,8 @@ class Hexapod():
         #                               }
 
         self.criteria_pen_range_dict = {
-            "vel": [0.3, 0.8]
+            "height": [0.04, 0.11],
+            "vel": [0.2, 0.8]
         }
 
         self.viewer = None
@@ -78,7 +79,7 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 18 * 2 + 9 + len(self.criteria_pen_range_dict) + 6
+        self.obs_dim = 18 * 2 + 10 + len(self.criteria_pen_range_dict) + 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         self.reset()
@@ -196,17 +197,12 @@ class Hexapod():
         #         np.square(pitch) * self.target_criteria_dict["level"] + \
         #         np.square(yaw) * 0.2
 
-        # r_neg = abs(sum(obs_dict["contacts"]) - self.target_criteria_dict["contacts"]) * 0.1 + \
-        #         np.square(roll) * 0.1 + \
-        #         np.square(pitch) * 0.1 + \
-        #         np.square(yaw) * 0.3
-        #
-
-        r_neg = np.square(roll) * 0.1 + \
-                np.square(pitch) * 0.1 + \
-                np.square(zd) * 0.1 + \
-                np.square(yaw) * 0.5 + \
-                np.square(y) * 0.5
+        r_neg = np.square(self.target_criteria_dict["height"] - z) * 100 + \
+                np.square(roll) * 1. + \
+                np.square(pitch) * 1. + \
+                np.square(zd) * 1. + \
+                np.square(yaw) * 2. + \
+                np.square(y) * 1.
 
         r_neg = np.clip(r_neg, 0, 2.0)
         r_pos = np.clip(r_pos, -2, 2)
@@ -219,7 +215,7 @@ class Hexapod():
         obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
                               self.sim.get_state().qvel.tolist()[6:],
                               self.target_criteria_norm,
-                              [roll, pitch, yaw, y, z, xd, yd, thd, phid],
+                              [roll, pitch, yaw, y, z, xd, yd, zd, thd, phid],
                               obs_dict["contacts"]])
 
         return obs, r, done, obs_dict

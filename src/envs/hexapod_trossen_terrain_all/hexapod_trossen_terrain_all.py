@@ -174,7 +174,7 @@ class Hexapod():
                 np.square(zd) * 2. + \
                 np.square(yd) * 2. + \
                 np.square(y) * 2. + \
-                np.square(yaw) * 4.0 + \
+                np.square(yaw) * 7.0 + \
                 np.square(self.sim.data.actuator_force).mean() * 0.000 + \
                 np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.4
 

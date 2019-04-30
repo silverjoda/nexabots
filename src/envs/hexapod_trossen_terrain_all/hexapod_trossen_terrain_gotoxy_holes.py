@@ -21,8 +21,8 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 400
-        self.max_goals = 2
+        self.max_steps = 1200
+        self.max_goals = 3
 
         self.episode_reward = 0
         self.max_episode_reward = 0
@@ -309,15 +309,15 @@ class Hexapod():
         self.env_change_prob = 1
         for i in range(100):
             obs = self.reset()
+            done = False
             cr = 0
-            for j in range(int(self.max_steps * 1.5)):
+            while not done:
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
                 time.sleep(0.001)
                 self.render()
-                if np.sqrt((self.prev_xy[0] - self.goal_xy[0]) ** 2 + (self.prev_xy[1] - self.goal_xy[1]) ** 2) < 0.15:
-                    break
+
             print("Total episode reward: {}".format(cr))
 
 

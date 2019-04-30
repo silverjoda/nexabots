@@ -156,15 +156,15 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes"]
+    env_list = ["flat", "holes", "pipe"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 300000, "batchsize": 24, "gamma": 0.995, "lr": 0.0005, "decay" : 0.001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "all", "Env_list" : env_list,
+    params = {"iters": 300000, "batchsize": 24, "gamma": 0.99, "lr": 0.0005, "decay" : 0.001, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "comments" : "All, policyactions", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -186,7 +186,7 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_gotoxy as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all_aux as hex_env
     env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
 
     #from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env
@@ -206,7 +206,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_6FP_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_WS6_pg.p')
         #expert = T.load('agents/Hexapod_RNN_BLEND_2_PG_K9Q_pg.p')
 
         env.test_recurrent(expert)

@@ -26,6 +26,15 @@ class Hexapod():
         else:
             self.env_list = env_list
 
+        # Load experts
+        reactive_expert_flat = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                   '../../algos/PG/agents/Hexapod_NN_PG_98Z_pg.p'))
+        reactive_expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                    '../../algos/PG/agents/Hexapod_NN_PG_J65_pg.p'))
+        reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                   '../../algos/PG/agents/Hexapod_NN_PG_4IO_pg.p'))
+
+        self.expert_list = [reactive_expert_flat, reactive_expert_holes, reactive_expert_pipe]
         self.ID = '_'.join(self.env_list)
 
         self.modelpath = Hexapod.MODELPATH
@@ -108,7 +117,6 @@ class Hexapod():
 
         # Contacts:
         od['contacts'] = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
-
         return od
 
 
@@ -133,8 +141,14 @@ class Hexapod():
 
 
     def step(self, ctrl):
-        ctrl = ctrl[:-self.n_envs]
-        classif = ctrl[-self.n_envs:]
+        ctrl = ctrl[:-(self.n_envs + 1)]
+        classif = ctrl[-(self.n_envs + 1):]
+
+        if np.argmax(classif) < self.n_envs + 1:
+            policy = self.expert_list[np.argmax(classif[:self.n_envs])]
+            act = policy(my_utils.to_tensor(self.obs, True)).detach()
+            ctrl = act[0].numpy()
+
         ctrl = np.clip(ctrl, -1, 1)
         ctrl = self.scale_action(ctrl)
 
@@ -150,15 +164,6 @@ class Hexapod():
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
         xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
-        if x > self.scaled_indeces_list[self.current_env_idx]:
-            self.current_env_idx += 1
-            self.current_env = self.envs[self.current_env_idx]
-
-        with T.no_grad():
-            env_label = T.tensor(self.env_list.index(self.current_env)).unsqueeze(0)
-            env_pred = T.tensor(classif).unsqueeze(0)
-            ce_loss = self.CE_loss(env_pred, env_label)
-
         # Reward conditions
         target_vel = 0.3
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
@@ -173,9 +178,7 @@ class Hexapod():
                 np.square(y) * 2. + \
                 np.square(yaw) * 4.0 + \
                 np.square(self.sim.data.actuator_force).mean() * 0.000 + \
-                np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.4 + \
-                ce_loss.numpy() * .1
-
+                np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.4
 
         r_neg = np.clip(r_neg, 0, 1) * 1
         r_pos = np.clip(r_pos, -2, 2)
@@ -186,22 +189,21 @@ class Hexapod():
         done = self.step_ctr > self.max_steps
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
-
         if self.use_HF:
-            obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
+            self.obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                                   self.sim.get_state().qvel.tolist()[6:],
                                   self.sim.get_state().qvel.tolist()[:6],
                                   [roll, pitch, yaw, y],
                                   contacts, self.get_local_hf(x,y).flatten()])
         else:
-            obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
+            self.obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                                   self.sim.get_state().qvel.tolist()[6:],
                                   self.sim.get_state().qvel.tolist()[:6],
                                   [roll, pitch, yaw, y],
                                   contacts])
 
 
-        return obs, r, done, None
+        return self.obs, r, done, None
 
 
     def reset(self, init_pos = None):
@@ -232,7 +234,7 @@ class Hexapod():
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
         self.obs_dim = 18 * 2 + 6 + 4 + 6
-        self.act_dim = self.sim.data.actuator_length.shape[0] + self.n_envs
+        self.act_dim = self.sim.data.actuator_length.shape[0] + self.n_envs + 1
 
         if self.use_HF:
             self.obs_dim += self.HF_width * self.HF_length
@@ -281,13 +283,14 @@ class Hexapod():
         # self.render()
         # time.sleep(3)
 
-        obs, _, _, _ = self.step(np.zeros(self.act_dim))
+        self.obs = np.zeros(self.obs_dim)
+        self.obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         #x,y = self.sim.get_state().qpos.tolist()[:2]
         #print("x,y: ", x , y)
         #test_patch = self.get_local_hf(x,y)
 
-        return obs
+        return self.obs
 
 
     def get_local_hf(self, x, y):

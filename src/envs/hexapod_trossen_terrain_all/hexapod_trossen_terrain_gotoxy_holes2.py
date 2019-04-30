@@ -21,19 +21,20 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 150
+        self.max_steps = 400
+        self.max_goals = 2
 
         self.episode_reward = 0
         self.max_episode_reward = 0
-        self.episodes = 0
 
-        self.joints_rads_low = np.array([-0.3, -1.0, -1.0] * 6)
-        self.joints_rads_high = np.array([0.3, 0.2, 0.4] * 6)
+
+        self.joints_rads_low = np.array([-0.6, -1.4, -1.4] * 6)
+        self.joints_rads_high = np.array([0.6, 0.6, 1.4] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.viewer = None
 
-        path = Hexapod.MODELPATH + "gait.xml"
+        path = Hexapod.MODELPATH + "gotoxy_holes2.xml"
 
         self.model = mujoco_py.load_model_from_path(path)
         self.sim = mujoco_py.MjSim(self.model)
@@ -44,7 +45,7 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 18 * 2 + 6 + 4 + 6
+        self.obs_dim = 18 * 2 + 6 + 4 + 6 + 4
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         self.reset()
@@ -68,12 +69,6 @@ class Hexapod():
         return (np.array(action) * 0.5 + 0.5) * self.joints_rads_diff + self.joints_rads_low
 
 
-    def scale_joints(self, joints):
-        sjoints = np.array(joints)
-        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
-        return sjoints
-
-
     def scale_inc(self, action):
         action *= (self.joints_rads_diff / 2.)
         joint_list = np.array(self.sim.get_state().qpos.tolist()[7:7 + self.act_dim])
@@ -84,6 +79,12 @@ class Hexapod():
 
     def scale_torque(self, action):
         return action
+
+
+    def scale_joints(self, joints):
+        sjoints = np.array(joints)
+        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        return sjoints
 
 
     def get_obs(self):
@@ -127,7 +128,7 @@ class Hexapod():
 
 
     def step(self, ctrl):
-        ctrl_penalty = np.mean(ctrl)
+
         ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
@@ -137,51 +138,55 @@ class Hexapod():
 
         obs = self.get_obs()
 
-        self.used_energy += self.sim.data.actuator_force
-
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
 
         # Reward conditions
-        target_vel = 0.30
-        velocity_rew_x = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
+        target_vel = 0.25
+        dprev = np.sqrt((self.prev_xy[0] - self.goal_A[0]) ** 2 + (self.prev_xy[1] - self.goal_A[1]) ** 2)
+        dcur = np.sqrt((x - self.goal_A[0]) ** 2 + (y - self.goal_A[1]) ** 2)
+        to_goal_vel =  dprev - dcur
+        to_goal_vel *= 50.
+        velocity_rew = 1. / (abs(to_goal_vel - target_vel) + 1.) - 1. / (target_vel + 1.)
 
-        roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
+        if dcur < 0.2:
+            self.current_goal_idx += 1
+            self.goal_A = self.goal_list[self.current_goal_idx]
+            self.goal_B = self.goal_list[self.current_goal_idx + 1]
+            self.model.body_pos[20] = [*self.goal_A, 0]
+            self.model.body_pos[21] = [*self.goal_B, 0]
 
-        contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(
-            np.float32)
+        roll, pitch, yaw = my_utils.quat_to_rpy([qw, qx, qy, qz])
 
-        # mean_used_energy = self.used_energy / self.step_ctr
-        # mean_used_energy_coxa = mean_used_energy[0::3]
-        # mean_used_energy_femur = mean_used_energy[1::3]
-        # mean_used_energy_tibia = mean_used_energy[2::3]
-        # coxa_penalty = np.mean(np.square(mean_used_energy_coxa - np.mean(mean_used_energy_coxa)))
-        # femur_penalty = np.mean(np.square(mean_used_energy_femur - np.mean(mean_used_energy_femur)))
-        # tibia_penalty = np.mean(np.square(mean_used_energy_tibia - np.mean(mean_used_energy_tibia)))
+        tar_angle = np.arctan2(self.goal_A[1] - y, self.goal_A[0] - x)
+        yaw_deviation = np.min((abs((yaw % 6.183) - (tar_angle % 6.183)), abs(yaw - tar_angle)))
 
-        r_pos = velocity_rew_x * 5. # + np.mean(contacts) * 0.2
-        r_neg = np.square(roll) * 4. + \
-                np.square(pitch) * 4. + \
-                np.square(zd) * 4. + \
-                np.square(yd) * 4. + \
-                np.square(yaw) * 4.0 + \
-                np.square(self.sim.data.actuator_force).mean() * 0.000 + \
-                ctrl_penalty * 0.0 # + \
-                #(coxa_penalty * .1 + femur_penalty * .1 + tibia_penalty * .1) * self.step_ctr > 30
+        r_pos = velocity_rew * 3 + (self.prev_deviation - yaw_deviation) * 9
+        r_neg = np.square(roll) * 1.2 + \
+                np.square(pitch) * 1.2 + \
+                np.square(zd) * 1.5
 
-        r_neg = np.clip(r_neg, 0, 1) * 1.
+        self.prev_deviation = yaw_deviation
+
+        r_neg = np.clip(r_neg, 0, 2) * 1.
         r_pos = np.clip(r_pos, -2, 2)
         r = r_pos - r_neg
         self.episode_reward += r
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps or self.current_goal_idx >= self.max_goals
+
+        self.prev_xy = [x, y]
+
+        contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
         obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                               self.sim.get_state().qvel.tolist()[6:],
                               self.sim.get_state().qvel.tolist()[:6],
                               [roll, pitch, yaw, y],
+                              [x - self.goal_A[0], y - self.goal_A[1]],
+                              [self.goal_A[0] - self.goal_B[0], self.goal_A[1] - self.goal_B[1]],
                               contacts])
 
         return obs, r, done, None
@@ -190,30 +195,45 @@ class Hexapod():
     def reset(self, init_pos = None):
         # Reset env variables
         self.step_ctr = 0
-        self.episodes += 1
-        self.used_energy = np.zeros((self.act_dim))
+        self.episodes = 0
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = 0.0 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.12
+        init_q[2] = 0.10
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Init_quat
-        self.rnd_yaw = np.random.rand() * 0.5 - 0.25
+        self.rnd_yaw = np.random.rand() * 1 - 0.5
         rnd_quat = my_utils.rpy_to_quat(0, 0, self.rnd_yaw)
         init_q[3:7] = rnd_quat
+
+        self.goal_xy_1 = [np.random.rand() * .7 + .5, np.random.rand() * 2 - 1.]
+        self.goal_xy_2 = [np.random.rand() * .7 + .5 + self.goal_xy_1[0], np.random.rand() * 2 - 1.]
+        self.goal_xy_3 = [np.random.rand() * .7 + .5 + self.goal_xy_2[0], np.random.rand() * 2 - 1.]
+        self.goal_xy_4 = [np.random.rand() * .7 + .5 + self.goal_xy_3[0], np.random.rand() * 2 - 1.]
+        self.goal_xy_5 = [np.random.rand() * .7 + .5 + self.goal_xy_4[0], np.random.rand() * 2 - 1.]
+
+        self.goal_list = [self.goal_xy_1,self.goal_xy_2,self.goal_xy_3,self.goal_xy_4,self.goal_xy_5]
 
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(10):
+        self.current_goal_idx = 0
+        self.goal_A = self.goal_list[self.current_goal_idx]
+        self.goal_B = self.goal_list[self.current_goal_idx + 1]
+
+        for i in range(30):
             self.sim.forward()
             self.sim.step()
 
-        # self.render()
-        # time.sleep(3)
+        self.prev_xy = [0, 0]
+        self.model.body_pos[20] = [*self.goal_A, 0]
+        self.model.body_pos[21] = [*self.goal_B, 0]
+
+        tar_angle = np.arctan2(self.goal_A[1] - 0, self.goal_A[0] - 0)
+        self.prev_deviation = np.min((abs((self.rnd_yaw % 6.183) - (tar_angle % 6.183)), abs(self.rnd_yaw - tar_angle)))
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
@@ -288,13 +308,15 @@ class Hexapod():
         self.env_change_prob = 1
         for i in range(100):
             obs = self.reset()
+            done = False
             cr = 0
-            for j in range(int(self.max_steps * 1.5)):
+            while not done:
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
                 time.sleep(0.001)
                 self.render()
+
             print("Total episode reward: {}".format(cr))
 
 

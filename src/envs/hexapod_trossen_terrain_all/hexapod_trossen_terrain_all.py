@@ -172,8 +172,8 @@ class Hexapod():
         r_neg = np.square(roll) * 2. + \
                 np.square(pitch) * 2. + \
                 np.square(zd) * 2. + \
-                np.square(yd) * 2. + \
-                np.square(y) * 2. + \
+                np.square(yd) * 4. + \
+                np.square(y) * 7. + \
                 np.square(yaw) * 7.0 + \
                 np.square(self.sim.data.actuator_force).mean() * 0.000 + \
                 np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.4
@@ -185,9 +185,7 @@ class Hexapod():
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
-
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
-
 
         if self.use_HF:
             obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
@@ -201,7 +199,6 @@ class Hexapod():
                                   self.sim.get_state().qvel.tolist()[:6],
                                   [roll, pitch, yaw, y],
                                   contacts])
-
 
         return obs, r, done, None
 
@@ -280,7 +277,7 @@ class Hexapod():
             init_q[0:3] += init_pos
 
         # Init_quat
-        self.rnd_yaw = np.random.randn() * 0.2
+        self.rnd_yaw = np.random.randn() * 0.0
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 

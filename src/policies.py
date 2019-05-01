@@ -1570,6 +1570,7 @@ class RNN_V3_AUX(nn.Module):
 
         return f2
 
+
     def sample_action(self, s):
         x, h = self.forward(s)
         return T.normal(x[0], T.exp(self.log_std_cpu)), h

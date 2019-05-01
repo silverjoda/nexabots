@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 150
+        self.max_steps = 250
 
         self.episode_reward = 0
         self.max_episode_reward = 0
@@ -161,14 +161,16 @@ class Hexapod():
         # tibia_penalty = np.mean(np.square(mean_used_energy_tibia - np.mean(mean_used_energy_tibia)))
 
         r_pos = velocity_rew_x * 5. # + np.mean(contacts) * 0.2
-        r_neg = np.square(roll) * 4. + \
-                np.square(pitch) * 4. + \
-                np.square(zd) * 4. + \
+        r_neg = np.square(roll) * 1. + \
+                np.square(pitch) * 1. + \
+                np.square(zd) * 1. + \
                 np.square(yd) * 4. + \
-                np.square(yaw) * 4.0 + \
+                np.square(y) * 7. + \
+                np.square(yaw) * 4. + \
                 np.square(self.sim.data.actuator_force).mean() * 0.000 + \
                 ctrl_penalty * 0.0 # + \
                 #(coxa_penalty * .1 + femur_penalty * .1 + tibia_penalty * .1) * self.step_ctr > 30
+
 
         r_neg = np.clip(r_neg, 0, 1) * 1.
         r_pos = np.clip(r_pos, -2, 2)
@@ -181,7 +183,7 @@ class Hexapod():
         obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                               self.sim.get_state().qvel.tolist()[6:],
                               self.sim.get_state().qvel.tolist()[:6],
-                              [roll, pitch, yaw, y],
+                              [roll, pitch, -yaw, y],
                               contacts])
 
         return obs, r, done, None
@@ -201,7 +203,7 @@ class Hexapod():
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Init_quat
-        self.rnd_yaw = np.random.rand() * 0.5 - 0.25
+        self.rnd_yaw = np.random.rand() * 0.0 - 0.0
         rnd_quat = my_utils.rpy_to_quat(0, 0, self.rnd_yaw)
         init_q[3:7] = rnd_quat
 

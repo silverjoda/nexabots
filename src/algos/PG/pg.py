@@ -262,14 +262,14 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["verts"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["pipe"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 200000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "Criteria", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -297,7 +297,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
     #env = hex_env.Hexapod(mem_dim=0)
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_criteria as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_gait as hex_env
     env = hex_env.Hexapod(env_list=env_list)
 
     #from src.envs.cartpole_swingup import cartpole_swingup
@@ -323,7 +323,7 @@ if __name__=="__main__":
         #p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
         #p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
 
-        policy = T.load('agents/Hexapod_NN_PG_008_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_RAG_pg.p')
 
         env.test(policy)
         #env.test_adapt(p_flat, p_pipe, "C")

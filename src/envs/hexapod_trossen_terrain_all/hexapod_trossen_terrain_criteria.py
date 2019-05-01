@@ -64,7 +64,7 @@ class Hexapod():
         #                               }
 
         self.criteria_pen_range_dict = {
-            "height": [0.04, 0.11],
+            "height": [0.04, 0.12],
             "vel": [0.2, 0.8]
         }
 
@@ -197,12 +197,14 @@ class Hexapod():
         #         np.square(pitch) * self.target_criteria_dict["level"] + \
         #         np.square(yaw) * 0.2
 
-        r_neg = np.square(self.target_criteria_dict["height"] - z) * 100 + \
+        r_neg = np.square(self.target_criteria_dict["height"] - z) * 300 + \
                 np.square(roll) * 1. + \
                 np.square(pitch) * 1. + \
                 np.square(zd) * 1. + \
                 np.square(yaw) * 2. + \
                 np.square(y) * 1.
+
+        #print(z, self.target_criteria_dict["height"], np.square(self.target_criteria_dict["height"] - z) * 100)
 
         r_neg = np.clip(r_neg, 0, 2.0)
         r_pos = np.clip(r_pos, -2, 2)

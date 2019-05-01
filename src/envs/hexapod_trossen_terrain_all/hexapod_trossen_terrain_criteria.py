@@ -45,10 +45,8 @@ class Hexapod():
         self.max_episode_reward = 0
         self.average_episode_reward = 0
 
-        self.joints_rads_low = np.array([-0.6, -1.0, -1.] * 6)
-        self.joints_rads_high = np.array([0.6, 0.3, 1.] * 6)
-        # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
-        # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
+        self.joints_rads_low = np.array([-0.3, -0.8, -0.6] * 6)
+        self.joints_rads_high = np.array([0.3, 0.3, 0.5] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # self.criteria_pen_range_dict = {"vel" : [0.15, 0.4],
@@ -64,7 +62,7 @@ class Hexapod():
         #                               }
 
         self.criteria_pen_range_dict = {
-            "height": [0.04, 0.12],
+            "height": [0.04, 0.14],
             "vel": [0.2, 0.8]
         }
 
@@ -79,7 +77,7 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 18 * 2 + 10 + len(self.criteria_pen_range_dict) + 6
+        self.obs_dim = 18 * 2 + 6 + 4 + 6 + len(self.criteria_pen_range_dict)
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         self.reset()
@@ -159,6 +157,12 @@ class Hexapod():
         self.sim.forward()
 
 
+    def scale_joints(self, joints):
+        sjoints = np.array(joints)
+        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        return sjoints
+
+
     def render(self):
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
@@ -182,43 +186,38 @@ class Hexapod():
         x, y, z, qw, qx, qy, qz = obs[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
 
+        contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(
+            np.float32)
+
         # Reward conditions
         target_vel = self.target_criteria_dict["vel"]
-        velocity_rew = (1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)) * (1 / target_vel)
+        velocity_rew = (1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)) * (1. / target_vel)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
-
         r_pos = velocity_rew
 
-        # r_neg = np.square(self.target_criteria_dict["height"] - z) + \
-        #         np.square(self.sim.data.actuator_force).mean() * self.target_criteria_dict["torque"] + \
-        #         np.square(ctrl).mean() * self.target_criteria_dict["joints"] + \
-        #         np.square(roll) * self.target_criteria_dict["level"] + \
-        #         np.square(pitch) * self.target_criteria_dict["level"] + \
-        #         np.square(yaw) * 0.2
-
-        r_neg = np.square(self.target_criteria_dict["height"] - z) * 300 + \
+        r_neg = np.square(self.target_criteria_dict["height"] - z) * 200 + \
                 np.square(roll) * 1. + \
                 np.square(pitch) * 1. + \
                 np.square(zd) * 1. + \
                 np.square(yaw) * 2. + \
                 np.square(y) * 1.
 
-        #print(z, self.target_criteria_dict["height"], np.square(self.target_criteria_dict["height"] - z) * 100)
+        #print(z, self.target_criteria_dict["height"], np.square(self.target_criteria_dict["height"] - z) * 100, velocity_rew)
 
-        r_neg = np.clip(r_neg, 0, 2.0)
+        r_neg = np.clip(r_neg, 0, 2.)
         r_pos = np.clip(r_pos, -2, 2)
         r = r_pos - r_neg
-        self.episode_reward += r
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps # or abs(roll) > 2 or abs(pitch) > 2
 
-        obs = np.concatenate([self.sim.get_state().qpos.tolist()[7:],
+        obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                               self.sim.get_state().qvel.tolist()[6:],
+                              self.sim.get_state().qvel.tolist()[:6],
                               self.target_criteria_norm,
-                              [roll, pitch, yaw, y, z, xd, yd, zd, thd, phid],
-                              obs_dict["contacts"]])
+                              [roll, pitch, yaw, y],
+                              contacts])
 
         return obs, r, done, obs_dict
 
@@ -246,7 +245,7 @@ class Hexapod():
             init_q[0:3] += init_pos
 
         # Init_quat
-        self.rnd_yaw = np.random.randn() * 0.3
+        self.rnd_yaw = np.random.randn() * 0.0
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 

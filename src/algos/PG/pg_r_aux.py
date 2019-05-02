@@ -12,9 +12,9 @@ import random
 import string
 import socket
 
-def train(env, policy, params):
-
+def train(env, policy, classifier, params):
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
+    classifier_optim = T.optim.Adam(classifier.parameters() + policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
     lossfun_classifier = T.nn.CrossEntropyLoss()
 
     batch_states = []
@@ -86,14 +86,15 @@ def train(env, policy, params):
                 update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
             # Update terrain classification
-            label_predictions = policy.classif(batch_states)
-            loss = lossfun_classifier(label_predictions, batch_labels)
-            loss.backward()
-            policy.soft_clip_grads()
-            policy_optim.step()
+            live_actions = policy(batch_states)
+            label_predictions = policy.classif(live_actions)
+            loss_classifier = lossfun_classifier(label_predictions, batch_labels)
+            loss_classifier.backward()
+            classifier_optim.soft_clip_grads()
+            classifier_optim.step()
 
             print("Episode {}/{}, loss_classif: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
-                  format(i, params["iters"], loss, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
+                  format(i, params["iters"], loss_classifier, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
 
             # Finally reset all batch lists
             episode_ctr = 0
@@ -199,7 +200,7 @@ if __name__=="__main__":
     #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
     #env = adaptive_ctrl_env.AdaptiveSliderEnv()
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_gotoxy as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all_aux_classif as hex_env
     env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
 
     #from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env
@@ -213,10 +214,11 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_AUX(env, hid_dim=64, memory_dim=32, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=64, memory_dim=32, n_temp=3, n_classes=3, to_gpu=False, obs_dim=18)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
-        train(env, policy, params)
+        train(env, policy, classifier, params)
     else:
         print("Testing")
         expert = T.load('agents/Hexapod_RNN_V3_LN_PG_6FP_pg.p')

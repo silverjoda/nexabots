@@ -1595,9 +1595,12 @@ class RNN_V3_AUX(nn.Module):
 
 
 class RNN_CLASSIF_ENV(nn.Module):
-    def __init__(self, env, hid_dim=32, memory_dim=32, n_temp=3, n_classes=5, to_gpu=False):
+    def __init__(self, env, hid_dim=32, memory_dim=32, n_temp=3, n_classes=3, to_gpu=False, obs_dim=None):
         super(RNN_CLASSIF_ENV, self).__init__()
-        self.obs_dim = env.obs_dim
+        if env is None:
+            self.obs_dim = obs_dim
+        else:
+            self.obs_dim = env.obs_dim
         self.act_dim = n_classes
         self.hid_dim = hid_dim
         self.memory_dim = memory_dim
@@ -1627,8 +1630,6 @@ class RNN_CLASSIF_ENV(nn.Module):
                 maxval = m
 
         if maxval > bnd:
-            #print("Soft clipping grads")
-
             for p in self.parameters():
                 if p.grad is None: continue
                 p.grad = (p.grad / maxval) * bnd
@@ -1640,10 +1641,12 @@ class RNN_CLASSIF_ENV(nn.Module):
 
         output, h = self.rnn(x, h)
 
-        x = self.fc2(T.cat((output, x), 2))
+        x = F.selu(self.fc2(T.cat((output, x), 2)))
         x = self.fc3(x)
 
         return x, h
+
+
 
 
 class RNN_VAR_PG(nn.Module):

@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["flat","tiles","holes","pipe", "inverseholes"]
+            self.env_list = ["flat","tiles","holes","pipe","inverseholes"]
         else:
             self.env_list = env_list
 
@@ -512,16 +512,20 @@ class Hexapod():
     def test(self, policy):
         #self.envgen.load()
         self.env_change_prob = 1
-        for i in range(100):
+        N = 10
+        rew = 0
+        for i in range(N):
             obs = self.reset()
             cr = 0
-            for j in range(int(self.max_steps * 1.5)):
+            for j in range(int(self.max_steps)):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
+                rew += r
                 time.sleep(0.001)
                 self.render()
             print("Total episode reward: {}".format(cr))
+        print("Total average reward = {}".format(rew / N))
 
 
     def test_recurrent(self, policy):

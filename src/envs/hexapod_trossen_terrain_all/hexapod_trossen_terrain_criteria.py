@@ -27,15 +27,15 @@ class Hexapod():
             self.env_list = ["flat"]
         else:
             self.env_list = env_list
-
-        #thread = Thread(target=self.makeslider)
-        #thread.start()
+        #
+        # thread = Thread(target=self.makeslider)
+        # thread.start()
 
         self.ID = '_'.join(self.env_list)
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.max_steps = 200
+        self.max_steps = 250
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
@@ -62,8 +62,8 @@ class Hexapod():
         #                               }
 
         self.criteria_pen_range_dict = {
-            "height": [0.04, 0.14],
-            "vel": [0.2, 0.8]
+            "height": [0.03, 0.14],
+            "vel": [0.2, 1.2]
         }
 
         self.viewer = None
@@ -80,19 +80,27 @@ class Hexapod():
         self.obs_dim = 18 * 2 + 6 + 4 + 6 + len(self.criteria_pen_range_dict)
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
+        self.setupcam()
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
         #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
 
-    def show_values(self, x):
-        self.target_criteria_norm = np.array([float(x)/100.])
+    def changeheight(self, x):
+        self.target_criteria_norm = np.array([float(x)/100., self.target_criteria_norm[1]])
+
+
+    def changevel(self, x):
+        self.target_criteria_norm = np.array([self.target_criteria_norm[0], float(x)/100.])
 
 
     def makeslider(self):
         master = Tk()
-        w = Scale(master, from_=-100, to=100, command=self.show_values)
+        w = Scale(master, from_=-100, to=100, command=self.changeheight)
+        w.pack()
+
+        w = Scale(master, from_=-100, to=100, command=self.changevel)
         w.pack()
         mainloop()
 
@@ -101,11 +109,11 @@ class Hexapod():
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = self.model.stat.extent * 1.3
+        self.viewer.cam.distance = self.model.stat.extent * .3
         self.viewer.cam.lookat[0] = -0.1
-        self.viewer.cam.lookat[1] = 0
+        self.viewer.cam.lookat[1] = -1
         self.viewer.cam.lookat[2] = 0.5
-        self.viewer.cam.elevation = -20
+        self.viewer.cam.elevation = -30
 
 
     def scale_action(self, action):
@@ -140,7 +148,6 @@ class Hexapod():
 
         # Contacts:
         od['contacts'] = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
-
         return od
 
 
@@ -200,7 +207,7 @@ class Hexapod():
                 np.square(roll) * 1. + \
                 np.square(pitch) * 1. + \
                 np.square(zd) * 1. + \
-                np.square(yaw) * 2. + \
+                np.square(yaw) * 5. + \
                 np.square(y) * 1.
 
         #print(z, self.target_criteria_dict["height"], np.square(self.target_criteria_dict["height"] - z) * 100, velocity_rew)
@@ -225,7 +232,7 @@ class Hexapod():
     def reset(self, init_pos = None):
 
         # Set episode targets
-        self.target_criteria_norm = np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
+        self.target_criteria_norm = np.array([0, 0]) # np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
         self.target_criteria_dict = {}
         for i, (k, v) in enumerate(self.criteria_pen_range_dict.items()):
             self.target_criteria_dict[k] = ((self.target_criteria_norm[i] + 1) * 0.5) * abs(v[1] - v[0]) + v[0]

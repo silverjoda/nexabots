@@ -212,8 +212,8 @@ class Hexapod():
             self.envs, self.size_list, self.scaled_indeces_list = self.generate_hybrid_env(self.n_envs, self.max_steps)
             time.sleep(0.2)
 
-        current_env_idx = 0
-        current_env = self.envs[current_env_idx]
+        self.current_env_idx = 0
+        self.current_env = self.envs[self.current_env_idx]
 
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
@@ -326,6 +326,14 @@ class Hexapod():
 
         maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
         total_hm = np.concatenate(maplist, 1)
+
+        # Smoothen transitions
+        bnd = 7
+        for s in scaled_indeces_list:
+            total_hm_copy = np.array(total_hm)
+            for i in range(s - bnd, s + bnd):
+                total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
+            total_hm = total_hm_copy
 
         if self.walls:
             total_hm[0, :] = 255

@@ -327,6 +327,14 @@ class Hexapod():
         maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
         total_hm = np.concatenate(maplist, 1)
 
+        # Smoothen transitions
+        bnd = 7
+        for s in scaled_indeces_list:
+            total_hm_copy = np.array(total_hm)
+            for i in range(s - bnd, s + bnd):
+                total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
+            total_hm = total_hm_copy
+
         if self.walls:
             total_hm[0, :] = 255
             total_hm[:, 0] = 255

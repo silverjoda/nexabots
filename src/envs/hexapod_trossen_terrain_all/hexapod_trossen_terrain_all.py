@@ -334,6 +334,14 @@ class Hexapod():
         maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
         total_hm = np.concatenate(maplist, 1)
 
+        # Smoothen transitions
+        bnd = 7
+        for s in scaled_indeces_list:
+            total_hm_copy = np.array(total_hm)
+            for i in range(s - bnd, s + bnd):
+                total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
+            total_hm = total_hm_copy
+
         if self.walls:
             total_hm[0, :] = 255
             total_hm[:, 0] = 255
@@ -512,7 +520,7 @@ class Hexapod():
     def test(self, policy):
         #self.envgen.load()
         self.env_change_prob = 1
-        N = 10
+        N = 30
         rew = 0
         for i in range(N):
             obs = self.reset()
@@ -523,8 +531,8 @@ class Hexapod():
                 cr += r
                 rew += r
                 time.sleep(0.001)
-                self.render()
-            print("Total episode reward: {}".format(cr))
+                #self.render()
+            #print("Total episode reward: {}".format(cr))
         print("Total average reward = {}".format(rew / N))
 
 

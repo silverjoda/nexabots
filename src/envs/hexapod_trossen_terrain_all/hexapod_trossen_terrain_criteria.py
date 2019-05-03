@@ -80,7 +80,6 @@ class Hexapod():
         self.obs_dim = 18 * 2 + 6 + 4 + 6 + len(self.criteria_pen_range_dict)
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
-        self.setupcam()
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -232,7 +231,7 @@ class Hexapod():
     def reset(self, init_pos = None):
 
         # Set episode targets
-        self.target_criteria_norm = np.array([0, 0]) # np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
+        self.target_criteria_norm = np.random.rand(len(self.criteria_pen_range_dict)) * 2 - 1 #
         self.target_criteria_dict = {}
         for i, (k, v) in enumerate(self.criteria_pen_range_dict.items()):
             self.target_criteria_dict[k] = ((self.target_criteria_norm[i] + 1) * 0.5) * abs(v[1] - v[0]) + v[0]

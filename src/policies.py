@@ -1593,7 +1593,6 @@ class RNN_V3_AUX(nn.Module):
         return log_density.sum(2, keepdim=True)
 
 
-
 class RNN_CLASSIF_ENV(nn.Module):
     def __init__(self, env, hid_dim=32, memory_dim=32, n_temp=3, n_classes=3, to_gpu=False, obs_dim=None):
         super(RNN_CLASSIF_ENV, self).__init__()
@@ -1645,8 +1644,6 @@ class RNN_CLASSIF_ENV(nn.Module):
         x = self.fc3(x)
 
         return x, h
-
-
 
 
 class RNN_VAR_PG(nn.Module):

@@ -15,7 +15,7 @@ from itertools import chain
 
 def train(env, policy, classifier, params):
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
-    classifier_optim = T.optim.Adam(chain(classifier.parameters(), policy.parameters()), lr=params["lr"], weight_decay=params["decay"])
+    classifier_optim = T.optim.Adam(chain(classifier.parameters(), policy.parameters()), lr=0.003, weight_decay=params["decay"])
     lossfun_classifier = T.nn.CrossEntropyLoss()
 
     batch_states = []
@@ -184,7 +184,7 @@ if __name__=="__main__":
 
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.995, "lr": 0.0005, "decay" : 0.001, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
-              "comments" : "Aux", "Env_list" : env_list,
+              "comments" : "Aux, classif", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":

@@ -33,7 +33,7 @@ class Hexapod():
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = True
+        self.walls = False
 
         self.difficulty = 1.
         self.episode_reward = 0
@@ -42,13 +42,12 @@ class Hexapod():
 
         self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
-        # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
-        # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.use_HF = False
         self.HF_width = 6
         self.HF_length = 10
+
 
         self.generate_hybrid_env(self.n_envs, self.max_steps)
         self.reset()
@@ -153,7 +152,7 @@ class Hexapod():
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
 
-        r_pos = velocity_rew * 6
+        r_pos = velocity_rew * 7
         #
         # r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
         #         np.square(ctrl).mean() * 0.01 + \
@@ -169,14 +168,18 @@ class Hexapod():
         #         np.square(zd) * 1.5 + \
         #         np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
-        r_neg = np.square(roll) * 2. + \
-                np.square(pitch) * 2. + \
-                np.square(zd) * 2. + \
+        r_neg = np.square(roll) * 3.3 + \
+                np.square(pitch) * 3.3 + \
+                np.square(zd) * 3.3 + \
+                np.square(tha) * 0.000 + \
+                np.square(phia) * 0.000 + \
+                np.square(psia) * 0.000 + \
                 np.square(yd) * 4. + \
                 np.square(y) * 7. + \
                 np.square(yaw) * 7.0 + \
                 np.square(self.sim.data.actuator_force).mean() * 0.000 + \
-                np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.4
+                ctrl_pen * 0.0 + \
+                np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.9
 
         r_neg = np.clip(r_neg, 0, 1) * 1
         r_pos = np.clip(r_pos, -2, 2)
@@ -224,7 +227,6 @@ class Hexapod():
 
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
-
 
         while True:
             try:
@@ -323,7 +325,7 @@ class Hexapod():
             size_list = []
             raw_indeces = np.linspace(0, 1, n_envs + 1)[1:-1]
             current_idx = 0
-            scaled_indeces_list =  []
+            scaled_indeces_list = []
             for idx in raw_indeces:
                 idx_scaled = int(steps * idx) + np.random.randint(0, 50) - 30
                 scaled_indeces_list.append(idx_scaled)
@@ -336,11 +338,12 @@ class Hexapod():
 
         # Smoothen transitions
         bnd = 7
-        for s in scaled_indeces_list:
-            total_hm_copy = np.array(total_hm)
-            for i in range(s - bnd, s + bnd):
-                total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
-            total_hm = total_hm_copy
+        if len(self.env_list) > 1:
+            for s in scaled_indeces_list:
+                total_hm_copy = np.array(total_hm)
+                for i in range(s - bnd, s + bnd):
+                    total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
+                total_hm = total_hm_copy
 
         if self.walls:
             total_hm[0, :] = 255
@@ -517,7 +520,7 @@ class Hexapod():
                              "data/{}_acts.npy".format(ID)), np_acts)
 
 
-    def test(self, policy):
+    def test(self, policy, render=True):
         #self.envgen.load()
         self.env_change_prob = 1
         N = 30
@@ -531,7 +534,8 @@ class Hexapod():
                 cr += r
                 rew += r
                 time.sleep(0.001)
-                #self.render()
+                if render:
+                    self.render()
             #print("Total episode reward: {}".format(cr))
         print("Total average reward = {}".format(rew / N))
 
@@ -540,21 +544,26 @@ class Hexapod():
         self.env_change_prob = 1
         self.reset()
         h_episodes = []
-        for i in range(10):
+        N = 50
+        rew = 0
+        for i in range(N):
             h_list = []
             obs = self.reset()
             h = None
             cr = 0
-            for j in range(self.max_steps * 2):
+            for j in range(self.max_steps):
                 action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
                 obs, r, done, od, = self.step(action[0,0].detach().numpy() + np.random.randn(self.act_dim) * 0.1)
                 cr += r
+                rew += r
                 time.sleep(0.001)
                 self.render()
                 h_list.append(h[0][:,0,:].detach().numpy())
-            print("Total episode reward: {}".format(cr))
+            #print("Total episode reward: {}".format(cr))
             h_arr = np.stack(h_list)
             h_episodes.append(h_arr)
+
+        print("Total average reward = {}".format(rew / N))
 
         h_episodes_arr = np.stack(h_episodes)
 

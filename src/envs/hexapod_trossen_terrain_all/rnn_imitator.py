@@ -538,7 +538,6 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     # expert_inversholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
     #                                   '../../algos/PG/agents/Hexapod_RNN_V3_PG_MEQ_pg.p'))
 
-
     reactive_expert_flat = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                       '../../algos/PG/agents/Hexapod_NN_PG_K55_pg.p'))
     reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -550,9 +549,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     reactive_expert_inverseholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                '../../algos/PG/agents/Hexapod_NN_PG_K9B_pg.p'))
 
-
-
-    env_list = ["tiles", "holes", "pipe"]
+    env_list = ["flat", "holes", "pipe"]
     expert_dict = {"flat" : reactive_expert_flat, "tiles" : reactive_expert_tiles, "holes" : reactive_expert_holes, "pipe" : reactive_expert_pipe}
     if False:
         make_dataset(env_list=env_list,

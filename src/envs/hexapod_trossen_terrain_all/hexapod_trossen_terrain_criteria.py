@@ -202,7 +202,7 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         r_pos = velocity_rew
 
-        r_neg = np.square(self.target_criteria_dict["height"] - z) * 200 + \
+        r_neg = np.square(self.target_criteria_dict["height"] - z) * 100 + \
                 np.square(roll) * 1. + \
                 np.square(pitch) * 1. + \
                 np.square(zd) * 1. + \

@@ -14,8 +14,8 @@ import socket
 from itertools import chain
 
 def train(env, policy, classifier, params):
-    policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
-    classifier_optim = T.optim.Adam(chain(classifier.parameters(), policy.parameters()), lr=0.003, weight_decay=params["decay"])
+    #policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
+    classifier_optim = T.optim.Adam(chain(classifier.parameters(), policy.parameters()), lr=0.001, weight_decay=params["decay"])
     lossfun_classifier = T.nn.CrossEntropyLoss()
 
     batch_states = []
@@ -81,20 +81,24 @@ def train(env, policy, classifier, params):
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
-            if params["ppo"]:
-                update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            else:
-                update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            classifier_optim.zero_grad()
+
+            log_probs = policy.log_probs(batch_states, batch_actions)
+
+            # Calculate loss function
+            loss = -T.mean(log_probs.view((-1, 1)) * batch_advantages)
+
+            # Backward pass on policy
+            loss.backward()
 
             # Update terrain classification
             live_actions, _ = policy((batch_states, None))
             label_predictions, _ = classifier((live_actions, None))
             loss_classifier = lossfun_classifier(label_predictions.contiguous().view(-1, 3), batch_labels)
-            classifier_optim.zero_grad()
+
             loss_classifier.backward()
             classifier.soft_clip_grads()
             classifier_optim.step()
-            classifier_optim.zero_grad()
 
             print("Episode {}/{}, loss_classif: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
                   format(i, params["iters"], loss_classifier, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
@@ -183,7 +187,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.995, "lr": 0.0005, "decay" : 0.001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
               "comments" : "Aux, classif", "Env_list" : env_list,
               "ID": ID}
 
@@ -227,7 +231,7 @@ if __name__=="__main__":
         train(env, policy, classifier, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_6FP_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_R6A_pg.p')
         #expert = T.load('agents/Hexapod_RNN_BLEND_2_PG_K9Q_pg.p')
 
         env.test_recurrent(expert)

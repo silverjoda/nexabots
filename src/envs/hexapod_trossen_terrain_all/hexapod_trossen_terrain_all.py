@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["flat","tiles","holes","pipe","inverseholes"]
+            self.env_list = ["flat", "tiles", "pipe"]
         else:
             self.env_list = env_list
 
@@ -29,11 +29,12 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.max_steps = self.n_envs * 200
+        self.s_len = 400
+        self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = False
+        self.walls = True
 
         self.difficulty = 1.
         self.episode_reward = 0
@@ -47,7 +48,6 @@ class Hexapod():
         self.use_HF = False
         self.HF_width = 6
         self.HF_length = 10
-
 
         self.generate_hybrid_env(self.n_envs, self.max_steps)
         self.reset()
@@ -144,15 +144,15 @@ class Hexapod():
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
-        xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
+        #xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
         # Reward conditions
-        target_vel = 0.3
+        target_vel = 0.4
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
+        yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
 
-        r_pos = velocity_rew * 7
         #
         # r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
         #         np.square(ctrl).mean() * 0.01 + \
@@ -168,23 +168,17 @@ class Hexapod():
         #         np.square(zd) * 1.5 + \
         #         np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
-        r_neg = np.square(roll) * 3.3 + \
-                np.square(pitch) * 3.3 + \
-                np.square(zd) * 3.3 + \
-                np.square(tha) * 0.000 + \
-                np.square(phia) * 0.000 + \
-                np.square(psia) * 0.000 + \
-                np.square(yd) * 4. + \
-                np.square(y) * 7. + \
-                np.square(yaw) * 7.0 + \
-                np.square(self.sim.data.actuator_force).mean() * 0.000 + \
-                ctrl_pen * 0.0 + \
-                np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.9
+        r_neg = np.square(y) * 3. + \
+                np.square(yaw) * 3. + \
+                np.square(pitch) * 0.7 + \
+                np.square(roll) * 0.7 + \
+                np.square(zd) * 0.3
 
-        r_neg = np.clip(r_neg, 0, 1) * 1
-        r_pos = np.clip(r_pos, -2, 2)
+        r_pos = velocity_rew * 5 + (self.prev_deviation - yaw_deviation) * 0
         r = r_pos - r_neg
         self.episode_reward += r
+
+        self.prev_deviation = yaw_deviation
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
@@ -279,7 +273,7 @@ class Hexapod():
             init_q[0:3] += init_pos
 
         # Init_quat
-        self.rnd_yaw = np.random.randn() * 0.0
+        self.rnd_yaw = np.random.rand() * 1.0 - 0.5
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
@@ -289,6 +283,8 @@ class Hexapod():
         for i in range(40):
             self.sim.forward()
             self.sim.step()
+
+        self.prev_deviation = np.min((abs((self.rnd_yaw % 6.183) - (0 % 6.183)), abs(self.rnd_yaw - 0)))
 
         # self.render()
         # time.sleep(3)
@@ -362,9 +358,9 @@ class Hexapod():
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs))
+                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs * (self.s_len / 200.)))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
-                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(1.0 * n_envs - 0.3))
+                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(1.0 * n_envs * (self.s_len / 200.) - 0.3))
                 else:
                     out_file.write(line)
 
@@ -536,7 +532,7 @@ class Hexapod():
                 time.sleep(0.001)
                 if render:
                     self.render()
-            #print("Total episode reward: {}".format(cr))
+            print("Total episode reward: {}".format(cr))
         print("Total average reward = {}".format(rew / N))
 
 

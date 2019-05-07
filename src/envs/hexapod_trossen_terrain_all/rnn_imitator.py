@@ -169,7 +169,7 @@ def make_classif_dataset(env_list, expert_dict, ID, N, n_envs, render=False):
     env = hex_env.Hexapod(env_list)
     length = n_envs * 200
     change_prob = 0.01
-    env.env_change_prob = 0.
+    env.env_change_prob = 0.1
 
     episode_states = []
     episode_labels = []
@@ -311,10 +311,10 @@ def imitate_multiple(n_classes, iters):
     print("Done")
 
 
-def classify_multiple(n_classes, iters):
-    env = hex_env.Hexapod()
+def classify_multiple(n_classes, iters, env_list):
+    env = hex_env.Hexapod(env_list)
     classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=32, memory_dim=32, n_temp=3, n_classes=n_classes, to_gpu=True).cuda()
-    optimizer_classifier = T.optim.Adam(classifier.parameters(), lr=3e-4)
+    optimizer_classifier = T.optim.Adam(classifier.parameters(), lr=2e-4)
     lossfun_classifier = T.nn.CrossEntropyLoss()
 
     # N x EP_LEN x OBS_DIM
@@ -539,18 +539,16 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     #                                   '../../algos/PG/agents/Hexapod_RNN_V3_PG_MEQ_pg.p'))
 
     reactive_expert_flat = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_NN_PG_K55_pg.p'))
+                                      '../../algos/PG/agents/Hexapod_NN_PG_I8N_pg.p'))
     reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_NN_PG_P4D_pg.p'))
+                                               '../../algos/PG/agents/Hexapod_NN_PG_32F_pg.p'))
     reactive_expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '../../algos/PG/agents/Hexapod_NN_PG_OEO_pg.p'))
+                                       '../../algos/PG/agents/Hexapod_NN_PG_2K4_pg.p'))
     reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_NN_PG_HM3_pg.p'))
-    reactive_expert_inverseholes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_NN_PG_K9B_pg.p'))
+                                      '../../algos/PG/agents/Hexapod_NN_PG_4IO_pg.p'))
 
-    env_list = ["flat", "holes", "pipe"]
-    expert_dict = {"flat" : reactive_expert_flat, "tiles" : reactive_expert_tiles, "holes" : reactive_expert_holes, "pipe" : reactive_expert_pipe}
+    env_list = ["flat", "tiles", "pipe"]
+    expert_dict = {"flat" : reactive_expert_flat, "tiles" : reactive_expert_tiles, "pipe" : reactive_expert_pipe}
     if False:
         make_dataset(env_list=env_list,
                      expert_dict = expert_dict,
@@ -562,11 +560,11 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         make_classif_dataset(env_list=env_list,
                               expert_dict=expert_dict,
-                              ID="A", N=2000, n_envs=3, render=False)
+                              ID="A", N=2000, n_envs=3, render=True)
     if False:
         imitate_multiple(n_classes=3, iters=20000)
     if False:
-        classify_multiple(n_classes=3, iters=20000)
+        classify_multiple(n_classes=3, iters=20000, env_list=env_list)
     if True:
         #test(env_list)
         #test_classifier(expert_dict, env_list)

@@ -156,7 +156,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["flat", "holes", "pipe"] # 177, 102, 72, -20
+    env_list = ["flat", "tiles", "pipe"] # 177, 102, 72, -20
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
@@ -164,7 +164,7 @@ if __name__=="__main__":
 
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.99, "lr": 0.0007, "decay" : 0.0005, "ppo": True,
               "tanh" : False, "ppo_update_iters": 8, "animate": True, "train" : False,
-              "comments" : "Terrain, final, RNN", "Env_list" : env_list,
+              "comments" : "Terrain, plain, RNN", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -206,9 +206,14 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_93G_pg.p')
-
+        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_VXS_pg.p')
         env.test_recurrent(expert)
+
+        p_flat = T.load('agents/Hexapod_RNN_V3_LN_PG_XWH_pg.p')  # 2BV
+        p_tiles = T.load('agents/Hexapod_RNN_V3_LN_PG_Q20_pg.p')  # Q44, 0X2, VS8
+        p_holes = T.load('agents/Hexapod_RNN_V3_LN_PG_AMR_pg.p')  # J65
+        p_pipe = T.load('agents/Hexapod_RNN_V3_LN_PG_VXS_pg.p')  # 4IO
+
         #env.test_record(expert_rails, "C")
 
 

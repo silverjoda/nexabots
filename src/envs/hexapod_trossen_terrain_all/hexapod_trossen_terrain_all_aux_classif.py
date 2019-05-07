@@ -42,8 +42,6 @@ class Hexapod():
 
         self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
-        # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
-        # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.use_HF = False
@@ -531,12 +529,12 @@ class Hexapod():
         h_episodes = []
         for i in range(10):
             h_list = []
-            obs = self.reset()
+            obs, _ = self.reset()
             h = None
             cr = 0
             for j in range(self.max_steps * 2):
                 action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
-                obs, r, done, od, = self.step(action[0,0].detach().numpy() + np.random.randn(self.act_dim) * 0.1)
+                obs, r, done, od = self.step(action[0,0].detach().numpy() + np.random.randn(self.act_dim) * 0.1)
                 cr += r
                 time.sleep(0.001)
                 self.render()

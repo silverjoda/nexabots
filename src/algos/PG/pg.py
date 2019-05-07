@@ -270,41 +270,15 @@ if __name__=="__main__":
 
     params = {"iters": 200000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Terrain, IND", "ID" : ID}
+              "note" : "Terrain, turn rew", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.centipede import centipede
-    #env = centipede.Centipede(4)
-
-    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    #env = hexapod_pd.Hexapod()
-
-    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    #env = env.Hexapod()
-
-    #from src.envs.hexapod_trossen_cfontrol import hexapod_trossen_control
-    #env = hexapod_trossen_control.Hexapod()
-
-    #from src.envs.memory_env import memory_env
-    #env = memory_env.MemoryEnv()
-
-    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
-    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
-
-    #from src.envs.hexapod_trossen_terrain import hexapod_trossen_terrain as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
 
     from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     env = hex_env.Hexapod(env_list=env_list)
-
-    #from src.envs.cartpole_swingup import cartpole_swingup
-    #env = cartpole_swingup.Cartpole()
-
-    #from src.envs.double_pendulum_swingup import double_pendulum_swinfgup
-    #env = double_pendulum_swingup.Pendulum()
 
     # Test
     if params["train"]:
@@ -323,8 +297,8 @@ if __name__=="__main__":
         # p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
         # p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
 
-        #policy = T.load('agents/Hexapod_NN_PG_I8N_pg.p')
-        #env.test(policy, render=True)
+        policy = T.load('agents/Hexapod_NN_PG_SBA_pg.p')
+        env.test(policy, render=True)
 
         env.test(p_flat, render=False)
         env.test(p_tiles, render=False)

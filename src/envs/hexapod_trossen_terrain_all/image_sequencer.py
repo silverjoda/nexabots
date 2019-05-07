@@ -15,15 +15,11 @@ m,n,_ = bg_mask.shape
 for i in range(m):
     for j in range(n):
         if len(np.unique(imgs[:, i, j, 0])) == 1 and len(np.unique(imgs[:, i, j, 1])) == 1 and len(np.unique(imgs[:, i, j, 2])) == 1:
-            bg_mask[i,j,:] = 1
-
-cv2.imshow('mask',bg_mask * 255)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
-
-master += (imgs[0] * bg_mask)
-for im in imgs:
-    master += (im * (1 - bg_mask))
+            master[i, j, :] = imgs[0, i, j, :]
+        else:
+            uniques, counts = np.unique(imgs[:, i, j], return_counts=True, axis=0)
+            fg = uniques[np.argmin(counts)]
+            master[i, j, :] = fg
 
 cv2.imshow('image',master)
 cv2.waitKey(0)

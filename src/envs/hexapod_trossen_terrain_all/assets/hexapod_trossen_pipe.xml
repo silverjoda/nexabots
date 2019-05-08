@@ -4,7 +4,7 @@
   <size nconmax="1000" njmax="2000"/>
 
   <default>
-    <joint armature="1.0" damping="3" limited="true"/>
+    <joint armature="0.5" damping="3" limited="true"/>
     <geom conaffinity="0" condim="3" density="5.0" friction="1 0.5 0.5" margin="0.001" rgba="0.2 0.2 0.2 0.8"/>
   </default>
 

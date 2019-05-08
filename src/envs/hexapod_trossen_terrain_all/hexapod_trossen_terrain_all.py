@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["flat", "tiles", "pipe"]
+            self.env_list = ["pipe"]
         else:
             self.env_list = env_list
 
@@ -29,17 +29,12 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 400
+        self.s_len = 200
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
         self.walls = True
-
-        self.difficulty = 1.
-        self.episode_reward = 0
-        self.max_episode_reward = 0
-        self.average_episode_reward = 0
 
         self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -168,15 +163,14 @@ class Hexapod():
         #         np.square(zd) * 1.5 + \
         #         np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
-        r_neg = np.square(y) * 3. + \
-                np.square(yaw) * 3. + \
+        r_neg = np.square(y) * 1. + \
+                np.square(yaw) * 1. + \
                 np.square(pitch) * 0.7 + \
                 np.square(roll) * 0.7 + \
-                np.square(zd) * 0.3
+                np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 5 + (self.prev_deviation - yaw_deviation) * 0
+        r_pos = velocity_rew * 6 + (self.prev_deviation - yaw_deviation) * 0
         r = r_pos - r_neg
-        self.episode_reward += r
 
         self.prev_deviation = yaw_deviation
 
@@ -188,13 +182,13 @@ class Hexapod():
             obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                                   self.sim.get_state().qvel.tolist()[6:],
                                   self.sim.get_state().qvel.tolist()[:6],
-                                  [roll, pitch, yaw, y],
+                                  [qw, qx, qy, qz, y],
                                   contacts, self.get_local_hf(x,y).flatten()])
         else:
             obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]),
                                   self.sim.get_state().qvel.tolist()[6:],
                                   self.sim.get_state().qvel.tolist()[:6],
-                                  [roll, pitch, yaw, y],
+                                  [qw, qx, qy, qz, y],
                                   contacts])
 
         return obs, r, done, None
@@ -206,18 +200,6 @@ class Hexapod():
             #print("Difficulty: {}".format(self.difficulty))
             time.sleep(0.3)
 
-        self.max_episode_reward = np.maximum(self.max_episode_reward, self.episode_reward)
-
-        # if self.episode_reward >= self.average_episode_reward + np.abs(self.average_episode_reward) * 0.0:
-        #     self.difficulty = np.minimum(self.difficulty + 0.01, 7)
-        # else:
-        #     self.difficulty = np.maximum(self.difficulty - 0.002, 1)
-
-        if self.episode_reward >= self.max_episode_reward:
-            self.difficulty = np.minimum(self.difficulty + 0.1, 7)
-
-        self.episode_reward = 0
-        self.average_episode_reward = self.average_episode_reward * 0.1 + self.average_episode_reward * 0.99
 
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
@@ -237,7 +219,7 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 18 * 2 + 6 + 4 + 6
+        self.obs_dim = 18 * 2 + 6 + 4 + 6 + 1
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         if self.use_HF:
@@ -273,7 +255,7 @@ class Hexapod():
             init_q[0:3] += init_pos
 
         # Init_quat
-        self.rnd_yaw = np.random.rand() * 1.0 - 0.5
+        self.rnd_yaw = np.random.rand() * 0.
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
@@ -380,7 +362,7 @@ class Hexapod():
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-13, 13, self.env_width)), 0).T + 127
+            hm = pipe * np.expand_dims(np.square(np.linspace(-14, 14, self.env_width)), 0).T + 127
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))

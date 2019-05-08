@@ -268,9 +268,9 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 200000, "batchsize": 30, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+    params = {"iters": 200000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Terrain, turn rew", "ID" : ID}
+              "note" : "Terrain, quat", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -297,7 +297,7 @@ if __name__=="__main__":
         # p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
         # p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
 
-        policy = T.load('agents/Hexapod_NN_PG_SBA_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_OHL_pg.p')
         env.test(policy, render=True)
 
         env.test(p_flat, render=False)

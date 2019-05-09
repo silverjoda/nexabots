@@ -32,6 +32,8 @@ class Valuefun(nn.Module):
 
 def train(env, policy, params):
 
+    ep_rewards = []
+
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"])
 
     batch_states = []
@@ -48,6 +50,7 @@ def train(env, policy, params):
         done = False
 
         step_ctr = 0
+        ep_reward = 0
 
         while not done:
             # Sample action from policy
@@ -60,6 +63,7 @@ def train(env, policy, params):
             step_ctr += 1
 
             batch_rew += r
+            ep_reward += r
 
             if params["animate"]:
                 env.render()
@@ -75,6 +79,8 @@ def train(env, policy, params):
 
         # Just completed an episode
         batch_ctr += 1
+
+        ep_rewards.append(ep_reward)
 
         # If enough data gathered, then perform update
         if batch_ctr == params["batchsize"]:
@@ -110,6 +116,7 @@ def train(env, policy, params):
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
+    return ep_rewards
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
     log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
@@ -262,44 +269,32 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["pipe"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["holes", "pipe"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 20000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Terrain, quat", "ID" : ID}
+    params = {"iters": 10000, "batchsize": 30, "gamma": 0.98, "policy_lr": 0.0005, "weight_decay" : 0.001, "ppo": True,
+              "ppo_update_iters": 6, "animate": False, "train" : False, "env_list" : env_list,
+              "note" : "Score, 2E1", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
     from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(env_list=env_list)
+    env = hex_env.Hexapod(env_list=env_list, max_n_envs=1)
 
-    # Test
-    if params["train"]:
-        print("Training")
+    r_lists = []
+    for i in range(5):
+        # Test
+        print("Training: {}/N".format(i+1))
         policy = policies.NN_PG(env, 64, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
-        train(env, policy, params)
-    else:
-        print("Testing")
+        r_list = train(env, policy, params)
+        r_lists.append(np.array(r_list))
 
-        p_flat = T.load('agents/Hexapod_NN_PG_I8N_pg.p') # 2BV
-        p_tiles = T.load('agents/Hexapod_NN_PG_32F_pg.p') # Q44, 0X2, VS8
-        p_holes = T.load('agents/Hexapod_NN_PG_2K4_pg.p') # J65
-        p_pipe = T.load('agents/Hexapod_NN_PG_4IO_pg.p') # 4IO
-        # p_verts = T.load('agents/Hexapod_NN_PG_ZQB_pg.p') #
-        # p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
-        # p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
-
-        policy = T.load('agents/Hexapod_NN_PG_NY4_pg.p')
-        env.test(policy, render=True)
-
-        env.test(p_flat, render=False)
-        env.test(p_tiles, render=False)
-        env.test(p_holes, render=False)
-        env.test(p_pipe, render=False)
+    r_lists = np.stack(r_lists, 0)
+    print(r_lists.shape)
+    np.save("R_{}_{}".format(env_list, params["ID"]), r_lists)

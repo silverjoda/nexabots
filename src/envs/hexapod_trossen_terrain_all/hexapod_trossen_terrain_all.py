@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["pipe"]
+            self.env_list = ["tiles"]
         else:
             self.env_list = env_list
 
@@ -142,7 +142,7 @@ class Hexapod():
         #xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
         # Reward conditions
-        target_vel = 0.4
+        target_vel = 0.25
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
@@ -165,11 +165,11 @@ class Hexapod():
 
         r_neg = np.square(y) * 1. + \
                 np.square(yaw) * 1. + \
-                np.square(pitch) * 0.7 + \
-                np.square(roll) * 0.7 + \
-                np.square(zd) * 0.7
+                np.square(pitch) * 0.6 + \
+                np.square(roll) * 0.6 + \
+                np.square(zd) * 0.6
 
-        r_pos = velocity_rew * 6 + (self.prev_deviation - yaw_deviation) * 0
+        r_pos = velocity_rew * 9
         r = r_pos - r_neg
 
         self.prev_deviation = yaw_deviation
@@ -356,13 +356,13 @@ class Hexapod():
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 14,
+            hm = np.random.randint(0, 20,
                                    size=(self.env_width // 3, env_length // 14),
                                    dtype=np.uint8).repeat(3, axis=0).repeat(14, axis=1) + 127
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-14, 14, self.env_width)), 0).T + 127
+            hm = pipe * np.expand_dims(np.square(np.linspace(-15, 15, self.env_width)), 0).T + 127
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))

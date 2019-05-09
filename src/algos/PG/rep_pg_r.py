@@ -15,6 +15,7 @@ import socket
 def train(env, policy, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
+    ep_rewards = []
 
     batch_states = []
     batch_actions = []
@@ -29,6 +30,7 @@ def train(env, policy, params):
         h_0 = None
         done = False
         step_ctr = 0
+        ep_reward = 0
 
         # Episode lists
         episode_states = []
@@ -45,6 +47,7 @@ def train(env, policy, params):
 
             step_ctr += 1
             episode_rew += r
+            ep_reward += r
 
             if params["animate"]:
                 env.render()
@@ -60,6 +63,8 @@ def train(env, policy, params):
 
         # Just completed an episode
         episode_ctr += 1
+
+        ep_rewards.append(ep_reward)
 
         batch_states.append(T.cat(episode_states))
         batch_actions.append(T.cat(episode_actions))
@@ -97,6 +102,7 @@ def train(env, policy, params):
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
+    return ep_rewards
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
     # Call logprobs on hidden states
@@ -164,7 +170,7 @@ if __name__=="__main__":
 
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.0005, "ppo": True,
               "tanh" : False, "ppo_update_iters": 8, "animate": True, "train" : False,
-              "comments" : "Terrain, quat", "Env_list" : env_list,
+              "comments" : "Score, 2E1", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -197,24 +203,15 @@ if __name__=="__main__":
 
     print(params, env.__class__.__name__)
 
-    # Test
-    if params["train"]:
+    r_lists = []
+    for i in range(5):
         print("Training")
         policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
-        train(env, policy, params)
-    else:
-        print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_VQ1_pg.p')
-        env.test_recurrent(expert)
+        r_list = train(env, policy, params)
+        r_lists.append(np.array(r_list))
 
-        p_flat = T.load('agents/Hexapod_RNN_V3_LN_PG_XWH_pg.p')  # 2BV
-        p_tiles = T.load('agents/Hexapod_RNN_V3_LN_PG_Q20_pg.p')  # Q44, 0X2, VS8
-        p_holes = T.load('agents/Hexapod_RNN_V3_LN_PG_AMR_pg.p')  # J65
-        p_pipe = T.load('agents/Hexapod_RNN_V3_LN_PG_VXS_pg.p')  # 4IO
-
-        #env.test_record(expert_rails, "C")
-
-
-
+    r_lists = np.stack(r_lists, 0)
+    print(r_lists.shape)
+    np.save("RNN_{}_{}".format(env_list, params["ID"]), r_lists)

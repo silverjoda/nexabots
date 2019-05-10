@@ -156,7 +156,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes", "pipe"] # 177, 102, 72, -20
+    env_list = ["holes", "tiles"] # 177, 102, 72, -20
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
@@ -164,38 +164,39 @@ if __name__=="__main__":
 
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.0005, "ppo": True,
               "tanh" : False, "ppo_update_iters": 8, "animate": True, "train" : False,
-              "comments" : "Terrain, quat", "Env_list" : env_list,
+              "comments" : "Tiles Vs holes", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    #env = ant_feelers_mjc.AntFeelersMjc()
-
-    #from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    #env = hexapod_pd.Hexapod()
-
-    #from src.envs.hexapod_terrain_env import hexapod_terrain
-    #env = hexapod_terrain.Hexapod()
-
-    #from src.envs.hexapod_trossen_adapt import hexapod_trossen_adapt as env
-    #env = env.Hexapod()
-
-    #from src.envs.adaptive_ctrl_env import adaptive_ctrl_env
-    #env = adaptive_ctrl_env.AdaptiveSliderEnv()
-
     from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
-
-    #from src.envs.hexapod_trossen_obstacle import hexapod_trossen_obstacle as hex_env
-    #env = hex_env.Hexapod(mem_dim=0)
-
-    #from src.envs.cartpole_swingup import cartpole_swingup
-    #env = cartpole_swingup.Cartpole()
+    env = hex_env.Hexapod(env_list=env_list, max_n_envs=2)
 
     print(params, env.__class__.__name__)
+
+    # rijen-brezen
+
+    # Experts:  p: 180, h:187
+    # 4c4: p: 87 h: 155
+    # FP2: p: 115 h: 140
+
+    # pipe, 2AB: 190
+    # pipe-pipe, 2AB: 188
+
+    # pipe, 4C4: 90
+    # pipe-pipe, 4C4: 87
+
+    # pipe, FP2: 117
+    # pipe-pipe, FP2: 122
+
+
+    # = ------
+
+    # Experts: t: 149 h: 162
+    # IET: t: 124 h: 170
+
 
     # Test
     if params["train"]:
@@ -206,7 +207,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_VQ1_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_IET_pg.p')
         env.test_recurrent(expert)
 
         p_flat = T.load('agents/Hexapod_RNN_V3_LN_PG_XWH_pg.p')  # 2BV

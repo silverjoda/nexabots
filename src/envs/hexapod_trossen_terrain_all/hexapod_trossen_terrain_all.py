@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["tiles"]
+            self.env_list = []
         else:
             self.env_list = env_list
 
@@ -316,7 +316,7 @@ class Hexapod():
 
         # Smoothen transitions
         bnd = 7
-        if len(self.env_list) > 1:
+        if self.n_envs > 1:
             for s in scaled_indeces_list:
                 total_hm_copy = np.array(total_hm)
                 for i in range(s - bnd, s + bnd):
@@ -522,7 +522,7 @@ class Hexapod():
         self.env_change_prob = 1
         self.reset()
         h_episodes = []
-        N = 50
+        N = 100
         rew = 0
         for i in range(N):
             h_list = []
@@ -537,11 +537,12 @@ class Hexapod():
                 time.sleep(0.001)
                 self.render()
                 h_list.append(h[0][:,0,:].detach().numpy())
-            #print("Total episode reward: {}".format(cr))
+            print("Total episode reward: {}".format(cr))
             h_arr = np.stack(h_list)
             h_episodes.append(h_arr)
 
         print("Total average reward = {}".format(rew / N))
+        exit()
 
         h_episodes_arr = np.stack(h_episodes)
 

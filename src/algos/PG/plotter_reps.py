@@ -1,20 +1,24 @@
 import numpy as np
 import matplotlib.pyplot as plt
+from scipy.signal import savgol_filter
 
 # Load holes
-holes = np.zeros((5,7500)) #np.load("fname")
+holes = np.load("RNN_['holes']_D07.npy")
 holes_av = np.mean(holes, 0)
+holes_av = savgol_filter(holes_av, 501, 2)
 
-# Load pipe
-pipe = np.zeros((5,7500)) #np.load("fname")
-pipe_av = np.mean(pipe, 0)
+# Load tiles
+tiles = np.load("RNN_['tiles']_DK6.npy")
+tiles_av = np.mean(tiles, 0)
+tiles_av = savgol_filter(tiles_av, 501, 2)
 
-# Load holes-pipe
-holes_pipe = np.zeros((5,7500)) #np.load("fname")
-holes_pipe_av = np.mean(holes_pipe, 0)
+# Load holes-tiles
+holes_tiles = np.load("RNN_['tiles', 'holes']_B7B.npy")
+holes_tiles_av = np.mean(holes_tiles, 0) / 1.
+holes_tiles_av = savgol_filter(holes_tiles_av, 501, 2)
 
-# Holes-pipe expert average
-holes_pipe_expert_av = (holes_av + pipe_av) / 2
+# Holes-tiles expert average
+holes_tiles_expert_av = (holes_av + tiles_av) / 2
 
 #fig = plt.figure()
 
@@ -22,9 +26,9 @@ t = np.arange(0, 7500)
 
 # red dashes, blue squares and green triangles
 plt.plot(t, holes_av, 'r-', label='holes')
-plt.plot(t, pipe_av, 'b-', label='pipe')
-plt.plot(t, holes_pipe_expert_av, 'k-', label='holes_pipe_average_experts')
-plt.plot(t, holes_pipe_av, 'g-', label='holes_pipe_average')
+plt.plot(t, tiles_av, 'b-', label='tiles')
+plt.plot(t, holes_tiles_expert_av, 'g-', label='holes_tiles_average_experts')
+plt.plot(t, holes_tiles_av, 'k-', label='holes_tiles_average')
 plt.xlabel('Iters')
 plt.ylabel('Score')
 plt.legend()

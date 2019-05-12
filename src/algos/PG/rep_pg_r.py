@@ -204,7 +204,7 @@ if __name__=="__main__":
     print(params, env.__class__.__name__)
 
     r_lists = []
-    for i in range(5):
+    for i in range(8):
         print("Training")
         policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))

@@ -162,7 +162,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["tiles", "holes"] # 177, 102, 72, -20
+    env_list = ["holes", "pipe"] # 177, 102, 72, -20
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
@@ -170,7 +170,7 @@ if __name__=="__main__":
 
     params = {"iters": 7500, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.0005, "ppo": True,
               "tanh" : False, "ppo_update_iters": 8, "animate": True, "train" : False,
-              "comments" : "Score, holes vs tiles", "Env_list" : env_list,
+              "comments" : "Score, holes vs pipe", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":

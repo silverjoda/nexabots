@@ -51,9 +51,8 @@ def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
             if x > scaled_indeces_list[current_env_idx]:
                 current_env_idx += 1
                 current_env = envs[current_env_idx]
-                policy = expert_dict[current_env]
                 h = None
-                print("Policy switched to {} policy".format(envs[current_env_idx]))
+                print("Env switched to {} ".format(envs[current_env_idx]))
 
             if np.random.rand() < change_prob:
                 policy_choice = np.random.choice(env_list, 1)[0]
@@ -123,8 +122,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
             if x > scaled_indeces_list[current_env_idx]:
                 current_env_idx += 1
                 current_env = envs[current_env_idx]
-                print(current_env)
-                policy = expert_dict[current_env]
+                print("Env switched to {} ".format(envs[current_env_idx]))
 
             if np.random.rand() < change_prob:
                 policy_choice = np.random.choice(env_list, 1)[0]
@@ -166,10 +164,10 @@ def train_classifier(n_classes, iters, env_list):
     lossfun_classifier = T.nn.CrossEntropyLoss()
 
     # N x EP_LEN x OBS_DIM
-    expert_states = np.load("data/states.npy")
+    expert_states = np.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/states.npy"))
 
     # N x EP_LEN x N_CLASSES
-    expert_labels = np.load("data/labels.npy")
+    expert_labels = np.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/labels.npy"))
 
     batchsize = 32
 
@@ -200,7 +198,7 @@ def train_classifier(n_classes, iters, env_list):
         # Update RNN
         N_WARMUP_STEPS = 0
 
-        trn_loss_clasifier = lossfun_classifier(labels_T[:, N_WARMUP_STEPS:].contiguous().view(-1, 3), expert_labels_T[:, N_WARMUP_STEPS:].contiguous().view(-1))
+        trn_loss_clasifier = lossfun_classifier(labels_T[:, N_WARMUP_STEPS:].contiguous().view(-1, n_classes), expert_labels_T[:, N_WARMUP_STEPS:].contiguous().view(-1))
         trn_loss_clasifier.backward()
         classifier.soft_clip_grads()
         optimizer_classifier.step()
@@ -212,14 +210,14 @@ def train_classifier(n_classes, iters, env_list):
             batch_states_T = T.from_numpy(states).float().cuda()
             expert_labels_T = T.from_numpy(labels).long().cuda()
             labels_T, _ = classifier.forward((batch_states_T, None))
-            pred = T.argmax(labels_T.contiguous().view(-1, 3), dim=1)
+            pred = T.argmax(labels_T.contiguous().view(-1, n_classes), dim=1)
             labs = expert_labels_T.contiguous().view(-1)
             tst_accuracy = (pred == labs).sum().cpu().detach().numpy() / (pred.shape[0] / 1.0)
 
             print("Iter: {}/{}, trn_loss: {}, tst_accuracy: {}".format(i, iters, trn_loss_clasifier, tst_accuracy))
 
     classifier = classifier.cpu()
-    T.save(classifier, "classifier.p")
+    T.save(classifier, os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"))
     print("Done")
 
 
@@ -227,7 +225,7 @@ def test_mux_rnn_policies(policy_dict, env_list):
     env = hex_env.Hexapod(env_list, max_n_envs=len(env_list))
     env.env_change_prob = 1
     env.max_steps = len(env_list) * 300
-    classifier = T.load("classifier.p", map_location='cpu')
+    classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"), map_location='cpu')
 
     # Test visually
     while True:
@@ -256,7 +254,7 @@ def test_mux_reactive_policies(policy_dict, env_list):
     env = hex_env.Hexapod(env_list, max_n_envs=len(env_list))
     env.env_change_prob = 1
     env.max_steps = len(env_list) * 300
-    classifier = T.load("classifier.p", map_location='cpu')
+    classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"), map_location='cpu')
 
     # Test visually
     while True:
@@ -279,11 +277,11 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
 
     expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_xxx_pg.p'))
+                                               '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_DK6_pg.p'))
     expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_xxx_pg.p'))
+                                       '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_D07_pg.p'))
     expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_xxx_pg.p'))
+                                      '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_BNH_pg.p'))
 
     env_list = ["holes", "pipe"]
     expert_dict = {"holes" : expert_holes, "tiles" : expert_tiles, "pipe" : expert_pipe}
@@ -291,8 +289,8 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         make_dataset_rnn_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=1000, n_envs=2, render=True)
-    if False:
-        train_classifier(n_classes=2, iters=10000, env_list=env_list)
+                                 N=1000, n_envs=2, render=False)
     if True:
+        train_classifier(n_classes=2, iters=10000, env_list=env_list)
+    if False:
         test_mux_rnn_policies(expert_dict, env_list)

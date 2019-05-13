@@ -176,7 +176,6 @@ if __name__=="__main__":
 
     print(params, env.__class__.__name__)
 
-    # rijen-brezen
 
     # Experts:  p: 180, h:187
     # 4c4: p: 87 h: 155

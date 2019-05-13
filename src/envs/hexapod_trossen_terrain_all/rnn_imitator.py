@@ -547,24 +547,15 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                       '../../algos/PG/agents/Hexapod_NN_PG_4IO_pg.p'))
 
-    env_list = ["flat", "tiles", "pipe"]
+    env_list = ["holes", "pipe"]
     expert_dict = {"flat" : reactive_expert_flat, "tiles" : reactive_expert_tiles, "pipe" : reactive_expert_pipe}
-    if False:
-        make_dataset(env_list=env_list,
-                     expert_dict = expert_dict,
-                     ID="A", N=1000, n_envs=3, render=False)
-    if False:
-        make_reactive_dataset(env_list=env_list,
-                     expert_dict = expert_dict,
-                     ID="REACTIVE", N=1000, n_envs=3, render=False)
+
     if False:
         make_classif_dataset(env_list=env_list,
                               expert_dict=expert_dict,
-                              ID="A", N=2000, n_envs=3, render=True)
+                              ID="A", N=2000, n_envs=2, render=True)
     if False:
-        imitate_multiple(n_classes=3, iters=20000)
-    if False:
-        classify_multiple(n_classes=3, iters=20000, env_list=env_list)
+        classify_multiple(n_classes=3, iters=10000, env_list=env_list)
     if True:
         #test(env_list)
         #test_classifier(expert_dict, env_list)

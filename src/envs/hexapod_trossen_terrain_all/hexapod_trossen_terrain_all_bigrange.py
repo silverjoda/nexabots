@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = []
+            self.env_list = ["tiles"]
         else:
             self.env_list = env_list
 
@@ -43,6 +43,8 @@ class Hexapod():
         self.use_HF = False
         self.HF_width = 6
         self.HF_length = 10
+
+        self.vel_sum = 0
 
         self.generate_hybrid_env(self.n_envs, self.max_steps)
         self.reset()
@@ -141,33 +143,22 @@ class Hexapod():
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
         #xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
+        self.vel_sum += xd
+
         # Reward conditions
         target_vel = 0.25
+        current_vel = self.vel_sum / self.step_ctr
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
 
-        #
-        # r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
-        #         np.square(ctrl).mean() * 0.01 + \
-        #         np.clip(np.square(xa) * 0.03, -0.5, 0.5) + \
-        #         np.square(thd) * 0.1 + \
-        #         np.square(phid) * 0.1 + \
-        #         np.square(psid) * 0.1 + \
-        #         np.square(roll) * 0.3 + \
-        #         np.square(pitch) * 0.3 + \
-        #         np.square(yaw) * 0.6 + \
-        #         np.square(y) * 0.1 + \
-        #         np.square(yd) * 1.5 + \
-        #         np.square(zd) * 1.5 + \
-        #         np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
-        r_neg = np.square(y) * 1. + \
-                np.square(yaw) * 1. + \
-                np.square(pitch) * 0.6 + \
-                np.square(roll) * 0.6 + \
-                np.square(zd) * 0.6
+        r_neg = np.square(y) * 1.5 + \
+                np.square(yaw) * 1.5 + \
+                np.square(pitch) * 1.5 + \
+                np.square(roll) * 1.5 + \
+                np.square(zd) * 1.5
 
         r_pos = velocity_rew * 9
         r = r_pos - r_neg
@@ -334,7 +325,7 @@ class Hexapod():
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/{}.png".format(self.ID)), total_hm)
 
-        with open(Hexapod.MODELPATH + "template.xml", "r") as in_file:
+        with open(Hexapod.MODELPATH + "template_bigrange.xml", "r") as in_file:
             buf = in_file.readlines()
 
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:

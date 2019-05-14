@@ -156,7 +156,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["flat", "holes", "pipe"] # 177, 102, 72, -20
+    env_list = ["tiles", "holes", "pipe"] # 177, 102, 72, -20
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
@@ -165,14 +165,14 @@ if __name__=="__main__":
 
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.0005, "ppo": True,
               "tanh" : False, "ppo_update_iters": 8, "animate": True, "train" : False,
-              "comments" : "Bigrange", "Env_list" : env_list,
+              "comments" : "Bigrange, 3-end2end", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all_experts as hex_env
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all_bigrange as hex_env
     env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
 
     print(params, env.__class__.__name__)

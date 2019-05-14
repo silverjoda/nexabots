@@ -44,6 +44,8 @@ class Hexapod():
         self.HF_width = 6
         self.HF_length = 10
 
+        self.vel_sum = 0
+
         self.generate_hybrid_env(self.n_envs, self.max_steps)
         self.reset()
 
@@ -141,27 +143,15 @@ class Hexapod():
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
         #xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
+        self.vel_sum += xd
+
         # Reward conditions
         target_vel = 0.25
+        current_vel = self.vel_sum / self.step_ctr
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
-
-        #
-        # r_neg = np.square(self.sim.data.actuator_force).mean() * 0.00001 + \
-        #         np.square(ctrl).mean() * 0.01 + \
-        #         np.clip(np.square(xa) * 0.03, -0.5, 0.5) + \
-        #         np.square(thd) * 0.1 + \
-        #         np.square(phid) * 0.1 + \
-        #         np.square(psid) * 0.1 + \
-        #         np.square(roll) * 0.3 + \
-        #         np.square(pitch) * 0.3 + \
-        #         np.square(yaw) * 0.6 + \
-        #         np.square(y) * 0.1 + \
-        #         np.square(yd) * 1.5 + \
-        #         np.square(zd) * 1.5 + \
-        #         np.clip(np.square(np.array(self.sim.data.cfrc_ext[1])).sum(axis=0), 0, 1) * 0.1
 
         r_neg = np.square(y) * 1. + \
                 np.square(yaw) * 1. + \
@@ -197,9 +187,7 @@ class Hexapod():
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(self.n_envs, self.max_steps)
-            #print("Difficulty: {}".format(self.difficulty))
             time.sleep(0.3)
-
 
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
@@ -267,15 +255,7 @@ class Hexapod():
             self.sim.step()
 
         self.prev_deviation = np.min((abs((self.rnd_yaw % 6.183) - (0 % 6.183)), abs(self.rnd_yaw - 0)))
-
-        # self.render()
-        # time.sleep(3)
-
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
-
-        #x,y = self.sim.get_state().qpos.tolist()[:2]
-        #print("x,y: ", x , y)
-        #test_patch = self.get_local_hf(x,y)
 
         return obs
 

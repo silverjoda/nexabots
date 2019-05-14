@@ -169,9 +169,9 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 7500, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.0005, "ppo": True,
+    params = {"iters": 15000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.0005, "ppo": True,
               "tanh" : False, "ppo_update_iters": 8, "animate": True, "train" : False,
-              "comments" : "Reps", "Env_list" : env_list,
+              "comments" : "Reps, extended", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -205,7 +205,7 @@ if __name__=="__main__":
     print(params, env.__class__.__name__)
 
     r_lists = []
-    for i in range(10):
+    for i in range(15):
         print("Training")
         policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))

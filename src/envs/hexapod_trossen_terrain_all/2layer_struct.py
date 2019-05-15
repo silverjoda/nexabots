@@ -235,7 +235,7 @@ def test_mux_rnn_policies(policy_dict, env_list):
         h_c = None
         episode_reward = 0
         with T.no_grad():
-            for i in range(env.max_steps * 2):
+            for i in range(int(env.max_steps * 1.5)):
                 env_idx, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
                 env_idx = T.argmax(env_idx[0][0]).numpy()
                 if env_idx != current_idx:
@@ -290,7 +290,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
         make_dataset_rnn_experts(env_list=env_list,
                                  expert_dict=expert_dict,
                                  N=1000, n_envs=2, render=False)
-    if True:
-        train_classifier(n_classes=2, iters=10000, env_list=env_list)
     if False:
+        train_classifier(n_classes=2, iters=10000, env_list=env_list)
+    if True:
         test_mux_rnn_policies(expert_dict, env_list)

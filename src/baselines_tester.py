@@ -4,7 +4,7 @@ from stable_baselines.common.policies import MlpPolicy, LstmPolicy, MlpLstmPolic
 from stable_baselines.common.vec_env import DummyVecEnv
 from stable_baselines import *
 
-from src.envs.adaptive_ctrl_env.adaptive_ctrl_env import AdaptiveSliderEnv
+from src.envs.ctrl_slider.adaptive_ctrl_env import AdaptiveSliderEnv
 from src.envs.hexapod_trossen_adapt.hexapod_trossen_adapt import Hexapod
 from src.envs.hexapod_flat_pd_mjc.hexapod_pd import Hexapod
 

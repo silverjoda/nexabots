@@ -29,7 +29,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 200
+        self.s_len = 400
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
@@ -147,8 +147,8 @@ class Hexapod():
 
         # Reward conditions
         target_vel = 0.25
-        current_vel = self.vel_sum / self.step_ctr
-        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
+        avg_vel = self.vel_sum / self.step_ctr
+        velocity_rew = 1. / (abs(avg_vel - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
@@ -252,6 +252,8 @@ class Hexapod():
 
         # Set environment state
         self.set_state(init_q, init_qvel)
+
+        self.vel_sum = 0
 
         for i in range(40):
             self.sim.forward()

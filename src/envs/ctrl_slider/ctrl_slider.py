@@ -4,59 +4,36 @@ import src.my_utils as my_utils
 import time
 import socket
 
-if socket.gethostname() != "goedel":
-    import gym
-    from gym import spaces
-    from gym.utils import seeding
-
-class AdaptiveSliderEnv():
-    def __init__(self):
-        self.mass_variety = 2.
-        self.damping_variety = .1
+class SliderEnv():
+    def __init__(self, mass_std=0, damping_std=0.1, render=False):
+        self.mass_std = mass_std
+        self.damping_std = .1
         self.target = 0
         self.target_change_prob = 0.01
-        self.render_prob = 0.0
+        self.render_prob = 0.01 * render
 
-        self.mem_dim = 0
         self.dt = 0.1
         self.max_steps = 200
         self.step_ctr = 0
         self.x = 0
         self.dx = 0
         self.mass_as_input = False
-        self.obs_dim = 3 + self.mem_dim
-        self.act_dim = 1 + self.mem_dim
-        self.current_act = None
+        self.obs_dim = 2
+        self.act_dim = 1
 
         if self.mass_as_input:
             self.obs_dim += 1
 
-        if socket.gethostname() != "goedel":
-            self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
-            self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
-        else:
+        if socket.gethostname() == "goedel":
             self.render_prob = 0.00
 
-        print("Adaptive slider, mass_variety: {}, damping_variety: {}, mass as input: {}, mem_dim: {}".format(self.mass_variety, self.damping_variety, self.mass_as_input, self.mem_dim))
-
-
-    def seed(self, seed=None):
-        self.np_random, seed = seeding.np_random(seed)
-        return [seed]
+        print("Adaptive slider, mass_variety: {}, damping_variety: {}, mass as input: {}".format(self.mass_std, self.damping_std, self.mass_as_input))
 
 
     def step(self, ctrl):
-        self.current_act = ctrl[0]
-        if self.mem_dim > 0:
-            act = ctrl[:-self.mem_dim]
-            mem = ctrl[-self.mem_dim:]
-        else:
-            act = ctrl
-            mem = np.zeros(0)
+        act = np.clip(ctrl[0], -1, 1)
 
-        #prev_dist = np.square(self.x - self.target)
-
-        a = act[0] / self.mass
+        a = act / self.mass
         self.dx += a * self.dt
         self.dx *= self.damping
         self.x += self.dx * self.dt
@@ -71,14 +48,6 @@ class AdaptiveSliderEnv():
         self.step_ctr += 1
         done = (self.step_ctr >= self.max_steps) # or np.abs(self.x) > 6
 
-        #curr_dist = np.square(self.x - self.target)
-
-        # progress = (prev_dist - curr_dist)[0]
-        # if progress >= 0:
-        #     r = progress
-        # else:
-        #     r = progress * 2
-
         penalty = np.square(self.x - self.target) + np.square(self.dx)
 
         r = 1 / (penalty + 1)
@@ -86,10 +55,7 @@ class AdaptiveSliderEnv():
         if np.random.rand() < self.target_change_prob:
             self.target = np.random.randn()
 
-        if self.mass_as_input:
-            obs = np.concatenate((np.array([self.x, self.dx, self.target]), [self.mass], mem))
-        else:
-            obs = np.concatenate((np.array([self.x, self.dx, self.target]), mem))
+        obs = np.array([self.x, self.dx])
 
         return obs, r, done, None
 
@@ -98,8 +64,8 @@ class AdaptiveSliderEnv():
         self.x = 0.
         self.dx = 0.
         self.target = np.random.randn()
-        self.mass = 0.1 + np.random.rand() * self.mass_variety
-        self.damping = 0.8 + np.random.rand() * self.damping_variety
+        self.mass = 0.1 + np.random.rand() * self.mass_std
+        self.damping = 0.8 + np.random.rand() * self.damping_std
         self.step_ctr = 0
         self.render_episode = True if np.random.rand() < self.render_prob else False
         self.prev_act = 0.

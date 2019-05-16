@@ -147,7 +147,8 @@ class Hexapod():
 
         # Reward conditions
         target_vel = 0.25
-        current_vel = self.vel_sum / self.step_ctr
+        avg_vel = self.vel_sum / self.step_ctr
+
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])

@@ -153,7 +153,6 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
 
-
         r_neg = np.square(y) * 1.5 + \
                 np.square(yaw) * 1.5 + \
                 np.square(pitch) * 1.5 + \

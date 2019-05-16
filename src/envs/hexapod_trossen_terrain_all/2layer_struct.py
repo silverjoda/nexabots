@@ -291,7 +291,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if True:
         make_dataset_rnn_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=1500, n_envs=3, render=False)
+                                 N=1500, n_envs=3, render=True)
     if True:
         train_classifier(n_classes=3, iters=15000, env_list=env_list)
     if False:

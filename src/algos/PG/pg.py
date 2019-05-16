@@ -276,8 +276,8 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(env_list=env_list)
+    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    #env = hex_env.Hexapod(env_list=env_list)
 
     # Test
     if params["train"]:

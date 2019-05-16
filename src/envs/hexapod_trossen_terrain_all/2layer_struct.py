@@ -117,7 +117,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
         print(envs, scaled_indeces_list, current_env)
 
         s = env.reset()
-        for j in range(n_envs * 400):
+        for j in range(n_envs * 200):
             x = env.sim.get_state().qpos.tolist()[0] * 100 + 20
 
             if x > scaled_indeces_list[current_env_idx]:
@@ -140,8 +140,8 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
             if render:
                 env.render()
 
-        # if cr < 10:
-        #     continue
+        if cr < 100:
+            continue
         ctr += 1
 
         episode_states.append(np.stack(states))

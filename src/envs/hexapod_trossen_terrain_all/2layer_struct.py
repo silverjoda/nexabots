@@ -10,7 +10,7 @@ import src.my_utils as my_utils
 import src.policies as policies
 import random
 import string
-import socket
+import socket #
 from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
 
 

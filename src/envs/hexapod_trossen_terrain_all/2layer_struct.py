@@ -16,7 +16,7 @@ from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as 
 
 def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
     env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
-    length = n_envs * 200
+    length = n_envs * env.s_len
     env.env_change_prob = 0.1
     change_prob = 0.01
 
@@ -45,7 +45,7 @@ def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
         print(envs, scaled_indeces_list, current_env)
 
         s = env.reset()
-        for j in range(n_envs * 400):
+        for j in range(int(env.max_steps * 1.5)):
             x = env.sim.get_state().qpos.tolist()[0] * 100 + 20
 
             if x > scaled_indeces_list[current_env_idx]:
@@ -61,6 +61,7 @@ def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
 
             states.append(s)
             labels.append(env_list.index(current_env))
+
             action, h = policy((my_utils.to_tensor(s, True).unsqueeze(0), h))
             action = action[0][0].detach().numpy()
             s, r, done, od, = env.step(action)
@@ -69,8 +70,8 @@ def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
             if render:
                 env.render()
 
-        # if cr < 200:
-        #     continue
+        if cr < 100:
+            continue
         ctr += 1
 
         episode_states.append(np.stack(states))
@@ -159,8 +160,8 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
 
 def train_classifier(n_classes, iters, env_list):
     env = hex_env.Hexapod(env_list, max_n_envs=len(env_list))
-    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=32, memory_dim=32, n_temp=2, n_classes=n_classes, to_gpu=True).cuda()
-    optimizer_classifier = T.optim.Adam(classifier.parameters(), lr=2e-4)
+    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=24, memory_dim=24, n_temp=2, n_classes=n_classes, to_gpu=True).cuda()
+    optimizer_classifier = T.optim.Adam(classifier.parameters(), lr=2e-4, weight_decay=0.001)
     lossfun_classifier = T.nn.CrossEntropyLoss()
 
     # N x EP_LEN x OBS_DIM
@@ -221,10 +222,10 @@ def train_classifier(n_classes, iters, env_list):
     print("Done")
 
 
-def test_mux_rnn_policies(policy_dict, env_list):
+def _test_mux_rnn_policies(policy_dict, env_list):
     env = hex_env.Hexapod(env_list, max_n_envs=len(env_list))
     env.env_change_prob = 1
-    env.max_steps = len(env_list) * 300
+    env.max_steps = env.max_steps
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"), map_location='cpu')
 
     # Test visually
@@ -241,6 +242,7 @@ def test_mux_rnn_policies(policy_dict, env_list):
                 if env_idx != current_idx:
                     current_idx = env_idx
                     h_p = None
+                    print("Changing policy to: {}".format(env_list[env_idx]))
 
                 act, h_p = policy_dict[env_list[env_idx]]((my_utils.to_tensor(s, True).unsqueeze(0), h_p))
                 s, r, done, _ = env.step(act[0][0].numpy())
@@ -250,10 +252,10 @@ def test_mux_rnn_policies(policy_dict, env_list):
         print("Episode reward: {}".format(episode_reward))
 
 
-def test_mux_reactive_policies(policy_dict, env_list):
+def _test_mux_reactive_policies(policy_dict, env_list):
     env = hex_env.Hexapod(env_list, max_n_envs=len(env_list))
     env.env_change_prob = 1
-    env.max_steps = len(env_list) * 300
+    env.max_steps = len(env_list) * 200
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"), map_location='cpu')
 
     # Test visually
@@ -277,20 +279,20 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
 
     expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_DK6_pg.p'))
+                                               '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_W0E_pg.p'))
     expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_D07_pg.p'))
+                                       '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_IZ1_pg.p'))
     expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_BNH_pg.p'))
+                                      '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_GMV_pg.p'))
 
-    env_list = ["holes", "pipe"]
+    env_list = ["holes", "tiles", "pipe"]
     expert_dict = {"holes" : expert_holes, "tiles" : expert_tiles, "pipe" : expert_pipe}
 
-    if False:
+    if True:
         make_dataset_rnn_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=1000, n_envs=2, render=False)
+                                 N=1500, n_envs=3, render=False)
     if True:
-        train_classifier(n_classes=2, iters=10000, env_list=env_list)
+        train_classifier(n_classes=3, iters=15000, env_list=env_list)
     if False:
-        test_mux_rnn_policies(expert_dict, env_list)
+        _test_mux_rnn_policies(expert_dict, env_list)

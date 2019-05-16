@@ -29,7 +29,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 400
+        self.s_len = 120
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
@@ -297,7 +297,7 @@ class Hexapod():
         total_hm = np.concatenate(maplist, 1)
 
         # Smoothen transitions
-        bnd = 7
+        bnd = 13
         if self.n_envs > 1:
             for s in scaled_indeces_list:
                 total_hm_copy = np.array(total_hm)

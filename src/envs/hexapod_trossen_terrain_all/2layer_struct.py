@@ -222,8 +222,8 @@ def train_classifier(n_classes, iters, env_list):
     print("Done")
 
 
-def _test_mux_rnn_policies(policy_dict, env_list):
-    env = hex_env.Hexapod(env_list, max_n_envs=len(env_list))
+def _test_mux_rnn_policies(policy_dict, env_list, n_envs):
+    env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
     env.env_change_prob = 1
     env.max_steps = env.max_steps
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"), map_location='cpu')
@@ -285,14 +285,14 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                       '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_GMV_pg.p'))
 
-    env_list = ["holes", "tiles", "pipe"]
-    expert_dict = {"holes" : expert_holes, "tiles" : expert_tiles, "pipe" : expert_pipe}
+    env_list = ["holes", "pipe", "holes", "pipe"]
+    expert_dict = {"holes" : expert_holes, "pipe" : expert_pipe}
 
     if True:
         make_dataset_rnn_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=1500, n_envs=3, render=True)
+                                 N=3000, n_envs=3, render=False)
     if True:
-        train_classifier(n_classes=3, iters=15000, env_list=env_list)
+        train_classifier(n_classes=2, iters=10000, env_list=env_list)
     if False:
-        _test_mux_rnn_policies(expert_dict, env_list)
+        _test_mux_rnn_policies(expert_dict, env_list, n_envs=3)

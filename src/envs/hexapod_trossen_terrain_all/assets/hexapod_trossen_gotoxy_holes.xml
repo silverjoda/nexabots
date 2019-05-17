@@ -5,7 +5,7 @@
 
   <default>
     <joint armature="1.0" damping="3" limited="true"/>
-    <geom conaffinity="0" condim="3" density="5.0" friction="1 0.5 0.5" margin="0.001" rgba="0.2 0.2 0.2 0.8"/>
+    <geom conaffinity="0" condim="3" density="5.0" friction="1.0 0.5 0.5" margin="0.001" rgba="0.2 0.2 0.2 0.8"/>
   </default>
 
   <asset>
@@ -25,7 +25,7 @@
     <light cutoff="100" diffuse="0.7 0.7 0.7" dir="-0 0 -1" directional="true" exponent="1" pos="0 0 0.4" specular=".5 .5 .5"/>
     <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="0 0 -0.4" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>
     <body name="torso" pos="0 0 0.35">
-      <camera name="track" mode="track" pos="1 -7 3.2" xyaxes="1 0 0 0 0.5 1"/>
+      <camera name="track" mode="track" pos="0 -3.0 1.5" xyaxes="1 0 0 0. 0.5 1"/>
       <geom name="torso_geom" pos="0 0 0" size="0.12 0.06 0.02" mass="1" type="ellipsoid"/>
       <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
 

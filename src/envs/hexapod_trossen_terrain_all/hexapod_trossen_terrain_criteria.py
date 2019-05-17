@@ -27,15 +27,15 @@ class Hexapod():
             self.env_list = ["flat"]
         else:
             self.env_list = env_list
-        #
-        # thread = Thread(target=self.makeslider)
-        # thread.start()
+
+        thread = Thread(target=self.makeslider)
+        thread.start()
 
         self.ID = '_'.join(self.env_list)
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.max_steps = 250
+        self.max_steps = 2500
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
@@ -242,7 +242,7 @@ class Hexapod():
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = 0.0 # np.random.rand() * 4 - 4
+        init_q[0] = -7.0 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
         init_q[2] = 0.10
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1

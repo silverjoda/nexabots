@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         self.modelpath = Hexapod.MODELPATH
-        self.max_steps = 1200
+        self.max_steps = 1500 * 1
         self.max_goals = 3
 
         self.episode_reward = 0
@@ -49,6 +49,8 @@ class Hexapod():
         self.obs_dim = 18 * 2 + 6 + 4 + 6 + 4
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
+        self.setupcam()
+
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -59,11 +61,11 @@ class Hexapod():
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = self.model.stat.extent * 1.3
+        self.viewer.cam.distance = self.model.stat.extent * .3
         self.viewer.cam.lookat[0] = -0.1
-        self.viewer.cam.lookat[1] = 0
+        self.viewer.cam.lookat[1] = -1
         self.viewer.cam.lookat[2] = 0.5
-        self.viewer.cam.elevation = -20
+        self.viewer.cam.elevation = -30
 
 
     def scale_action(self, action):
@@ -315,7 +317,7 @@ class Hexapod():
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
-                time.sleep(0.001)
+                time.sleep(0.000)
                 self.render()
 
             print("Total episode reward: {}".format(cr))

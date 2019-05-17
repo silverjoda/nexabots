@@ -29,15 +29,17 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 120
+        self.s_len = 400
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = True
+        self.walls = False
 
         self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
+        # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
+        # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.use_HF = False
@@ -146,24 +148,25 @@ class Hexapod():
         self.vel_sum += xd
 
         # Reward conditions
-        target_vel = 0.25
-        avg_vel = self.vel_sum / self.step_ctr
+        target_vel = 0.3
+        #avg_vel = self.vel_sum / self.step_ctr
 
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
 
-        r_neg = np.square(y) * 1.0 + \
-                np.square(yaw) * 1.0 + \
-                np.square(pitch) * 0.6 + \
-                np.square(roll) * 0.6 + \
-                np.square(zd) * 0.6
+        r_neg = np.square(y) * 0.0 + \
+                np.square(yaw) * 0.0 + \
+                np.square(pitch) * 1.5 + \
+                np.square(roll) * 1.5 + \
+                np.square(zd) * 1.5
 
-        r_pos = velocity_rew * 9
+        r_pos = velocity_rew * 5 + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 10. + (abs(self.prev_y_deviation) - abs(y)) * 10.
         r = r_pos - r_neg
 
-        self.prev_deviation = yaw_deviation
+        self.prev_yaw_deviation = yaw_deviation
+        self.prev_y_deviation = y
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps
@@ -257,7 +260,8 @@ class Hexapod():
             self.sim.forward()
             self.sim.step()
 
-        self.prev_deviation = np.min((abs((self.rnd_yaw % 6.183) - (0 % 6.183)), abs(self.rnd_yaw - 0)))
+        self.prev_yaw_deviation = np.min((abs((self.rnd_yaw % 6.183) - (0 % 6.183)), abs(self.rnd_yaw - 0)))
+        self.prev_y_deviation = 0
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         return obs
@@ -288,17 +292,17 @@ class Hexapod():
             current_idx = 0
             scaled_indeces_list = []
             for idx in raw_indeces:
-                idx_scaled = int(steps * idx) + np.random.randint(0, 50) - 30
+                idx_scaled = int(steps * idx) + np.random.randint(0, 70) - 40
                 scaled_indeces_list.append(idx_scaled)
                 size_list.append(idx_scaled - current_idx)
                 current_idx = idx_scaled
-            size_list.append(steps - int(steps * raw_indeces[-1]) + np.random.randint(0, 50) - 30)
+            size_list.append(steps - int(steps * raw_indeces[-1]) + np.random.randint(0, 70) - 40)
 
         maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
         total_hm = np.concatenate(maplist, 1)
 
         # Smoothen transitions
-        bnd = 13
+        bnd = 15
         if self.n_envs > 1:
             for s in scaled_indeces_list:
                 total_hm_copy = np.array(total_hm)

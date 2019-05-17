@@ -156,7 +156,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes"] # 177, 102, 72, -20
+    env_list = ["holes", "pipe", "holes", "pipe"] # 177, 102, 72, -20
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
@@ -164,8 +164,8 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.0005, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
-              "comments" : "Longer rollout", "Env_list" : env_list,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
+              "comments" : "Again, experts, rewards+", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -212,7 +212,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_GMV_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_V8R_pg.p')
         env.test_recurrent(expert)
 
         p_flat = T.load('agents/Hexapod_RNN_V3_LN_PG_XWH_pg.p')  # 2BV

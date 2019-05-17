@@ -276,8 +276,8 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    #env = hex_env.Hexapod(env_list=env_list)
+    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_gotoxy_holes as hex_env
+    env = hex_env.Hexapod(env_list=env_list)
 
     # Test
     if params["train"]:
@@ -296,8 +296,19 @@ if __name__=="__main__":
         # p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
         # p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
 
-        policy = T.load('agents/Hexapod_NN_PG_NY4_pg.p')
-        env.test(policy, render=True)
+        # from os import listdir
+        # from os.path import isfile, join
+        # onlyfiles = [f for f in listdir('agents') if (isfile(join('agents', f)))]
+        # reactive = [f for f in onlyfiles if f.startswith("Hexapod_NN_PG")]
+        # for f in reactive:
+        #     policy = T.load(join('agents', f))
+        #     if policy.obs_dim != 54: continue
+        #     print(f, policy.obs_dim)
+        # exit()
+
+        # PSH <- criteria
+        policy = T.load('agents/Hexapod_NN_PG_ZM2_pg.p')
+        env.test(policy)
 
         env.test(p_flat, render=False)
         env.test(p_tiles, render=False)

@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = []
+            self.env_list = ["holes"]
         else:
             self.env_list = env_list
 
@@ -34,12 +34,12 @@ class Hexapod():
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = False
+        self.walls = True
 
-        self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
-        self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
-        # self.joints_rads_low = np.array([-0.7, -1.2, -1.2] * 6)
-        # self.joints_rads_high = np.array([0.7, 0.5, 1.2] * 6)
+        # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
+        # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
+        self.joints_rads_low = np.array([-0.6, -1.4, -0.8] * 6)
+        self.joints_rads_high = np.array([0.6, 0.4, 0.8] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.use_HF = False
@@ -67,9 +67,11 @@ class Hexapod():
 
 
     def scale_joints(self, joints):
-        sjoints = np.array(joints)
-        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
-        return sjoints
+        return joints
+        #
+        # sjoints = np.array(joints)
+        # sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        # return sjoints
 
 
     def scale_action(self, action):
@@ -148,7 +150,7 @@ class Hexapod():
         self.vel_sum += xd
 
         # Reward conditions
-        target_vel = 0.3
+        target_vel = 0.4
         #avg_vel = self.vel_sum / self.step_ctr
 
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
@@ -156,20 +158,23 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
 
-        r_neg = np.square(y) * 0.0 + \
-                np.square(yaw) * 0.0 + \
-                np.square(pitch) * 1.5 + \
-                np.square(roll) * 1.5 + \
-                np.square(zd) * 1.5
+        r_neg = np.square(y) * 1.0 + \
+                np.square(yaw) * 1.0 + \
+                np.square(pitch) * 1.0 + \
+                np.square(roll) * 1.0 + \
+                np.square(ctrl_pen) * 0.2 + \
+                np.square(zd) * 1.0
 
-        r_pos = velocity_rew * 5 + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 10. + (abs(self.prev_y_deviation) - abs(y)) * 10.
+
+        r_pos = velocity_rew * 6  #+ (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 10. + (abs(self.prev_y_deviation) - abs(y)) * 10.
+        #print((abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.)
         r = r_pos - r_neg
 
         self.prev_yaw_deviation = yaw_deviation
         self.prev_y_deviation = y
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
         if self.use_HF:
@@ -354,10 +359,11 @@ class Hexapod():
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
             h, w, _ = hm.shape
-            patchsize = 14
-            rnd_h = np.random.randint(0, h - patchsize)
-            rnd_w = np.random.randint(0, w - patchsize)
-            hm = hm[rnd_w:rnd_w + patchsize, rnd_h:rnd_h + patchsize]
+            patch_y = 14
+            patch_x = int(14 * self.s_len / 150.)
+            rnd_h = np.random.randint(0, h - patch_x)
+            rnd_w = np.random.randint(0, w - patch_y)
+            hm = hm[rnd_w:rnd_w + patch_y, rnd_h:rnd_h + patch_x]
             hm = np.mean(hm, axis=2)
             hm = hm * 0.7 + 255 * 0.3
             hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2.

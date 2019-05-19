@@ -39,8 +39,10 @@ def train(env, policy, params):
                 # Sample action from policy
                 action, h_1 = policy.sample_action((my_utils.to_tensor(s_0, True).unsqueeze(0), h_0))
 
+            #print(action.squeeze(0).numpy())
+
             # Step action
-            s_1, r, done, _ = env.step(action[0].numpy())
+            s_1, r, done, _ = env.step(action.squeeze(0).numpy())
             r = np.clip(r, -3, 3)
 
             step_ctr += 1
@@ -70,6 +72,8 @@ def train(env, policy, params):
             batch_states = T.stack(batch_states)
             batch_actions = T.stack(batch_actions)
             batch_rewards = T.cat(batch_rewards)
+
+            #print(T.pow(batch_actions, 2).mean())
 
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
@@ -156,16 +160,16 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes", "pipe", "holes", "pipe"] # 177, 102, 72, -20
+    env_list = ["holes"] # 177, 102, 72, -20
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-    params = {"iters": 300000, "batchsize": 24, "gamma": 0.98, "lr": 0.001, "decay" : 0.0005, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "Again, experts, rewards+", "Env_list" : env_list,
+    params = {"iters": 100000, "batchsize": 24, "gamma": 0.99, "lr": 0.001, "decay" : 0.0003, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
+              "comments" : "Expert training", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -206,13 +210,13 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_V8R_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_CBS_pg.p')
         env.test_recurrent(expert)
 
         p_flat = T.load('agents/Hexapod_RNN_V3_LN_PG_XWH_pg.p')  # 2BV

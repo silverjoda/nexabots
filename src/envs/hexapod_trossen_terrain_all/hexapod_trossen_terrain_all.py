@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["holes"]
+            self.env_list = ["pipe"]
         else:
             self.env_list = env_list
 
@@ -29,12 +29,12 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 400
+        self.s_len = 130
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = True
+        self.walls = False
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -158,12 +158,12 @@ class Hexapod():
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
 
-        r_neg = np.square(y) * 1.0 + \
-                np.square(yaw) * 1.0 + \
-                np.square(pitch) * 1.0 + \
-                np.square(roll) * 1.0 + \
-                np.square(ctrl_pen) * 0.2 + \
-                np.square(zd) * 1.0
+        r_neg = np.square(y) * .7 + \
+                np.square(yaw) * .7 + \
+                np.square(pitch) * 0.7 + \
+                np.square(roll) * 0.7 + \
+                np.square(ctrl_pen) * 0.1 + \
+                np.square(zd) * 0.7
 
 
         r_pos = velocity_rew * 6  #+ (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 10. + (abs(self.prev_y_deviation) - abs(y)) * 10.
@@ -174,7 +174,7 @@ class Hexapod():
         self.prev_y_deviation = y
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8
+        done = self.step_ctr > self.max_steps #or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
         if self.use_HF:
@@ -287,6 +287,7 @@ class Hexapod():
 
     def generate_hybrid_env(self, n_envs, steps):
         envs = np.random.choice(self.env_list, n_envs, replace=False)
+        envs = ["holes", "pipe", "tiles"]
 
         if n_envs == 1:
             size_list = [steps]
@@ -349,12 +350,12 @@ class Hexapod():
 
         if env_name == "tiles":
             hm = np.random.randint(0, 20,
-                                   size=(self.env_width // 3, env_length // 14),
-                                   dtype=np.uint8).repeat(3, axis=0).repeat(14, axis=1) + 127
+                                   size=(self.env_width // 3, env_length // int(14 * self.s_len / 85.)),
+                                   dtype=np.uint8).repeat(3, axis=0).repeat(int(14 * self.s_len / 85.), axis=1) + 127
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-15, 15, self.env_width)), 0).T + 127
+            hm = pipe * np.expand_dims(np.square(np.linspace(-12, 12, self.env_width)), 0).T + 127
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))

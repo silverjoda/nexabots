@@ -264,15 +264,14 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["tiles"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-
-    params = {"iters": 100000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
+    params = {"iters": 100000, "batchsize": 24, "gamma": 0.95, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Expert training, w/ term, 0.4 vel", "ID" : ID}
+              "note" : "Expert training, w/o term, 0.4 vel", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -290,10 +289,9 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        p_flat = T.load('agents/Hexapod_NN_PG_I8N_pg.p') # 2BV
-        p_tiles = T.load('agents/Hexapod_NN_PG_32F_pg.p') # Q44, 0X2, VS8
-        p_holes = T.load('agents/Hexapod_NN_PG_2K4_pg.p') # J65
-        p_pipe = T.load('agents/Hexapod_NN_PG_4IO_pg.p') # 4IO
+        p_tiles = T.load('agents/Hexapod_NN_PG_3Z0_pg.p') # K12
+        p_holes = T.load('agents/Hexapod_NN_PG_KE1_pg.p') # U88
+        p_pipe = T.load('agents/Hexapod_NN_PG_WSJ_pg.p') # W2C
         # p_verts = T.load('agents/Hexapod_NN_PG_ZQB_pg.p') #
         # p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
         # p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
@@ -309,10 +307,9 @@ if __name__=="__main__":
         # exit()
 
         # PSH <- criteria
-        policy = T.load('agents/Hexapod_NN_PG_WR1_pg.p')
+        policy = T.load('agents/Hexapod_NN_PG_3Z0_pg.p')
         env.test(policy)
 
-        env.test(p_flat, render=False)
         env.test(p_tiles, render=False)
         env.test(p_holes, render=False)
         env.test(p_pipe, render=False)

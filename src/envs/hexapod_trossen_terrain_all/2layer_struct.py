@@ -279,20 +279,20 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
 
     expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_W0E_pg.p'))
+                                               '../../algos/PG/agents/Hexapod_NN_PG_3Z0_pg.p'))
     expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_IZ1_pg.p'))
+                                       '../../algos/PG/agents/Hexapod_NN_PG_KE1_pg.p'))
     expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_RNN_V3_LN_PG_GMV_pg.p'))
+                                      '../../algos/PG/agents/Hexapod_NN_PG_WSJ_pg.p'))
 
-    env_list = ["holes", "pipe", "holes", "pipe"]
-    expert_dict = {"holes" : expert_holes, "pipe" : expert_pipe}
+    env_list = ["holes", "pipe", "tiles"]
+    expert_dict = {"holes" : expert_holes, "pipe" : expert_pipe, "tiles" : expert_tiles}
 
     if True:
-        make_dataset_rnn_experts(env_list=env_list,
+        make_dataset_reactive_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=3000, n_envs=3, render=False)
+                                 N=1000, n_envs=3, render=False)
     if True:
-        train_classifier(n_classes=2, iters=10000, env_list=env_list)
+        train_classifier(n_classes=3, iters=15000, env_list=env_list)
     if False:
         _test_mux_rnn_policies(expert_dict, env_list, n_envs=3)

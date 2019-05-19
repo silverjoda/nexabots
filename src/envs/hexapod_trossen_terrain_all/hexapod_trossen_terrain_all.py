@@ -34,7 +34,7 @@ class Hexapod():
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = False
+        self.walls = True
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)

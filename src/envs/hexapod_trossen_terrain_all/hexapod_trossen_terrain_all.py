@@ -159,7 +159,7 @@ class Hexapod():
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
 
         r_neg = np.square(y) * .7 + \
-                np.square(yaw) * .7 + \
+                np.square(yaw) * 0.7 + \
                 np.square(pitch) * 0.7 + \
                 np.square(roll) * 0.7 + \
                 np.square(ctrl_pen) * 0.1 + \
@@ -287,7 +287,7 @@ class Hexapod():
 
     def generate_hybrid_env(self, n_envs, steps):
         envs = np.random.choice(self.env_list, n_envs, replace=False)
-        envs = ["holes", "pipe", "tiles"]
+        #envs = ["holes", "pipe", "tiles"]
 
         if n_envs == 1:
             size_list = [steps]

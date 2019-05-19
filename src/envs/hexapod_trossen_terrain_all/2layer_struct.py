@@ -70,7 +70,7 @@ def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
             if render:
                 env.render()
 
-        if cr < 100:
+        if cr < 0:
             continue
         ctr += 1
 
@@ -140,7 +140,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
             if render:
                 env.render()
 
-        if cr < 100:
+        if cr < 0:
             continue
         ctr += 1
 
@@ -291,7 +291,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if True:
         make_dataset_reactive_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=2000, n_envs=3, render=False)
+                                 N=1500, n_envs=3, render=False)
     if True:
         train_classifier(n_classes=3, iters=20000, env_list=env_list)
     if False:

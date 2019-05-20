@@ -29,7 +29,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 130
+        self.s_len = 400
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
@@ -254,7 +254,7 @@ class Hexapod():
         self.vel_sum = 0
 
         # Init_quat
-        self.rnd_yaw = np.random.rand() * 0.
+        self.rnd_yaw = np.random.rand() * 2. - 1
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 

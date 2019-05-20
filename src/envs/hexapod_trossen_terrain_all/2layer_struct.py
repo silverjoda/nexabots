@@ -92,7 +92,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
     env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
     length = n_envs * 200
     change_prob = 0.01
-    env.env_change_prob = 0.1
+    env.env_change_prob = 0.0 # THIS HAS TO BE ZERO!!!
 
     episode_states = []
     episode_labels = []
@@ -156,6 +156,90 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
                          "data/states.npy"), np_states)
     np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                          "data/labels.npy"), np_labels)
+
+
+def train_classifier_iteratively(env_list, expert_dict, iters, n_envs, n_classes, render=False):
+    env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
+    episode_length = n_envs * 200
+    env.env_change_prob = 0.0 # THIS HAS TO BE ZERO!!!
+    batchsize = 32
+
+    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=24, memory_dim=24, n_temp=2, n_classes=n_classes,
+                                          to_gpu=True)
+    optimizer_classifier = T.optim.Adam(classifier.parameters(), lr=2e-4, weight_decay=0.001)
+    lossfun_classifier = T.nn.CrossEntropyLoss()
+
+    for i in range(iters):
+
+        episode_batch = []
+        labels_batch = []
+        for b in range(batchsize):
+
+            # Generate new environment
+            envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, episode_length)
+            scaled_indeces_list.append(episode_length)
+
+            cr = 0
+            states = []
+            labels = []
+
+            current_env_idx = 0
+            current_env = envs[current_env_idx]
+            print(envs, scaled_indeces_list, current_env)
+
+            s = env.reset()
+            h_c = None
+
+            for e in range(episode_length):
+                x = env.sim.get_state().qpos.tolist()[0] * 100 + 20
+
+                if x > scaled_indeces_list[current_env_idx]:
+                    current_env_idx += 1
+                    current_env = envs[current_env_idx]
+                    print("Env switched to {} ".format(envs[current_env_idx]))
+
+                env_idx, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
+                env_idx = T.argmax(env_idx[0][0]).numpy()
+
+                policy = expert_dict[envs[env_idx]]
+
+                states.append(s)
+                labels.append(env_list.index(current_env))
+                action = policy((my_utils.to_tensor(s, True)))
+                action = action[0].detach().numpy()
+                s, r, done, od, = env.step(action)
+                cr += r
+
+                if render:
+                    env.render()
+
+                episode_batch.append(np.stack(states))
+                labels_batch.append(np.stack(labels))
+
+
+        np_states = np.stack(episode_batch)
+        np_labels = np.stack(labels_batch)
+
+        batch_states_T = T.from_numpy(np_states).float()
+        expert_labels_T = T.from_numpy(np_labels).long()
+
+        # Perform batch forward pass on episodes
+        labels_T, _ = classifier.forward((batch_states_T, None))
+
+        # Update RNN
+        trn_loss_clasifier = lossfun_classifier(labels_T[:, :].contiguous().view(-1, n_classes),
+                                                expert_labels_T[:, :].contiguous().view(-1))
+        trn_loss_clasifier.backward()
+        classifier.soft_clip_grads()
+        optimizer_classifier.step()
+
+        if i % 10 == 0:
+            print("Iter: {}/{}, trn_loss: {}".format(i, iters, trn_loss_clasifier))
+
+    classifier = classifier.cpu()
+    T.save(classifier, os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"))
+    print("Done")
+
 
 
 def train_classifier(n_classes, iters, env_list):
@@ -252,10 +336,10 @@ def _test_mux_rnn_policies(policy_dict, env_list, n_envs):
         print("Episode reward: {}".format(episode_reward))
 
 
-def _test_mux_reactive_policies(policy_dict, env_list):
-    env = hex_env.Hexapod(env_list, max_n_envs=len(env_list))
+def _test_mux_reactive_policies(policy_dict, env_list, n_envs):
+    env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
     env.env_change_prob = 1
-    env.max_steps = len(env_list) * 200
+    env.max_steps = env.max_steps
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"), map_location='cpu')
 
     # Test visually
@@ -264,10 +348,79 @@ def _test_mux_reactive_policies(policy_dict, env_list):
         h_c = None
         episode_reward = 0
         with T.no_grad():
-            for i in range(env.max_steps * 2):
+            for i in range(env.max_steps):
+
                 env_idx, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
                 env_idx = T.argmax(env_idx[0][0]).numpy()
+
                 act = policy_dict[env_list[env_idx]](my_utils.to_tensor(s, True))
+
+                s, r, done, _ = env.step(act[0].numpy())
+                episode_reward += r
+                env.render()
+                print("Env classification: {}".format(env_list[env_idx]))
+        print("Episode reward: {}".format(episode_reward))
+
+
+def _test_mux_reactive_policies_debug(policy_dict, env_list, n_envs, N):
+
+    env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
+    env.env_change_prob = 1
+    env.max_steps = env.max_steps
+    classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"), map_location='cpu')
+
+    # Remove this later
+    policy_choice = np.random.choice(env_list, 1)[0] #
+    policy = policy_dict[policy_choice] #
+    # N x EP_LEN x OBS_DIM
+    expert_states = np.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/states.npy"))
+
+    # N x EP_LEN x N_CLASSES
+    expert_labels = np.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/labels.npy"))
+
+    batchsize = 32
+
+    N_EPS, EP_LEN, OBS_DIM = expert_states.shape
+
+    states = expert_states[0:120]
+    labels = expert_labels[0:120]
+    batch_states_T = T.from_numpy(states).float()
+    expert_labels_T = T.from_numpy(labels).long()
+    labels_T, _ = classifier.forward((batch_states_T, None))
+    pred = T.argmax(labels_T.contiguous().view(-1, 3), dim=1)
+    labs = expert_labels_T.contiguous().view(-1)
+    tst_accuracy = (pred == labs).sum().cpu().detach().numpy() / (pred.shape[0] / 1.0)
+
+    print("Tst_accuracy: {}".format(tst_accuracy))
+    exit()
+
+    # Test visually
+    while True:
+        s = env.reset()
+        h_c = None
+        episode_reward = 0
+
+        states = []
+        labels = []
+
+        with T.no_grad():
+            for i in range(env.max_steps):
+
+                # Remove this later
+                if np.random.rand() < 0.01:
+                    policy_choice = np.random.choice(env_list, 1)[0]
+                    policy = policy_dict[policy_choice]
+                    print("Policy switched to {} policy".format(policy_choice))
+
+                env_idx, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
+                env_idx = T.argmax(env_idx[0][0]).numpy()
+
+                # Change this later
+                act = policy(my_utils.to_tensor(s, True)) #policy_dict[env_list[env_idx]](my_utils.to_tensor(s, True))
+
+                states.append(s)
+                labels.append()
+
                 s, r, done, _ = env.step(act[0].numpy())
                 episode_reward += r
                 env.render()
@@ -293,6 +446,6 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
                                  expert_dict=expert_dict,
                                  N=1500, n_envs=3, render=False)
     if True:
-        train_classifier(n_classes=3, iters=20000, env_list=env_list)
+        train_classifier(n_classes=3, iters=15000, env_list=env_list)
     if False:
-        _test_mux_rnn_policies(expert_dict, env_list, n_envs=3)
+        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3)

@@ -21,7 +21,7 @@ class Hexapod():
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["pipe"]
+            self.env_list = ["tiles"]
         else:
             self.env_list = env_list
 
@@ -350,8 +350,8 @@ class Hexapod():
 
         if env_name == "tiles":
             hm = np.random.randint(0, 20,
-                                   size=(self.env_width // 3, env_length // int(14 * self.s_len / 85.)),
-                                   dtype=np.uint8).repeat(3, axis=0).repeat(int(14 * self.s_len / 85.), axis=1) + 127
+                                   size=(self.env_width // 3, env_length // int(12)),
+                                   dtype=np.uint8).repeat(3, axis=0).repeat(int(12), axis=1) + 127
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))

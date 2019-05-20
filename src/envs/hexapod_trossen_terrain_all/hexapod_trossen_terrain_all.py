@@ -29,12 +29,12 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 400
+        self.s_len = 330
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = True
+        self.walls = False
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -59,11 +59,11 @@ class Hexapod():
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = self.model.stat.extent * 1.3
+        self.viewer.cam.distance = self.model.stat.extent * .3
         self.viewer.cam.lookat[0] = -0.1
-        self.viewer.cam.lookat[1] = 0
+        self.viewer.cam.lookat[1] = -1
         self.viewer.cam.lookat[2] = 0.5
-        self.viewer.cam.elevation = -20
+        self.viewer.cam.elevation = -30
 
 
     def scale_joints(self, joints):
@@ -154,27 +154,28 @@ class Hexapod():
         #avg_vel = self.vel_sum / self.step_ctr
 
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
+        velocity_rew = velocity_rew * (1/(1 + 30 * np.square(yd)))
 
         roll, pitch, yaw = my_utils.quat_to_rpy([qw,qx,qy,qz])
         yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
 
-        r_neg = np.square(y) * .7 + \
-                np.square(yaw) * 0.7 + \
-                np.square(pitch) * 0.7 + \
-                np.square(roll) * 0.7 + \
+        q_yaw = 2 * acos(qw)
+
+        r_neg = np.square(y) * 0.2 + \
+                np.square(q_yaw) * 0.5 + \
+                np.square(pitch) * 0.5 + \
+                np.square(roll) * 0.5 + \
                 np.square(ctrl_pen) * 0.1 + \
                 np.square(zd) * 0.7
 
-
-        r_pos = velocity_rew * 6  #+ (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 10. + (abs(self.prev_y_deviation) - abs(y)) * 10.
-        #print((abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.)
+        r_pos = velocity_rew * 6 #+ (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
         r = r_pos - r_neg
 
         self.prev_yaw_deviation = yaw_deviation
         self.prev_y_deviation = y
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps #or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8
+        done = self.step_ctr > self.max_steps # or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
         if self.use_HF:
@@ -254,7 +255,7 @@ class Hexapod():
         self.vel_sum = 0
 
         # Init_quat
-        self.rnd_yaw = np.random.rand() * 2. - 1
+        self.rnd_yaw = 0 # np.random.rand() * 2. - 1
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
@@ -287,7 +288,7 @@ class Hexapod():
 
     def generate_hybrid_env(self, n_envs, steps):
         envs = np.random.choice(self.env_list, n_envs, replace=False)
-        #envs = ["holes", "pipe", "tiles"]
+        #envs = ["holes", "tiles", "holes"]
 
         if n_envs == 1:
             size_list = [steps]
@@ -493,7 +494,6 @@ class Hexapod():
 
 
     def test(self, policy, render=True):
-        #self.envgen.load()
         self.env_change_prob = 1
         N = 30
         rew = 0
@@ -516,7 +516,7 @@ class Hexapod():
         self.env_change_prob = 1
         self.reset()
         h_episodes = []
-        N = 100
+        N = 20
         rew = 0
         for i in range(N):
             h_list = []
@@ -524,12 +524,12 @@ class Hexapod():
             h = None
             cr = 0
             for j in range(self.max_steps):
-                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
-                obs, r, done, od, = self.step(action[0,0].detach().numpy() + np.random.randn(self.act_dim) * 0.1)
+                action, h = policy.sample_action((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                obs, r, done, od, = self.step(action[0].detach().numpy())
                 cr += r
                 rew += r
                 time.sleep(0.001)
-                self.render()
+                #self.render()
                 h_list.append(h[0][:,0,:].detach().numpy())
             print("Total episode reward: {}".format(cr))
             h_arr = np.stack(h_list)

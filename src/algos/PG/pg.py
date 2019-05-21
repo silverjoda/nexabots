@@ -264,7 +264,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["pipe"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["holes"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
@@ -289,9 +289,9 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        p_tiles = T.load('agents/Hexapod_NN_PG_3Z0_pg.p') # K12
-        p_holes = T.load('agents/Hexapod_NN_PG_KE1_pg.p') # U88
-        p_pipe = T.load('agents/Hexapod_NN_PG_WSJ_pg.p') # W2C
+        p_tiles = T.load('agents/Hexapod_NN_PG_D0R_pg.p') # K12
+        p_holes = T.load('agents/Hexapod_NN_PG_4W1_pg.p') # U88
+        p_pipe = T.load('agents/Hexapod_NN_PG_ZSC_pg.p') # W2C
         # p_verts = T.load('agents/Hexapod_NN_PG_ZQB_pg.p') #
         # p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
         # p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
@@ -307,9 +307,11 @@ if __name__=="__main__":
         # exit()
 
         # PSH <- criteria
-        policy = T.load('agents/Hexapod_NN_PG_WSJ_pg.p')
-        env.test(policy)
+        policy = T.load('agents/Hexapod_NN_PG_ZSC_pg.p')
+        #env.test(policy)
 
-        env.test(p_tiles, render=False)
-        env.test(p_holes, render=False)
-        env.test(p_pipe, render=False)
+        #env.test(p_tiles, render=False) #h: 205 t: p:
+        print("--")
+        env.test(p_holes, render=False) #h: 154 t: p:
+        print("--")
+        #env.test(p_pipe, render=False) #h: -41 t: p:

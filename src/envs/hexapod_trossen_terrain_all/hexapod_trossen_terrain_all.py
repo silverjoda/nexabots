@@ -29,12 +29,12 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 330
+        self.s_len = 130
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30
         self.cumulative_environment_reward = None
-        self.walls = False
+        self.walls = True
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -505,7 +505,7 @@ class Hexapod():
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
                 rew += r
-                time.sleep(0.001)
+                time.sleep(0.000)
                 if render:
                     self.render()
             print("Total episode reward: {}".format(cr))
@@ -529,7 +529,7 @@ class Hexapod():
                 cr += r
                 rew += r
                 time.sleep(0.001)
-                #self.render()
+                self.render()
                 h_list.append(h[0][:,0,:].detach().numpy())
             print("Total episode reward: {}".format(cr))
             h_arr = np.stack(h_list)

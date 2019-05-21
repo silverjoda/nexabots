@@ -168,7 +168,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.95, "lr": 0.001, "decay" : 0.0003, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
-              "comments" : "E2E", "Env_list" : env_list,
+              "comments" : "E2E, classic rnn", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -193,7 +193,6 @@ if __name__=="__main__":
     # pipe, FP2: 117
     # pipe-pipe, FP2: 122
 
-
     # = ------
 
     # Experts: t: 149 h: 162
@@ -215,7 +214,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_LVE_pg.p')
+        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_MDT_pg.p')
         env.test_recurrent(expert)
 
         p_flat = T.load('agents/Hexapod_RNN_V3_LN_PG_XWH_pg.p')  # 2BV

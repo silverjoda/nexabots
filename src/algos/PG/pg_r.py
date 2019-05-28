@@ -168,15 +168,18 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.95, "lr": 0.001, "decay" : 0.0003, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
-              "comments" : "E2E, classic rnn", "Env_list" : env_list,
+              "comments" : "Mass std: 0", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
+    # from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    # env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
+
+    from src.envs.ctrl_slider.ctrl_slider import SliderEnv
+    env = SliderEnv(mass_std=0, damping_std=0, animate=params["animate"])
 
     print(params, env.__class__.__name__)
 
@@ -208,7 +211,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=2, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_LN_PG(env, hid_dim=6, memory_dim=4, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

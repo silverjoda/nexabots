@@ -8,12 +8,12 @@ class SliderEnv():
     def __init__(self, mass_std=0, damping_std=0.1, animate=False):
         # Initiation vars
         self.mass_std = mass_std
-        self.damping_std = damping_std
+        self.decay_std = damping_std
         self.animate = animate
 
         # Simulator parameters
         self.dt = 0.1
-        self.max_steps = 200
+        self.max_steps = 150
         self.obs_dim = 2
         self.act_dim = 1
 
@@ -32,7 +32,7 @@ class SliderEnv():
         # Step system
         a = act / self.mass
         self.dx += a * self.dt
-        self.dx *= self.damping
+        self.dx *= self.decay
         self.x += self.dx * self.dt
 
         # Render
@@ -51,7 +51,11 @@ class SliderEnv():
         done = (self.step_ctr >= self.max_steps)
 
         square_dist_from_target = np.square(self.x - self.target)
-        penalty = square_dist_from_target + np.square(self.dx) * (1 / (square_dist_from_target * 5 + 0.1))
+        vel_pen = 0.05 * np.square(self.dx) * (1 / (square_dist_from_target * 5 + 0.1))
+        penalty = square_dist_from_target + vel_pen
+
+        if abs(penalty) < 0.01:
+            penalty = 0
 
         r = 1 / (penalty + 1)
 
@@ -67,8 +71,8 @@ class SliderEnv():
         self.x = 0.
         self.dx = 0.
         self.target = np.random.rand() * 6 - 3
-        self.mass = 0.1 + np.random.rand() * self.mass_std
-        self.damping = 0.8 + np.random.rand() * self.damping_std
+        self.mass = 0.01 + np.random.rand() * self.mass_std
+        self.decay = 0.9 + np.random.rand() * self.decay_std
         self.step_ctr = 0
 
         obs = np.array([self.x - self.target, self.dx])
@@ -81,11 +85,11 @@ class SliderEnv():
         halfwidth = int(imdim[1] / 2)
         img = np.zeros((imdim[0], imdim[1], 3), dtype=np.uint8)
         img[halfheight, :, :] = 255
-        cv2.circle(img, (halfwidth + int(self.x * 36), halfheight), int(self.mass * 5), (255, 0, 0), -1)
-        cv2.arrowedLine(img, (halfwidth + int(self.x * 36), halfheight), (halfwidth + int(self.x * 36) + int(self.current_act * 20), halfheight), (0, 0, 255), thickness=3)
+        cv2.circle(img, (halfwidth + int(self.x * 36), halfheight), int(self.mass * 70), (255, 0, 0), -1)
+        cv2.arrowedLine(img, (halfwidth + int(self.x * 36), halfheight), (halfwidth + int(self.x * 36) + int(self.current_act * 40), halfheight), (0, 0, 255), thickness=2)
         cv2.rectangle(img, (halfwidth + int(self.target * 36) - 1, halfheight - 5), (halfwidth + int(self.target * 36) + 1, halfheight + 5), (0, 255, 0), 1)
         cv2.putText(img, 'm = {0:.2f}'.format(self.mass), (10, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
-        cv2.putText(img, 'b = {0:.2f}'.format(self.damping), (80, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
+        cv2.putText(img, 'b = {0:.2f}'.format(self.decay), (80, 10), cv2.FONT_HERSHEY_SIMPLEX, 0.3, (0, 255, 0), 1, cv2.LINE_AA)
         cv2.imshow('image', img)
         cv2.waitKey(10)
 
@@ -127,9 +131,9 @@ class SliderEnv():
 
 
     def demo(self):
-        self.reset()
         for i in range(100):
-            for i in range(self.max_steps):
+            self.reset()
+            for j in range(self.max_steps):
                 self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.render()
 

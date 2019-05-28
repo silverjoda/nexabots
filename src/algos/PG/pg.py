@@ -264,34 +264,37 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["holes", "tiles", "pipe"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.95, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Expert training, q_yaw", "ID" : ID}
+              "note" : "Terrain, no HF comparison", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(env_list=env_list)
+    # from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    # env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
+    #
+    from src.envs.ctrl_slider.ctrl_slider import SliderEnv
+    env = SliderEnv(mass_std=0.3, damping_std=0, animate=params["animate"])
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 64, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 6, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
 
-        p_tiles = T.load('agents/Hexapod_NN_PG_D0R_pg.p') # K12
-        p_holes = T.load('agents/Hexapod_NN_PG_4W1_pg.p') # U88
-        p_pipe = T.load('agents/Hexapod_NN_PG_ZSC_pg.p') # W2C
+        # p_tiles = T.load('agents/Hexapod_NN_PG_D0R_pg.p') # K12
+        # p_holes = T.load('agents/Hexapod_NN_PG_4W1_pg.p') # U88
+        # p_pipe = T.load('agents/Hexapod_NN_PG_ZSC_pg.p') # W2C
         # p_verts = T.load('agents/Hexapod_NN_PG_ZQB_pg.p') #
         # p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
         # p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
@@ -307,11 +310,5 @@ if __name__=="__main__":
         # exit()
 
         # PSH <- criteria
-        policy = T.load('agents/Hexapod_NN_PG_ZSC_pg.p')
-        #env.test(policy)
-
-        #env.test(p_tiles, render=False) #h: 205 t: p:
-        print("--")
-        env.test(p_holes, render=False) #h: 154 t: p:
-        print("--")
-        #env.test(p_pipe, render=False) #h: -41 t: p:
+        policy = T.load('agents/SliderEnv_NN_PG_62Q_pg.p')
+        env.test(policy)

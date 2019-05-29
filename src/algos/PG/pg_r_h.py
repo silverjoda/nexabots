@@ -17,7 +17,8 @@ def train(env, policy, params):
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
 
     batch_states = []
-    batch_actions = []
+    batch_actions_1 = []
+    batch_actions_2 = []
     batch_rewards = []
     batch_terminals = []
 
@@ -32,17 +33,18 @@ def train(env, policy, params):
 
         # Episode lists
         episode_states = []
-        episode_actions = []
+        episode_actions_1 = []
+        episode_actions_2 = []
 
         while not done:
             with T.no_grad():
                 # Sample action from policy
-                action, h_1 = policy.sample_action((my_utils.to_tensor(s_0, True).unsqueeze(0), h_0))
+                action_1, action_2, h_1 = policy.sample_action((my_utils.to_tensor(s_0, True).unsqueeze(0), h_0))
 
             #print(action.squeeze(0).numpy())
 
             # Step action
-            s_1, r, done, _ = env.step(action.squeeze(0).numpy())
+            s_1, r, done, _ = env.step(action_2.squeeze(0).numpy())
             r = np.clip(r, -3, 3)
 
             step_ctr += 1
@@ -53,7 +55,8 @@ def train(env, policy, params):
 
             # Record transition
             episode_states.append(my_utils.to_tensor(s_0, True))
-            episode_actions.append(action)
+            episode_actions_1.append(action_1)
+            episode_actions_2.append(action_2)
             batch_rewards.append(my_utils.to_tensor(np.asarray(r, dtype=np.float32), True))
             batch_terminals.append(done)
 
@@ -64,24 +67,21 @@ def train(env, policy, params):
         episode_ctr += 1
 
         batch_states.append(T.cat(episode_states))
-        batch_actions.append(T.cat(episode_actions))
+        batch_actions_1.append(T.cat(episode_actions_1))
+        batch_actions_2.append(T.cat(episode_actions_2))
 
         # If enough data gathered, then perform update
         if episode_ctr == params["batchsize"]:
 
             batch_states = T.stack(batch_states)
-            batch_actions = T.stack(batch_actions)
+            batch_actions_1 = T.stack(batch_actions_1)
+            batch_actions_2 = T.stack(batch_actions_2)
             batch_rewards = T.cat(batch_rewards)
-
-            #print(T.pow(batch_actions, 2).mean())
 
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
-            if params["ppo"]:
-                update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            else:
-                update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            update_ppo(policy, policy_optim, batch_states, batch_actions_1, batch_actions_2, batch_advantages, params["ppo_update_iters"])
 
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
                   format(i, params["iters"], None, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
@@ -91,7 +91,8 @@ def train(env, policy, params):
             episode_rew = 0
 
             batch_states = []
-            batch_actions = []
+            batch_actions_1 = []
+            batch_actions_2 = []
             batch_rewards = []
             batch_terminals = []
 
@@ -102,14 +103,14 @@ def train(env, policy, params):
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 
-def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
+def update_ppo(policy, policy_optim, batch_states, batch_actions_1, batch_actions_2, batch_advantages, update_iters):
     # Call logprobs on hidden states
-    log_probs_old = policy.log_probs(batch_states, batch_actions).detach()
+    log_probs_old = policy.log_probs(batch_states, batch_actions_1, batch_actions_2).detach()
     c_eps = .2
 
     # Do ppo_update
     for k in range(update_iters):
-        log_probs_new = policy.log_probs(batch_states, batch_actions)
+        log_probs_new = policy.log_probs(batch_states, batch_actions_1, batch_actions_2)
         r = T.exp(log_probs_new - log_probs_old).view((-1, 1))
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
@@ -166,9 +167,9 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 100000, "batchsize": 24, "gamma": 0.95, "lr": 0.001, "decay" : 0.0003, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "Mass std: 0", "Env_list" : env_list,
+    params = {"iters": 100000, "batchsize": 4, "gamma": 0.95, "lr": 0.001, "decay" : 0.0003, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
+              "comments" : "Test", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -178,40 +179,12 @@ if __name__=="__main__":
     from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
     env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
 
-    # from src.envs.ctrl_slider.ctrl_slider import SliderEnv
-    # env = SliderEnv(mass_std=0, damping_std=0, animate=params["animate"])
-
     print(params, env.__class__.__name__)
-
-    # Experts:  p: 180, h:187
-    # 4c4: p: 87 h: 155
-    # FP2: p: 115 h: 140
-
-    # pipe, 2AB: 190
-    # pipe-pipe, 2AB: 188
-
-    # pipe, 4C4: 90
-    # pipe-pipe, 4C4: 87
-
-    # pipe, FP2: 117
-    # pipe-pipe, FP2: 122
-
-    # = ------
-
-    # Experts: t: 149 h: 162
-    # IET: t: 124 h: 170
-
-
-    # Current experts
-    # holes: IZ1
-    # tiles: W0E
-    # pipe: GMV
-
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_LN_PG(env, hid_dim=60, memory_dim=20, n_temp=2, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_PG_H(env, hid_dim=48, memory_dim=48, n_temp=2, tanh=params["tanh"])
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

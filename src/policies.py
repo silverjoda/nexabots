@@ -1578,6 +1578,99 @@ class RNN_C_PG(nn.Module):
         return log_density.sum(2, keepdim=True)
 
 
+class RNN_PG_H(nn.Module):
+    def __init__(self, env, hid_dim=64, memory_dim=64, n_temp=3, tanh=False):
+        super(RNN_PG_H, self).__init__()
+        self.obs_dim = env.obs_dim
+        self.act_dim = env.act_dim
+        self.hid_dim = hid_dim
+        self.memory_dim = memory_dim
+        self.tanh = tanh
+        self.n_temp = n_temp
+
+        self.rnn_1 = nn.LSTM(self.memory_dim, self.memory_dim, self.n_temp, batch_first=True)
+        self.rnn_2 = nn.LSTM(self.memory_dim, self.memory_dim, self.n_temp, batch_first=True)
+        self.fc1 = nn.Linear(self.obs_dim, self.memory_dim)
+        self.m1 = nn.LayerNorm(self.memory_dim)
+        self.fc2 = nn.Linear(self.memory_dim, self.memory_dim)
+        self.m2 = nn.LayerNorm(self.memory_dim)
+        self.fc3 = nn.Linear(self.memory_dim, self.act_dim)
+
+        self.log_std_1 = T.ones(1, self.memory_dim) * -2
+        self.log_std_2 = T.zeros(1, self.act_dim)
+
+
+    def soft_clip_grads(self, bnd=0.5):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            if p.grad is None: continue
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            #print("Soft clipping grads")
+
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
+
+    def forward(self, input, rnd=False):
+        x, state = input
+
+        if state is None:
+            h_1, h_2 = None, None
+        else:
+            h_1, h_2 = state
+
+        rnn_features = F.selu(self.m1(self.fc1(x)))
+        rnn_features = F.selu(self.m2(self.fc2(rnn_features)))
+
+        a_1, h_1 = self.rnn_1(rnn_features, h_1)
+        if rnd:
+            a_1 = T.normal(a_1, T.exp(self.log_std_1))
+
+        output, h_2 = self.rnn_1(a_1, h_2)
+
+        if self.tanh:
+            a_2 = T.tanh(self.fc3(output))
+        else:
+            a_2 = self.fc3(output)
+
+        if rnd:
+            a_2 = T.normal(a_2, T.exp(self.log_std_2))
+
+        return a_1, a_2, (h_1, h_2)
+
+
+    def sample_action(self, s):
+        a_1, a_2, h = self.forward(s, rnd=True)
+        return a_1, a_2, h
+
+
+    def log_probs(self, batch_states, batch_actions_1, batch_actions_2):
+        # Get action means from policy
+        action_means_1, action_means_2, _ = self.forward((batch_states, None), rnd=False)
+
+        # Calculate probabilities
+        log_std_batch_1 = self.log_std_1.expand_as(action_means_1)
+        log_std_batch_2 = self.log_std_2.expand_as(action_means_2)
+
+        std_1 = T.exp(log_std_batch_1)
+        std_2 = T.exp(log_std_batch_2)
+        var_1 = std_1.pow(2)
+        var_2 = std_2.pow(2)
+        log_density_1 = - T.pow(batch_actions_1 - action_means_1, 2) / (2 * var_1) - 0.5 * np.log(2 * np.pi) - log_std_batch_1
+        log_density_2 = - T.pow(batch_actions_2 - action_means_2, 2) / (2 * var_2) - 0.5 * np.log(2 * np.pi) - log_std_batch_2
+
+        total_density_sum = log_density_1.sum(2, keepdim=True) * log_density_2.sum(2, keepdim=True)
+
+        return total_density_sum
+
+
 
 class RNN_V3_AUX(nn.Module):
     def __init__(self, env, hid_dim=64, memory_dim=64, n_temp=3, n_classif=3, tanh=False, to_gpu=False):

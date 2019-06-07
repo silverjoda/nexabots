@@ -26,7 +26,7 @@ class CartPoleBulletEnv():
           p.connect(p.DIRECT)
 
         # Simulator parameters
-        self.max_steps = 500
+        self.max_steps = 800
         self.obs_dim = 4
         self.act_dim = 1
 
@@ -58,6 +58,8 @@ class CartPoleBulletEnv():
             else:
                 theta = np.pi + theta % -np.pi
 
+        theta /= np.pi
+
         self.state = np.array([x, x_dot, theta, theta_dot])
         return self.state
 
@@ -72,8 +74,11 @@ class CartPoleBulletEnv():
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
 
-        r = (np.pi - np.abs(theta)) / np.pi - np.square(x) * 0.1
+        angle_rew = 1 - np.abs(theta)
+        cart_pen = np.square(x) * 0.05
+        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.1) * (1 - abs(theta))
 
+        r =  angle_rew - cart_pen - vel_pen
         done = self.step_ctr > self.max_steps
 
         return obs, r, done, None
@@ -104,8 +109,7 @@ class CartPoleBulletEnv():
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
                 total_rew += r
-                time.sleep(0.001)
-                self.render()
+                time.sleep(0.0025)
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 

@@ -26,40 +26,69 @@ class CartPoleBulletEnv():
           p.connect(p.DIRECT)
 
         # Simulator parameters
-        self.max_steps = 300
+        self.max_steps = 500
         self.obs_dim = 4
         self.act_dim = 1
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"),
-                                   [0, 0, 0])
-        self.timeStep = 0.02
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
+        #self.timeStep = 0.02
         p.setGravity(0, 0, -9.8)
-        p.setTimeStep(self.timeStep)
+        #p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
+
+        self.reset()
+
+
+    def get_obs(self):
+        x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
+
+        # Clip velocities
+        x_dot = np.clip(x_dot / 10, -2, 2)
+        theta_dot = np.clip(theta_dot / 10, -2, 2)
+
+        # Change theta range to [-pi, pi]
+        if theta > 0:
+            if theta % (2 * np.pi) <= np.pi:
+                theta = theta % (2 * np.pi)
+            else:
+                theta = -np.pi + theta % np.pi
+        else:
+            if theta % (-2 * np.pi) >= -np.pi:
+                theta = theta % (-2 * np.pi)
+            else:
+                theta = np.pi + theta % -np.pi
+
+        self.state = np.array([x, x_dot, theta, theta_dot])
+        return self.state
 
 
     def step(self, ctrl):
-        #p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
         p.stepSimulation()
 
         self.step_ctr += 1
 
         # x, x_dot, theta, theta_dot
-        self.state = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
-        self.state = np.array(self.state)
+        obs = self.get_obs()
+        x, x_dot, theta, theta_dot = obs
+
+        r = (np.pi - np.abs(theta)) / np.pi - np.square(x) * 0.1
 
         done = self.step_ctr > self.max_steps
 
-        # Penalize angle deviation and cart from center
-        r = np.square(self.state[0]) + np.square(self.state[2])
-
-        return self.state, r, done, None
+        return obs, r, done, None
 
 
     def reset(self):
-        self.step_ctr = 1
-        p.resetSimulation()
+        self.step_ctr = 0
 
+        p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
+        p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
+        #p.changeDynamics(self.cartpole, -1, linearDamping=0, angularDamping=0)
+        #p.changeDynamics(self.cartpole, 0, linearDamping=0, angularDamping=0)
+        #p.changeDynamics(self.cartpole, 1, linearDamping=0, angularDamping=0)
+        p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
+        p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 
@@ -105,6 +134,8 @@ class CartPoleBulletEnv():
             self.reset()
             for j in range(self.max_steps):
                 self.step(np.random.rand(self.act_dim) * 2 - 1)
+                #self.step(np.array([1]))
+                time.sleep(0.005)
 
 
 if __name__ == "__main__":

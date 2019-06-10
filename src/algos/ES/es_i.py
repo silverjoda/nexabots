@@ -81,18 +81,18 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 10000, "popsize": 24, "learning_rate" : 1, "weight_decay" : 0.0003, "animate": False, "train" : False, "env_list" : env_list,
+    params = {"iters": 10000, "popsize": 24, "learning_rate" : 1, "weight_decay" : 0.0003, "animate": True, "train" : True, "env_list" : env_list,
               "note" : "Test", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(env_list=env_list, max_n_envs=1)
+    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
+    #env = hex_env.Hexapod(env_list=env_list, max_n_envs=1)
 
-    # from src.envs.ctrl_slider.ctrl_slider import SliderEnv
-    # env = SliderEnv(mass_std=0.3, damping_std=0, animate=params["animate"])
+    from src.envs.ctrl_slider.ctrl_slider import SliderEnv
+    env = SliderEnv(mass_std=0.3, damping_std=0, animate=params["animate"])
 
     # Test
     if params["train"]:
@@ -107,7 +107,7 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        policy = T.load('agents/SliderEnv_NN_PG_62Q_pg.p')
+        policy = T.load('agents/SliderEnv_NN_PG_4JX_pg.p')
         env.test(policy)
 
 print("Done.")

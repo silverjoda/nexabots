@@ -1588,16 +1588,22 @@ class RNN_PG_H(nn.Module):
         self.tanh = tanh
         self.n_temp = n_temp
 
-        self.rnn_1 = nn.LSTM(self.memory_dim, self.memory_dim, self.n_temp, batch_first=True)
-        self.rnn_2 = nn.LSTM(self.memory_dim, self.memory_dim, self.n_temp, batch_first=True)
+        #  A la Feature extractor
         self.fc1 = nn.Linear(self.obs_dim, self.memory_dim)
         self.m1 = nn.LayerNorm(self.memory_dim)
         self.fc2 = nn.Linear(self.memory_dim, self.memory_dim)
         self.m2 = nn.LayerNorm(self.memory_dim)
+
+        # Two rnn layers
+        self.rnn_1 = nn.LSTM(self.memory_dim, self.memory_dim, self.n_temp, batch_first=True)
+        self.rnn_2 = nn.LSTM(self.memory_dim, self.memory_dim, self.n_temp, batch_first=True)
+
+        # Mapping from RNN layers into actions
         self.fc3 = nn.Linear(self.memory_dim, self.act_dim)
 
-        self.log_std_1 = T.ones(1, self.memory_dim) * -2
-        self.log_std_2 = T.zeros(1, self.act_dim)
+        # Smaller than 1 std so that exploration is not that wild
+        self.log_std_low = T.ones(1, self.memory_dim) * -2
+        self.log_std_high = T.zeros(1, self.act_dim)
 
 
     def soft_clip_grads(self, bnd=0.5):
@@ -1611,14 +1617,12 @@ class RNN_PG_H(nn.Module):
                 maxval = m
 
         if maxval > bnd:
-            #print("Soft clipping grads")
-
             for p in self.parameters():
                 if p.grad is None: continue
                 p.grad = (p.grad / maxval) * bnd
 
 
-    def forward(self, input, rnd=False):
+    def forward(self, input):
         x, state = input
 
         if state is None:
@@ -1630,8 +1634,6 @@ class RNN_PG_H(nn.Module):
         rnn_features = F.selu(self.m2(self.fc2(rnn_features)))
 
         a_1, h_1 = self.rnn_1(rnn_features, h_1)
-        if rnd:
-            a_1 = T.normal(a_1, T.exp(self.log_std_1))
 
         output, h_2 = self.rnn_1(a_1, h_2)
 
@@ -1640,36 +1642,106 @@ class RNN_PG_H(nn.Module):
         else:
             a_2 = self.fc3(output)
 
-        if rnd:
-            a_2 = T.normal(a_2, T.exp(self.log_std_2))
+        return a_2, (h_1, h_2)
+
+
+    def forward_low(self, input):
+        x, state = input
+
+        if state is None:
+            h_1, h_2 = None, None
+        else:
+            h_1, h_2 = state
+
+        rnn_features = F.selu(self.m1(self.fc1(x)))
+        rnn_features = F.selu(self.m2(self.fc2(rnn_features)))
+
+        a_1, h_1 = self.rnn_1(rnn_features, h_1)
+
+        output, h_2 = self.rnn_1(a_1, h_2)
+
+        if self.tanh:
+            a_2 = T.tanh(self.fc3(output))
+        else:
+            a_2 = self.fc3(output)
 
         return a_1, a_2, (h_1, h_2)
 
 
-    def sample_action(self, s):
-        a_1, a_2, h = self.forward(s, rnd=True)
-        return a_1, a_2, h
+    def sample_low(self, input):
+        x, state = input
+
+        if state is None:
+            h_1, h_2 = None, None
+        else:
+            h_1, h_2 = state
+
+        rnn_features = F.selu(self.m1(self.fc1(x)))
+        rnn_features = F.selu(self.m2(self.fc2(rnn_features)))
+
+        a_1, h_1 = self.rnn_1(rnn_features, h_1)
+        a_1 = T.normal(a_1, T.exp(self.log_std_low))
+
+        output, h_2 = self.rnn_1(a_1, h_2)
+
+        if self.tanh:
+            a_2 = T.tanh(self.fc3(output))
+        else:
+            a_2 = self.fc3(output)
+
+        return a_1, a_2, (h_1, h_2)
 
 
-    def log_probs(self, batch_states, batch_actions_1, batch_actions_2):
+    def sample_high(self, input):
+        x, state = input
+
+        if state is None:
+            h_1, h_2 = None, None
+        else:
+            h_1, h_2 = state
+
+        rnn_features = F.selu(self.m1(self.fc1(x)))
+        rnn_features = F.selu(self.m2(self.fc2(rnn_features)))
+
+        a_1, h_1 = self.rnn_1(rnn_features, h_1)
+        output, h_2 = self.rnn_1(a_1, h_2)
+
+        if self.tanh:
+            a_2 = T.tanh(self.fc3(output))
+        else:
+            a_2 = self.fc3(output)
+
+        a_2 = T.normal(a_2, T.exp(self.log_std_high))
+
+        return a_2, (h_1, h_2)
+
+
+    def log_probs_low(self, batch_states, batch_actions):
         # Get action means from policy
-        action_means_1, action_means_2, _ = self.forward((batch_states, None), rnd=False)
+        action_means, _, _ = self.forward_low((batch_states, None))
 
         # Calculate probabilities
-        log_std_batch_1 = self.log_std_1.expand_as(action_means_1)
-        log_std_batch_2 = self.log_std_2.expand_as(action_means_2)
+        log_std_batch = self.log_std_low.expand_as(action_means)
 
-        std_1 = T.exp(log_std_batch_1)
-        std_2 = T.exp(log_std_batch_2)
-        var_1 = std_1.pow(2)
-        var_2 = std_2.pow(2)
-        log_density_1 = - T.pow(batch_actions_1 - action_means_1, 2) / (2 * var_1) - 0.5 * np.log(2 * np.pi) - log_std_batch_1
-        log_density_2 = - T.pow(batch_actions_2 - action_means_2, 2) / (2 * var_2) - 0.5 * np.log(2 * np.pi) - log_std_batch_2
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
-        total_density_sum = log_density_1.sum(2, keepdim=True) * log_density_2.sum(2, keepdim=True)
+        return log_density.sum(2, keepdim=True)
 
-        return total_density_sum
 
+    def log_probs_high(self, batch_states, batch_actions):
+        # Get action means from policy
+        action_means, _ = self.forward((batch_states, None))
+
+        # Calculate probabilities
+        log_std_batch = self.log_std_high.expand_as(action_means)
+
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(2, keepdim=True)
 
 
 class RNN_V3_AUX(nn.Module):

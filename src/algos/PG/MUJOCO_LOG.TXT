@@ -1,3 +1,6 @@
 Wed Mar  6 12:42:01 2019
 ERROR: Offscreen framebuffer is not complete, error 0x8cdd
 
+Mon Jun 10 16:51:01 2019
+ERROR: Expired activation key
+

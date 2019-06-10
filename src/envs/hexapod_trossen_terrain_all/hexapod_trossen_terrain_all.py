@@ -29,7 +29,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 400
+        self.s_len = 200
         self.max_steps = self.n_envs * self.s_len
         self.env_change_prob = 0.2
         self.env_width = 30

@@ -26,14 +26,14 @@ class CartPoleBulletEnv():
           p.connect(p.DIRECT)
 
         # Simulator parameters
-        self.max_steps = 800
+        self.max_steps = 400
         self.obs_dim = 4
         self.act_dim = 1
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
-        #self.timeStep = 0.02
+        self.timeStep = 0.02
         p.setGravity(0, 0, -9.8)
-        #p.setTimeStep(self.timeStep)
+        p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
 
         self.reset()
@@ -64,8 +64,12 @@ class CartPoleBulletEnv():
         return self.state
 
 
+    def render(self):
+        pass
+
+
     def step(self, ctrl):
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 100)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 30)
         p.stepSimulation()
 
         self.step_ctr += 1
@@ -75,17 +79,21 @@ class CartPoleBulletEnv():
         x, x_dot, theta, theta_dot = obs
 
         angle_rew = 1 - np.abs(theta)
-        cart_pen = np.square(x) * 0.05
-        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.1) * (1 - abs(theta))
+        cart_pen = np.square(x) * 0.1
+        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
 
-        r =  angle_rew - cart_pen - vel_pen
+        r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.05
+        #r = (abs(self.theta_prev) - abs(theta)) * 20
         done = self.step_ctr > self.max_steps
+
+        self.theta_prev = theta
 
         return obs, r, done, None
 
 
     def reset(self):
         self.step_ctr = 0
+        self.theta_prev = 1
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
@@ -109,7 +117,7 @@ class CartPoleBulletEnv():
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
                 total_rew += r
-                time.sleep(0.0025)
+                time.sleep(0.01)
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 

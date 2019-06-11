@@ -79,14 +79,13 @@ def train(env, policy, params):
         # Calculate episode advantages
         batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
-
         update_ppo_high(policy, policy_optim, batch_states, batch_actions, batch_advantages,
                    params["ppo_update_iters"])
 
 
         print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
               format(i, params["iters"], None, None, episode_rew / params["batchsize"],
-                     1))  # T.exp(policy.log_std).detach().numpy())
+                     1))
 
         # Finally reset all batch lists
         episode_ctr = 0
@@ -139,13 +138,10 @@ def train(env, policy, params):
             batch_states.append(T.cat(episode_states))
             batch_actions.append(T.cat(episode_actions))
 
-        # Start update
-        switch_level = not switch_level
 
         batch_states = T.stack(batch_states)
         batch_actions = T.stack(batch_actions)
         batch_rewards = T.cat(batch_rewards)
-
 
         # Calculate episode advantages
         batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
@@ -166,10 +162,11 @@ def train(env, policy, params):
         batch_rewards = []
         batch_terminals = []
 
-        sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                            "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
-        T.save(policy, sdir)
-        print("Saved checkpoint at {} with params {}".format(sdir, params))
+        if i % 10 == 0 and i > 0:
+            sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
+            T.save(policy, sdir)
+            print("Saved checkpoint at {} with params {}".format(sdir, params))
 
 
 def update_ppo_low(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -254,8 +251,8 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 100000, "batchsize": 4, "gamma": 0.98, "lr": 0.001, "decay" : 0.0003, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
+    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.0003, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
               "comments" : "Test", "Env_list" : env_list,
               "ID": ID}
 
@@ -276,7 +273,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_MDT_pg.p')
+        expert = T.load('agents/Hexapod_RNN_PG_H_OM6_pg.p')
         env.test_recurrent(expert)
 
 

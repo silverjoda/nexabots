@@ -524,16 +524,16 @@ class Hexapod():
             h = None
             cr = 0
             for j in range(self.max_steps):
-                action, h = policy.sample_action((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
                 obs, r, done, od, = self.step(action[0].detach().numpy())
                 cr += r
                 rew += r
                 time.sleep(0.001)
                 self.render()
-                h_list.append(h[0][:,0,:].detach().numpy())
+                #h_list.append(h[0][:,0,:].detach().numpy())
             print("Total episode reward: {}".format(cr))
-            h_arr = np.stack(h_list)
-            h_episodes.append(h_arr)
+            #h_arr = np.stack(h_list)
+            #h_episodes.append(h_arr)
 
         print("Total average reward = {}".format(rew / N))
         exit()

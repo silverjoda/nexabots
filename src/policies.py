@@ -1602,7 +1602,7 @@ class RNN_PG_H(nn.Module):
         self.fc3 = nn.Linear(self.memory_dim, self.act_dim)
 
         # Smaller than 1 std so that exploration is not that wild
-        self.log_std_low = T.ones(1, self.memory_dim) * -2
+        self.log_std_low = T.ones(1, self.memory_dim) * -1
         self.log_std_high = T.zeros(1, self.act_dim)
 
 
@@ -1689,7 +1689,7 @@ class RNN_PG_H(nn.Module):
         else:
             a_2 = self.fc3(output)
 
-        return a_1, a_2, (h_1, h_2)
+        return a_1[0], a_2[0], (h_1, h_2)
 
 
     def sample_high(self, input):
@@ -1711,7 +1711,7 @@ class RNN_PG_H(nn.Module):
         else:
             a_2 = self.fc3(output)
 
-        a_2 = T.normal(a_2, T.exp(self.log_std_high))
+        a_2 = T.normal(a_2[0], T.exp(self.log_std_high))
 
         return a_2, (h_1, h_2)
 

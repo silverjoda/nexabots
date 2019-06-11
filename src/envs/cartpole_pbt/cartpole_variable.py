@@ -19,32 +19,33 @@ import socket
 
 
 class CartPoleBulletEnv():
-    def __init__(self, animate=False):
+    def __init__(self, animate=False, latent_input=False):
         if (animate):
           p.connect(p.GUI)
         else:
           p.connect(p.DIRECT)
 
+        self.latent_input = latent_input
+
         # Simulator parameters
         self.max_steps = 400
-        self.obs_dim = 4
+        self.obs_dim = 4 + int(self.latent_input)
         self.act_dim = 1
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
+        #self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
+
         self.timeStep = 0.02
         p.setGravity(0, 0, -9.8)
         p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
-
-        self.reset()
 
 
     def get_obs(self):
         x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
 
         # Clip velocities
-        x_dot = np.clip(x_dot / 3, -7, 7)
-        theta_dot = np.clip(theta_dot / 3, -7, 7)
+        x_dot = np.clip(x_dot / 10, -2, 2)
+        theta_dot = np.clip(theta_dot / 10, -2, 2)
 
         # Change theta range to [-pi, pi]
         if theta > 0:
@@ -96,6 +97,8 @@ class CartPoleBulletEnv():
         self.step_ctr = 0
         self.theta_prev = 1
 
+        self.cartpole = self.create_robot()
+
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
         #p.changeDynamics(self.cartpole, -1, linearDamping=0, angularDamping=0)
@@ -105,6 +108,25 @@ class CartPoleBulletEnv():
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
+
+
+    def create_robot(self):
+        self.pole_len = 0.3 + np.random.rand() * 2
+
+        filepath =  os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_gen.urdf")
+
+        with open(filepath, "r") as in_file:
+            buf = in_file.readlines()
+
+        with open(filepath, "w") as out_file:
+            for line in buf:
+                if line.startswith('    <hfield name="hill"'):
+                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs * (self.s_len / 200.)))
+                else:
+                    out_file.write(line)
+
+
+        return p.loadURDF(filepath)
 
 
     def test(self, policy):
@@ -144,23 +166,25 @@ class CartPoleBulletEnv():
 
     def demo(self):
         for i in range(100):
+            p.removeBody(0)
             self.reset()
             for j in range(120):
-                #self.step(np.random.rand(self.act_dim) * 2 - 1)
+                # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([-0.3]))
                 time.sleep(0.01)
             for j in range(120):
-                #self.step(np.random.rand(self.act_dim) * 2 - 1)
+                # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([0.3]))
                 time.sleep(0.005)
             for j in range(120):
-                #self.step(np.random.rand(self.act_dim) * 2 - 1)
+                # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([-0.3]))
                 time.sleep(0.01)
             for j in range(120):
-                #self.step(np.random.rand(self.act_dim) * 2 - 1)
+                # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([0.3]))
-                time.sleep(0.005)
+                time.sleep(0.01)
+
 
 if __name__ == "__main__":
     env = CartPoleBulletEnv(animate=True)

@@ -175,37 +175,11 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
 
-    # from src.envs.ctrl_slider.ctrl_slider import SliderEnv
-    # env = SliderEnv(mass_std=0, damping_std=0, animate=params["animate"])
+    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
+    env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
 
     print(params, env.__class__.__name__)
-
-    # Experts:  p: 180, h:187
-    # 4c4: p: 87 h: 155
-    # FP2: p: 115 h: 140
-
-    # pipe, 2AB: 190
-    # pipe-pipe, 2AB: 188
-
-    # pipe, 4C4: 90
-    # pipe-pipe, 4C4: 87
-
-    # pipe, FP2: 117
-    # pipe-pipe, FP2: 122
-
-    # = ------
-
-    # Experts: t: 149 h: 162
-    # IET: t: 124 h: 170
-
-
-    # Current experts
-    # holes: IZ1
-    # tiles: W0E
-    # pipe: GMV
 
 
     # Test

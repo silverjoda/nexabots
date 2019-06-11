@@ -19,33 +19,35 @@ import socket
 
 
 class CartPoleBulletEnv():
-    def __init__(self, animate=False, latent_input=False):
+    def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
         else:
           p.connect(p.DIRECT)
 
+        self.animate = animate
         self.latent_input = latent_input
+        self.action_input = action_input
 
         # Simulator parameters
         self.max_steps = 400
-        self.obs_dim = 4 + int(self.latent_input)
+        self.obs_dim = 4 + 2 * int(self.latent_input) + int(self.action_input)
         self.act_dim = 1
 
-        #self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
-
         self.timeStep = 0.02
-        p.setGravity(0, 0, -9.8)
-        p.setTimeStep(self.timeStep)
-        p.setRealTimeSimulation(0)
+
+        self.dist_var = 2
+        self.mass_var = 2
+
+        print(self.dist_var, self.mass_var)
 
 
     def get_obs(self):
         x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
 
         # Clip velocities
-        x_dot = np.clip(x_dot / 10, -2, 2)
-        theta_dot = np.clip(theta_dot / 10, -2, 2)
+        x_dot = np.clip(x_dot / 3, -7, 7)
+        theta_dot = np.clip(theta_dot / 3, -7, 7)
 
         # Change theta range to [-pi, pi]
         if theta > 0:
@@ -70,7 +72,6 @@ class CartPoleBulletEnv():
 
 
     def step(self, ctrl):
-        ctrl = np.clip(ctrl, -1, 1)
         p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 20)
         p.stepSimulation()
 
@@ -85,17 +86,32 @@ class CartPoleBulletEnv():
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
 
         r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.03
-        #r = (abs(self.theta_prev) - abs(theta)) * 20
         done = self.step_ctr > self.max_steps
 
         self.theta_prev = theta
 
-        return obs, r, done, None
+        if self.latent_input:
+            obs = np.concatenate((obs, self.mass))
+        if self.action_input:
+            obs = np.concatenate((obs, ctrl))
+
+        return obs, r, done, (self.dist, self.mass)
 
 
     def reset(self):
         self.step_ctr = 0
         self.theta_prev = 1
+
+        p.disconnect()
+
+        if (self.animate):
+          p.connect(p.GUI)
+        else:
+          p.connect(p.DIRECT)
+
+        p.setGravity(0, 0, -9.8)
+        p.setTimeStep(self.timeStep)
+        p.setRealTimeSimulation(0)
 
         self.cartpole = self.create_robot()
 
@@ -111,22 +127,92 @@ class CartPoleBulletEnv():
 
 
     def create_robot(self):
-        self.pole_len = 0.3 + np.random.rand() * 2
+        self.dist = 0.5 + np.random.rand() * self.dist_var
+        self.mass = 0.3 + np.random.rand() * self.mass_var
 
-        filepath =  os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_gen.urdf")
+        filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_gen.urdf")
 
-        with open(filepath, "r") as in_file:
-            buf = in_file.readlines()
+        content = """<?xml version="1.0"?>
+<robot name="physics">
+
+  <link name="slideBar">
+    <visual>
+      <geometry>
+        <box size="30 0.05 0.05"/>
+      </geometry>
+      <origin xyz="0 0 0"/>
+      <material name="green">
+        <color rgba="0 0.8 .8 1"/>
+      </material>
+    </visual>
+    <inertial>
+      <mass value="0"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
+  <link name="cart">
+    <visual>
+      <geometry>
+        <box size="0.5 0.5 0.2"/>
+      </geometry>
+      <origin xyz="0 0 0"/>
+      <material name="blue">
+        <color rgba="0 0 .8 1"/>
+      </material>
+    </visual>
+
+    <inertial>
+      <mass value="1"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
+  <joint name="slider_to_cart" type="prismatic">
+    <axis xyz="1 0 0"/>
+    <origin xyz="0.0 0.0 0.0"/>
+    <parent link="slideBar"/>
+    <child link="cart"/>
+    <limit effort="1000.0" lower="-2" upper="2" velocity="10"/>
+    <dynamics damping="0.0" friction="0.0"/>
+  </joint>
+
+
+  <link name="pole">
+    <visual>
+      <geometry>
+        <sphere radius="0.1"/>
+      </geometry>
+      <origin xyz="0 0 {}"/>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
+      </material>
+    </visual>
+
+    <inertial>
+      <origin xyz="0 0 {}"/>
+      <mass value="{}"/>
+      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
+    </inertial>
+  </link>
+
+  <joint name="cart_to_pole" type="continuous">
+    <axis xyz="0 1 0"/>
+    <origin xyz="0.0 0.0 0"/>
+    <parent link="cart"/>
+    <child link="pole"/>
+    <limit effort="1000.0" lower="-2" upper="2" velocity="30"/>
+    <joint_properties damping="0.0" friction="0.0"/>
+  </joint>
+
+
+</robot>""".format(self.dist, self.dist, self.mass)
 
         with open(filepath, "w") as out_file:
-            for line in buf:
-                if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs * (self.s_len / 200.)))
-                else:
-                    out_file.write(line)
+            out_file.write(content)
+        id = p.loadURDF(filepath)
 
-
-        return p.loadURDF(filepath)
+        return id
 
 
     def test(self, policy):
@@ -166,7 +252,6 @@ class CartPoleBulletEnv():
 
     def demo(self):
         for i in range(100):
-            p.removeBody(0)
             self.reset()
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)

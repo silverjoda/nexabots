@@ -69,7 +69,6 @@ class CartPoleBulletEnv():
 
 
     def step(self, ctrl):
-        ctrl = np.clip(ctrl, -1, 1)
         p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 20)
         p.stepSimulation()
 

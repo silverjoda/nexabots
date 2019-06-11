@@ -270,8 +270,8 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Cheese pizza", "ID" : ID}
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "note" : "Variable", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -283,13 +283,13 @@ if __name__=="__main__":
     #from src.envs.ctrl_slider.ctrl_slider import SliderEnv
     #env = SliderEnv(mass_std=0.3, damping_std=0, animate=params["animate"])
 
-    from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=params["animate"])
+    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
+    env = CartPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 16, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 32, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:

@@ -166,9 +166,9 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 100000, "batchsize": 24, "gamma": 0.95, "lr": 0.001, "decay" : 0.0003, "ppo": True,
+    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.0003, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "Mass std: 0", "Env_list" : env_list,
+              "comments" : "Cheese pizza", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -185,7 +185,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_LN_PG(env, hid_dim=60, memory_dim=20, n_temp=2, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_LN_PG(env, hid_dim=14, memory_dim=14, n_temp=3, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

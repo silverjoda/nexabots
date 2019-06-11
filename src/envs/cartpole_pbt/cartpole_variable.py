@@ -91,7 +91,7 @@ class CartPoleBulletEnv():
         self.theta_prev = theta
 
         if self.latent_input:
-            obs = np.concatenate((obs, self.mass))
+            obs = np.concatenate((obs, [self.dist, self.mass]))
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
 
@@ -210,7 +210,13 @@ class CartPoleBulletEnv():
 
         with open(filepath, "w") as out_file:
             out_file.write(content)
-        id = p.loadURDF(filepath)
+
+        while True:
+            try:
+                id = p.loadURDF(filepath)
+                break
+            except Exception:
+                pass
 
         return id
 

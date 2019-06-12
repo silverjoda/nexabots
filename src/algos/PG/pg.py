@@ -270,21 +270,18 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
-              "note" : "Variable", "ID" : ID}
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "note" : "Final test static, cart 0.05", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    # from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    # env = hex_env.Hexapod(env_list=env_list, max_n_envs=3)
-    ##
-    #from src.envs.ctrl_slider.ctrl_slider import SliderEnv
-    #env = SliderEnv(mass_std=0.3, damping_std=0, animate=params["animate"])
+    # from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
+    # env = CartPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
 
-    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
+    from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
+    env = CartPoleBulletEnv(animate=params["animate"])
 
     # Test
     if params["train"]:
@@ -313,5 +310,5 @@ if __name__=="__main__":
         # exit()
 
         # PSH <- criteria
-        policy = T.load('agents/CartPoleBulletEnv_NN_PG_AJ6_pg.p')
+        policy = T.load('agents/CartPoleBulletEnv_NN_PG_P7T_pg.p')
         env.test(policy)

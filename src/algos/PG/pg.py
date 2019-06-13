@@ -271,17 +271,17 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Final test static, cart 0.05", "ID" : ID}
+              "note" : "Cartpole variable mass 3", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    # from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    # env = CartPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
+    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
+    env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
-    from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=params["animate"])
+    #from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
+    #env = CartPoleBulletEnv(animate=params["animate"])
 
     # Test
     if params["train"]:
@@ -310,5 +310,5 @@ if __name__=="__main__":
         # exit()
 
         # PSH <- criteria
-        policy = T.load('agents/CartPoleBulletEnv_NN_PG_P7T_pg.p')
+        policy = T.load('agents/CartPoleBulletEnv_NN_PG_T6R_pg.p')
         env.test(policy)

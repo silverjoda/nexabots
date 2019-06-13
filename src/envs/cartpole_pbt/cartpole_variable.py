@@ -25,6 +25,8 @@ class CartPoleBulletEnv():
         else:
           p.connect(p.DIRECT)
 
+
+
         self.animate = animate
         self.latent_input = latent_input
         self.action_input = action_input
@@ -36,8 +38,15 @@ class CartPoleBulletEnv():
 
         self.timeStep = 0.02
 
+        p.setGravity(0, 0, -9.8)
+        p.setTimeStep(self.timeStep)
+        p.setRealTimeSimulation(0)
+
         self.dist_var = 2
-        self.mass_var = 2
+        self.mass_var = 3
+
+        self.urdf_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_gen.urdf")
+        self.cartpole = p.loadURDF(self.urdf_path)
 
         print(self.dist_var, self.mass_var)
 
@@ -84,11 +93,9 @@ class CartPoleBulletEnv():
         angle_rew = 0.5 - np.abs(theta)
         cart_pen = np.square(x) * 0.05
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
-
         r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.03
+        
         done = self.step_ctr > self.max_steps
-
-        self.theta_prev = theta
 
         if self.latent_input:
             obs = np.concatenate((obs, [self.dist, self.mass]))
@@ -102,123 +109,17 @@ class CartPoleBulletEnv():
         self.step_ctr = 0
         self.theta_prev = 1
 
-        p.disconnect()
-
-        if (self.animate):
-          p.connect(p.GUI)
-        else:
-          p.connect(p.DIRECT)
-
-        p.setGravity(0, 0, -9.8)
-        p.setTimeStep(self.timeStep)
-        p.setRealTimeSimulation(0)
-
-        self.cartpole = self.create_robot()
+        self.dist = 0.5 + np.random.rand() * self.dist_var
+        self.mass = 0.3 + np.random.rand() * self.mass_var
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
-        #p.changeDynamics(self.cartpole, -1, linearDamping=0, angularDamping=0)
-        #p.changeDynamics(self.cartpole, 0, linearDamping=0, angularDamping=0)
-        #p.changeDynamics(self.cartpole, 1, linearDamping=0, angularDamping=0)
+        p.changeDynamics(self.cartpole, 1, mass=self.mass)
+        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass / (0.3 + self.mass_var) , 1 - self.mass / (0.3 + self.mass_var), 0 , 1])
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
-
-
-    def create_robot(self):
-        self.dist = 0.5 + np.random.rand() * self.dist_var
-        self.mass = 0.3 + np.random.rand() * self.mass_var
-
-        filepath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_gen.urdf")
-
-        content = """<?xml version="1.0"?>
-<robot name="physics">
-
-  <link name="slideBar">
-    <visual>
-      <geometry>
-        <box size="30 0.05 0.05"/>
-      </geometry>
-      <origin xyz="0 0 0"/>
-      <material name="green">
-        <color rgba="0 0.8 .8 1"/>
-      </material>
-    </visual>
-    <inertial>
-      <mass value="0"/>
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
-    </inertial>
-  </link>
-
-  <link name="cart">
-    <visual>
-      <geometry>
-        <box size="0.5 0.5 0.2"/>
-      </geometry>
-      <origin xyz="0 0 0"/>
-      <material name="blue">
-        <color rgba="0 0 .8 1"/>
-      </material>
-    </visual>
-
-    <inertial>
-      <mass value="1"/>
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
-    </inertial>
-  </link>
-
-  <joint name="slider_to_cart" type="prismatic">
-    <axis xyz="1 0 0"/>
-    <origin xyz="0.0 0.0 0.0"/>
-    <parent link="slideBar"/>
-    <child link="cart"/>
-    <limit effort="1000.0" lower="-2" upper="2" velocity="10"/>
-    <dynamics damping="0.0" friction="0.0"/>
-  </joint>
-
-
-  <link name="pole">
-    <visual>
-      <geometry>
-        <sphere radius="0.1"/>
-      </geometry>
-      <origin xyz="0 0 {}"/>
-      <material name="red">
-        <color rgba="1 0 0 1"/>
-      </material>
-    </visual>
-
-    <inertial>
-      <origin xyz="0 0 {}"/>
-      <mass value="{}"/>
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
-    </inertial>
-  </link>
-
-  <joint name="cart_to_pole" type="continuous">
-    <axis xyz="0 1 0"/>
-    <origin xyz="0.0 0.0 0"/>
-    <parent link="cart"/>
-    <child link="pole"/>
-    <limit effort="1000.0" lower="-2" upper="2" velocity="30"/>
-    <joint_properties damping="0.0" friction="0.0"/>
-  </joint>
-
-
-</robot>""".format(self.dist, self.dist, self.mass)
-
-        with open(filepath, "w") as out_file:
-            out_file.write(content)
-
-        while True:
-            try:
-                id = p.loadURDF(filepath)
-                break
-            except Exception:
-                pass
-
-        return id
 
 
     def test(self, policy):

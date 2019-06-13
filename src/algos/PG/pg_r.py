@@ -168,7 +168,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.0003, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "Cheese pizza", "Env_list" : env_list,
+              "comments" : "Cartpole variable mass 3", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":

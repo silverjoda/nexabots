@@ -81,12 +81,9 @@ class CartPoleBulletEnv():
         angle_rew = 0.5 - np.abs(theta)
         cart_pen = np.square(x) * 0.05
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
-
         r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.03
-        #r = (abs(self.theta_prev) - abs(theta)) * 20
-        done = self.step_ctr > self.max_steps
 
-        self.theta_prev = theta
+        done = self.step_ctr > self.max_steps
 
         return obs, r, done, None
 

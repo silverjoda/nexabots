@@ -88,11 +88,8 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
-    #env = hex_env.Hexapod(env_list=env_list, max_n_envs=1)
-
-    from src.envs.ctrl_slider.ctrl_slider import SliderEnv
-    env = SliderEnv(mass_std=0.3, damping_std=0, animate=params["animate"])
+    from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
+    env = CartPoleBulletEnv(animate=params["animate"])
 
     # Test
     if params["train"]:

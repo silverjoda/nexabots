@@ -168,19 +168,20 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.0003, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "Cartpole variable mass 3", "Env_list" : env_list,
+              "comments" : "Cartpole static rnn test", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-
     from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
     env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
 
-    print(params, env.__class__.__name__)
+    #from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
+    #env = CartPoleBulletEnv(animate=params["animate"])
 
+    print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:

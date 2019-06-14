@@ -26,7 +26,6 @@ class CartPoleBulletEnv():
           p.connect(p.DIRECT)
 
 
-
         self.animate = animate
         self.latent_input = latent_input
         self.action_input = action_input
@@ -43,7 +42,8 @@ class CartPoleBulletEnv():
         p.setRealTimeSimulation(0)
 
         self.dist_var = 2
-        self.mass_var = 3
+        self.mass_var = 2
+        self.mass_min = 0.3
 
         self.urdf_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_gen.urdf")
         self.cartpole = p.loadURDF(self.urdf_path)
@@ -110,12 +110,12 @@ class CartPoleBulletEnv():
         self.theta_prev = 1
 
         self.dist = 0.5 + np.random.rand() * self.dist_var
-        self.mass = 0.3 + np.random.rand() * self.mass_var
+        self.mass = self.mass_min + np.random.rand() * self.mass_var
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
         p.changeDynamics(self.cartpole, 1, mass=self.mass)
-        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass / (0.3 + self.mass_var) , 1 - self.mass / (0.3 + self.mass_var), 0 , 1])
+        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass / (self.mass_min + self.mass_var) , 1 - self.mass / (self.mass_min + self.mass_var), 0 , 1])
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
@@ -140,19 +140,16 @@ class CartPoleBulletEnv():
 
     def test_recurrent(self, policy):
         total_rew = 0
-        self.render_prob = 1.0
         for i in range(100):
             obs = self.reset()
             h = None
             cr = 0
             for j in range(self.max_steps):
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                h = h_
-                obs, r, done, od, = self.step(action[0].detach().numpy())
+                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                obs, r, done, od, = self.step(action[0][0].detach().numpy())
                 cr += r
                 total_rew += r
-                time.sleep(0.001)
-                self.render()
+                time.sleep(0.005)
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 

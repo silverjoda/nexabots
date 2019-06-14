@@ -94,7 +94,7 @@ class CartPoleBulletEnv():
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
-        #p.changeDynamics(self.cartpole, -1, linearDamping=0, angularDamping=0)
+
         #p.changeDynamics(self.cartpole, 0, linearDamping=0, angularDamping=0)
         #p.changeDynamics(self.cartpole, 1, linearDamping=0, angularDamping=0)
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
@@ -118,22 +118,18 @@ class CartPoleBulletEnv():
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 
-
     def test_recurrent(self, policy):
         total_rew = 0
-        self.render_prob = 1.0
         for i in range(100):
             obs = self.reset()
             h = None
             cr = 0
             for j in range(self.max_steps):
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                h = h_
-                obs, r, done, od, = self.step(action[0].detach().numpy())
+                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                obs, r, done, od, = self.step(action[0][0].detach().numpy())
                 cr += r
                 total_rew += r
-                time.sleep(0.001)
-                self.render()
+                time.sleep(0.005)
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 

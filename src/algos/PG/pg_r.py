@@ -73,7 +73,8 @@ def train(env, policy, params):
             batch_actions = T.stack(batch_actions)
             batch_rewards = T.cat(batch_rewards)
 
-            #print(T.pow(batch_actions, 2).mean())
+            # Scale rewards
+            batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
@@ -167,8 +168,8 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.0003, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "Cartpole static rnn test", "Env_list" : env_list,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "comments" : "Cartpole dynamic mass 2, scaled R", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -192,13 +193,8 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/Hexapod_RNN_V3_LN_PG_MDT_pg.p')
+        expert = T.load('agents/CartPoleBulletEnv_RNN_V3_LN_PG_7NK_pg.p')
         env.test_recurrent(expert)
-
-        p_flat = T.load('agents/Hexapod_RNN_V3_LN_PG_XWH_pg.p')  # 2BV
-        p_tiles = T.load('agents/Hexapod_RNN_V3_LN_PG_Q20_pg.p')  # Q44, 0X2, VS8
-        p_holes = T.load('agents/Hexapod_RNN_V3_LN_PG_AMR_pg.p')  # J65
-        p_pipe = T.load('agents/Hexapod_RNN_V3_LN_PG_VXS_pg.p')  # 4IO
 
         #env.test_record(expert_rails, "C")
 

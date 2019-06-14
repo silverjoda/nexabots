@@ -83,7 +83,8 @@ def train(env, policy, params):
             batch_actions = T.cat(batch_actions)
             batch_rewards = T.cat(batch_rewards)
 
-            #print(T.pow(batch_actions,2).mean())
+            # Scale rewards
+            batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
 
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
@@ -181,7 +182,6 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
             policy.soft_clip_grads(1.)
             policy_optim.step()
 
-    #policy.print_info()
 
 
 def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
@@ -271,22 +271,22 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Cartpole variable mass 3", "ID" : ID}
+              "note" : "Cartpole dynamic mass 2 scaled R", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+    #from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
+    #env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
-    #from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
-    #env = CartPoleBulletEnv(animate=params["animate"])
+    from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
+    env = CartPoleBulletEnv(animate=params["animate"])
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 32, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 12, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
@@ -310,5 +310,5 @@ if __name__=="__main__":
         # exit()
 
         # PSH <- criteria
-        policy = T.load('agents/CartPoleBulletEnv_NN_PG_T6R_pg.p')
+        policy = T.load('agents/CartPoleBulletEnv_NN_PG_WMV_pg.p')
         env.test(policy)

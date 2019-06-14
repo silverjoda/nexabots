@@ -36,9 +36,9 @@ def f_wrapper(env, policy, animate):
 
             reward += rew
 
-        wpen = np.square(w).mean()
+        #wpen = np.square(w).mean()
 
-        return wpen
+        return -reward
     return f
 
 
@@ -48,7 +48,7 @@ def train(params):
     obs_dim, act_dim = env.obs_dim, env.act_dim
 
     w = parameters_to_vector(policy.parameters()).detach().numpy()
-    es = cma.CMAEvolutionStrategy(w, 0.5)
+    es = cma.CMAEvolutionStrategy(w, 0.7)
     f = f_wrapper(env, policy, animate)
 
     weight_decay = 0.01
@@ -63,7 +63,7 @@ def train(params):
             it += 1
             if it > iters:
                 break
-            if it % 200 == 0:
+            if it % 30 == 0:
                 sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                     "agents/{}_{}_{}_es.p".format(env.__class__.__name__, policy.__class__.__name__,
                                                                   ID))
@@ -82,30 +82,25 @@ def train(params):
 
     return es.result.fbest
 
+#from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
+#env = CartPoleBulletEnv(animate=True)
 
-from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-env = hexapod_pd.Hexapod()
+from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as env
+env = env.Hexapod()
 
-# Centipede new
-#from src.envs.centipede_mjc.centipede14_mjc_new import CentipedeMjc14 as centipede
-#env = centipede()
-
-#from src.envs.memory_env import memory_env
-#env = memory_env.MemoryEnv()
-
-policy = policies.NN(env)
+policy = policies.NN_PG(env, hid_dim=32)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = True
+TRAIN = False
 
 if TRAIN:
     t1 = time.clock()
-    train((env, policy, 300, True, ID))
+    train((env, policy, 1000, True, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/MemoryEnv_NN_D_RE9_es.p")
-    #print(policy.wstats())
+    #policy = T.load("agents/CartPoleBulletEnv_NN_PG_GJ1_es.p")
+    policy = T.load("agents/Hexapod_NN_PG_458_es.p")
     env.test(policy)
 
 print("Done.")

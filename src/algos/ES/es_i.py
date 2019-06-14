@@ -42,8 +42,9 @@ def f_wrapper(env, policy, animate):
 
 
 def train1(env, policy, params):
-    w = parameters_to_vector(policy.parameters()).detach()
     f = f_wrapper(env, policy, params["animate"])
+
+    w = parameters_to_vector(policy.parameters()).detach()
     n = len(w)
     sig = T.ones(n)
 
@@ -51,24 +52,26 @@ def train1(env, policy, params):
 
         # Generate noise population
         eps = sig * T.randn(params["popsize"], n)
-        population = T.split(w.repeat(params["popsize"], 1) + eps, n, dim=0)
+        population = T.split(w.repeat(params["popsize"], 1) + eps, 1, dim=0)
 
         # Evaluate population
-        R = [f(p) for p in population]
+        R = [f(p[0]) for p in population]
 
         # Update gradients
-        grads = (1 / (params["popsize"] * sig)) * T.sum(eps * R)
+        grads = (1 / (params["popsize"] * sig)) * T.sum(eps * T.tensor(R).unsqueeze(1), 0)
 
         # Apply update rule
         w = w + params["learning_rate"] * grads
 
-        if i % 200 == 0:
+        if i % 200 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "agents/{}_{}_{}_es.p".format(env.__class__.__name__, policy.__class__.__name__,
                                                               ID))
             vector_to_parameters(w, policy.parameters())
             T.save(policy, sdir)
             print("Saved checkpoint, {}".format(sdir))
+
+        print("Iter {}/{}, mean R: {}".format(i, params["iters"], sum(R) / params["popsize"]))
 
     return w
 
@@ -81,7 +84,7 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 10000, "popsize": 24, "learning_rate" : 1, "weight_decay" : 0.0003, "animate": True, "train" : True, "env_list" : env_list,
+    params = {"iters": 10000, "popsize": 24, "learning_rate" : 0.0001, "weight_decay" : 0.0003, "animate": False, "train" : True, "env_list" : env_list,
               "note" : "Test", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -94,7 +97,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 32, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 12, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
 
         t1 = time.clock()

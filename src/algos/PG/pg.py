@@ -271,7 +271,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 100000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
               "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
-              "note" : "Cartpole dynamic mass 2 scaled R", "ID" : ID}
+              "note" : "Cartpole dynamic mass 2 dynamic target", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False

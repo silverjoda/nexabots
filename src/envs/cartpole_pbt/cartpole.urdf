@@ -44,7 +44,7 @@
   </joint>
 
 
-  <link name="pole">
+  <link name="sphere">
     <visual>
       <geometry>
         <sphere radius="0.1"/>
@@ -69,12 +69,11 @@
     </collision>
   </link>
 
-
-  <joint name="cart_to_pole" type="continuous">
+  <joint name="swing" type="continuous">
     <axis xyz="0 1 0"/>
     <origin xyz="0.0 0.0 0"/>
     <parent link="cart"/>
-    <child link="pole"/>
+    <child link="sphere"/>
     <limit effort="1000.0" lower="-2" upper="2" velocity="10"/>
     <joint_properties damping="0.0" friction="0.0"/>
   </joint>

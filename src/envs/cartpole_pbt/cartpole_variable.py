@@ -32,7 +32,7 @@ class CartPoleBulletEnv():
 
         # Simulator parameters
         self.max_steps = 400
-        self.obs_dim = 4 + 2 * int(self.latent_input) + int(self.action_input)
+        self.obs_dim = 4 + 2 * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
 
         self.timeStep = 0.02
@@ -41,12 +41,15 @@ class CartPoleBulletEnv():
         p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
 
+        self.target_debug_line = None
+        self.target_var = 1
+        self.target_change_prob = 0.005
         self.dist_var = 2
-        self.mass_var = 2
-        self.mass_min = 0.3
+        self.mass_var = 2.0
+        self.mass_min = 0.1
 
-        self.urdf_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_gen.urdf")
-        self.cartpole = p.loadURDF(self.urdf_path)
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
+        self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
         print(self.dist_var, self.mass_var)
 
@@ -91,16 +94,23 @@ class CartPoleBulletEnv():
         x, x_dot, theta, theta_dot = obs
 
         angle_rew = 0.5 - np.abs(theta)
-        cart_pen = np.square(x) * 0.05
+        cart_pen = np.square(x - self.target) * 0.05
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
         r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.03
         
         done = self.step_ctr > self.max_steps
 
+        # Change target
+        if np.random.rand() < self.target_change_prob:
+            self.target = np.random.rand() * 2 * self.target_var - self.target_var
+            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
+
         if self.latent_input:
             obs = np.concatenate((obs, [self.dist, self.mass]))
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
+
+        obs = np.concatenate((obs, [self.target]))
 
         return obs, r, done, (self.dist, self.mass)
 
@@ -108,6 +118,8 @@ class CartPoleBulletEnv():
     def reset(self):
         self.step_ctr = 0
         self.theta_prev = 1
+        self.target = np.random.rand() * 2 * self.target_var - self.target_var
+        p.resetBasePositionAndOrientation(self.target_vis, [self.target,0,1], [0,0,0,1])
 
         self.dist = 0.5 + np.random.rand() * self.dist_var
         self.mass = self.mass_min + np.random.rand() * self.mass_var
@@ -115,12 +127,21 @@ class CartPoleBulletEnv():
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
         p.changeDynamics(self.cartpole, 1, mass=self.mass)
-        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass / (self.mass_min + self.mass_var) , 1 - self.mass / (self.mass_min + self.mass_var), 0 , 1])
+        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass / (self.mass_min + self.mass_var), 1 - self.mass / (self.mass_min + self.mass_var), 0, 1])
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 
+
+    def render_line(self):
+        if not self.animate:
+            return
+        p.removeAllUserDebugItems()
+        self.target_debug_line = p.addUserDebugLine([self.target, 0, 0],
+                                                    [self.target, 0, 0.5],
+                                                    lineWidth=6,
+                                                    lineColorRGB=[1, 0, 0])
 
     def test(self, policy):
         self.render_prob = 1.0
@@ -159,11 +180,11 @@ class CartPoleBulletEnv():
             self.reset()
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
-                self.step(np.array([-0.3]))
+                self.step(np.array([-1]))
                 time.sleep(0.01)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
-                self.step(np.array([0.3]))
+                self.step(np.array([1]))
                 time.sleep(0.005)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)

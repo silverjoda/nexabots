@@ -17,6 +17,10 @@ import src.my_utils as my_utils
 import time
 import socket
 
+if socket.gethostname() != "goedel":
+    import gym
+    from gym import spaces
+    from gym.utils import seeding
 
 class CartPoleBulletEnv():
     def __init__(self, animate=False, latent_input=False, action_input=False):
@@ -24,7 +28,6 @@ class CartPoleBulletEnv():
           p.connect(p.GUI)
         else:
           p.connect(p.DIRECT)
-
 
         self.animate = animate
         self.latent_input = latent_input
@@ -45,11 +48,15 @@ class CartPoleBulletEnv():
         self.target_var = 1
         self.target_change_prob = 0.005
         self.dist_var = 2
-        self.mass_var = 2.0
+        self.mass_var = 3.0
         self.mass_min = 0.1
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
+
+        if socket.gethostname() != "goedel":
+            self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+            self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
         print(self.dist_var, self.mass_var)
 
@@ -79,7 +86,7 @@ class CartPoleBulletEnv():
         return self.state
 
 
-    def render(self):
+    def render(self, close=False):
         pass
 
 
@@ -94,7 +101,7 @@ class CartPoleBulletEnv():
         x, x_dot, theta, theta_dot = obs
 
         angle_rew = 0.5 - np.abs(theta)
-        cart_pen = np.square(x - self.target) * 0.05
+        cart_pen = np.square(x - self.target) * 0.15
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
         r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.03
         
@@ -170,7 +177,7 @@ class CartPoleBulletEnv():
                 obs, r, done, od, = self.step(action[0][0].detach().numpy())
                 cr += r
                 total_rew += r
-                time.sleep(0.005)
+                time.sleep(0.01)
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 

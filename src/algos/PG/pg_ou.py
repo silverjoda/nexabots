@@ -30,6 +30,24 @@ class Valuefun(nn.Module):
         return x
 
 
+class OrnsteinUhlenbeckActionNoise:
+    def __init__(self, action_dim, mu=0, theta=0.15, sigma=0.2):
+        self.action_dim = action_dim
+        self.mu = mu
+        self.theta = theta
+        self.sigma = sigma
+        self.X = np.ones(self.action_dim) * self.mu
+
+    def reset(self):
+        self.X = np.ones(self.action_dim) * self.mu
+
+    def sample(self):
+        dx = self.theta * (self.mu - self.X)
+        dx = dx + self.sigma * np.random.randn(len(self.X))
+        self.X = self.X + dx
+        return self.X
+
+
 def train(env, policy, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"])
@@ -43,6 +61,8 @@ def train(env, policy, params):
     batch_ctr = 0
     batch_rew = 0
 
+    ou = OrnsteinUhlenbeckActionNoise(env.act_dim, mu=0, theta=0.1, sigma=0.2)
+
     for i in range(params["iters"]):
         s_0 = env.reset()
         done = False
@@ -51,7 +71,7 @@ def train(env, policy, params):
 
         while not done:
             # Sample action from policy
-            action = policy.sample_action(my_utils.to_tensor(s_0, True)).detach()
+            action = policy(my_utils.to_tensor(s_0, True)).detach() + T.tensor(np.array(ou.sample(), dtype=np.float32)).unsqueeze(0)
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
@@ -264,24 +284,24 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes", "tiles", "pipe"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["holes"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "CPD, harder cart pen, latent input", "ID" : ID}
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "note" : "CPD, OU", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
     from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
+    env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
-    #from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
-    #env = CartPoleBulletEnv(animate=params["animate"])
+    #from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod
+    #env = Hexapod(env_list=env_list, max_n_envs=1)
 
     # Test
     if params["train"]:

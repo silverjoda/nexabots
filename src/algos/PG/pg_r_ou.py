@@ -12,6 +12,25 @@ import random
 import string
 import socket
 
+
+class OrnsteinUhlenbeckActionNoise:
+    def __init__(self, action_dim, mu=0, theta=0.15, sigma=0.2):
+        self.action_dim = action_dim
+        self.mu = mu
+        self.theta = theta
+        self.sigma = sigma
+        self.X = np.ones(self.action_dim) * self.mu
+
+    def reset(self):
+        self.X = np.ones(self.action_dim) * self.mu
+
+    def sample(self):
+        dx = self.theta * (self.mu - self.X)
+        dx = dx + self.sigma * np.random.randn(len(self.X))
+        self.X = self.X + dx
+        return self.X
+
+
 def train(env, policy, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
@@ -23,6 +42,8 @@ def train(env, policy, params):
 
     episode_ctr = 0
     episode_rew = 0
+
+    ou = OrnsteinUhlenbeckActionNoise(env.act_dim, mu=0, theta=0.1, sigma=0.2)
 
     for i in range(params["iters"]):
         s_0 = env.reset()
@@ -37,9 +58,8 @@ def train(env, policy, params):
         while not done:
             with T.no_grad():
                 # Sample action from policy
-                action, h_1 = policy.sample_action((my_utils.to_tensor(s_0, True).unsqueeze(0), h_0))
-
-            #print(action.squeeze(0).numpy())
+                action, h_1 = policy((my_utils.to_tensor(s_0, True).unsqueeze(0), h_0))
+                action = action[0] + T.tensor(np.array(ou.sample(), dtype=np.float32)).unsqueeze(0)
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
@@ -167,33 +187,33 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 100000, "batchsize": 20, "gamma": 0.98, "lr": 0.001, "decay" : 0.0003, "ppo": True,
+    params = {"iters": 300000, "batchsize": 20, "gamma": 0.99, "lr": 0.001, "decay" : 0.0003, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
-              "comments" : "Cartpole dynamic mass 2 dynamic target", "Env_list" : env_list,
+              "comments" : "Hex, 3 envs, OU", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
+    #from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
+    #env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
 
-    #from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
-    #env = CartPoleBulletEnv(animate=params["animate"])
+    from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod
+    env = Hexapod(env_list=env_list, max_n_envs=3)
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_V3_LN_PG(env, hid_dim=14, memory_dim=14, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_LN_PG(env, hid_dim=64, memory_dim=32, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/CartPoleBulletEnv_RNN_V3_LN_PG_7NK_pg.p')
+        expert = T.load('agents/CartPoleBulletEnv_RNN_V3_LN_PG_5YD_pg.p')
         env.test_recurrent(expert)
 
         #env.test_record(expert_rails, "C")

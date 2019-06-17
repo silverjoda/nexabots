@@ -8,11 +8,11 @@ from src.envs.hexapod_terrain_env.hf_gen import ManualGen, EvoGen, HMGen
 import random
 import string
 
-# import gym
-# from gym import spaces
-# from gym.utils import seeding
+import gym
+from gym import spaces
+from gym.utils import seeding
 
-class Hexapod:
+class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/hexapod_trossen_flat.xml")
     def __init__(self, animate=False):
 
@@ -34,6 +34,9 @@ class Hexapod:
 
         self.model.opt.timestep = 0.02
 
+        # Environent inner parameters
+        self.viewer = None
+
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
@@ -41,11 +44,9 @@ class Hexapod:
         self.obs_dim = 30 + self.mem_dim
         self.act_dim = self.sim.data.actuator_length.shape[0] + self.mem_dim
 
-        #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
-        #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
+        self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
+        self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
-        # Environent inner parameters
-        self.viewer = None
 
         # Reset env variables
         self.step_ctr = 0
@@ -112,7 +113,7 @@ class Hexapod:
         self.sim.forward()
 
 
-    def render(self):
+    def render(self, close=False):
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
 

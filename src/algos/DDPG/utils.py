@@ -64,7 +64,7 @@ class OrnsteinUhlenbeckActionNoise:
 
 # use this to plot Ornstein Uhlenbeck random motion
 if __name__ == '__main__':
-    ou = OrnsteinUhlenbeckActionNoise(1)
+    ou = OrnsteinUhlenbeckActionNoise(1, mu=0, theta=0.1, sigma=0.2)
     states = []
     for i in range(1000):
         states.append(ou.sample())

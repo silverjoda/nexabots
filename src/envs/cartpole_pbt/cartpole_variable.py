@@ -35,7 +35,7 @@ class CartPoleBulletEnv():
 
         # Simulator parameters
         self.max_steps = 400
-        self.obs_dim = 4 + 2 * int(self.latent_input) + int(self.action_input) + 1
+        self.obs_dim = 4 + 1 * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
 
         self.timeStep = 0.02
@@ -48,7 +48,7 @@ class CartPoleBulletEnv():
         self.target_var = 1
         self.target_change_prob = 0.005
         self.dist_var = 2
-        self.mass_var = 3.0
+        self.mass_var = 2.0
         self.mass_min = 0.1
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
@@ -113,13 +113,13 @@ class CartPoleBulletEnv():
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
         if self.latent_input:
-            obs = np.concatenate((obs, [self.dist, self.mass]))
+            obs = np.concatenate((obs, [self.mass]))
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
 
         obs = np.concatenate((obs, [self.target]))
 
-        return obs, r, done, (self.dist, self.mass)
+        return obs, r, done, (self.mass)
 
 
     def reset(self):

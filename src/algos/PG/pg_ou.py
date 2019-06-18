@@ -290,7 +290,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 300000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "CPD, OU", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -330,5 +330,5 @@ if __name__=="__main__":
         # exit()
 
         # PSH <- criteria
-        policy = T.load('agents/CartPoleBulletEnv_NN_PG_GBL_pg.p')
+        policy = T.load('agents/CartPoleBulletEnv_NN_PG_30A_pg.p')
         env.test(policy)

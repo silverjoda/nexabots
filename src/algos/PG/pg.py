@@ -269,46 +269,26 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 300000, "batchsize": 24, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0003, "ppo": True,
+    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "CPD, harder cart pen, latent input", "ID" : ID}
+              "note" : "CDP, m=2", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
     from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
+    env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
-    #from src.envs.cartpole_pbt.cartpole import CartPoleBulletEnv
-    #env = CartPoleBulletEnv(animate=params["animate"])
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 16, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 12, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
 
-        # p_tiles = T.load('agents/Hexapod_NN_PG_D0R_pg.p') # K12
-        # p_holes = T.load('agents/Hexapod_NN_PG_4W1_pg.p') # U88
-        # p_pipe = T.load('agents/Hexapod_NN_PG_ZSC_pg.p') # W2C
-        # p_verts = T.load('agents/Hexapod_NN_PG_ZQB_pg.p') #
-        # p_gotoxy = T.load('agents/Hexapod_NN_PG_60N_pg.p') # GZR, H3R
-        # p_gotoxy_holes = T.load('agents/Hexapod_NN_PG_ZM2_pg.p') # GZR, H3R
-
-        # from os import listdir
-        # from os.path import isfile, join
-        # onlyfiles = [f for f in listdir('agents') if (isfile(join('agents', f)))]
-        # reactive = [f for f in onlyfiles if f.startswith("Hexapod_NN_PG")]
-        # for f in reactive:
-        #     policy = T.load(join('agents', f))
-        #     if policy.obs_dim != 54: continue
-        #     print(f, policy.obs_dim)
-        # exit()
-
-        # PSH <- criteria
-        policy = T.load('agents/CartPoleBulletEnv_NN_PG_GBL_pg.p')
+        policy = T.load('agents/CartPoleBulletEnv_NN_PG_66A_pg.p')
         env.test(policy)

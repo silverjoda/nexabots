@@ -16,6 +16,7 @@ import cv2
 import src.my_utils as my_utils
 import time
 import socket
+import queue
 
 if socket.gethostname() != "goedel":
     import gym
@@ -38,14 +39,23 @@ class CartPoleBulletEnv():
         self.obs_dim = 4 + 1 * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
 
-        self.timeStep = 0.02
+        # Create queue memory for agent
+        self.mem_horizon = 50
+        self.obs_mem = queue.deque()
 
+        # Add zeros to memory
+        for i in range(self.mem_horizon):
+            self.obs_mem.append(np.zeros(self.obs_dim))
+
+        # Simulation parameters
+        self.timeStep = 0.02
         p.setGravity(0, 0, -9.8)
         p.setTimeStep(self.timeStep)
         p.setRealTimeSimulation(0)
 
+        # Environment parameters
         self.target_debug_line = None
-        self.target_var = 1.0
+        self.target_var = 1
         self.target_change_prob = 0.007
         self.dist_var = 2
         self.mass_var = 2.0
@@ -99,6 +109,7 @@ class CartPoleBulletEnv():
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
+
         angle_rew = 0.5 - np.abs(theta)
         cart_pen = np.square(x - self.target) * 0.5 * (1 - abs(theta))
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
@@ -108,7 +119,7 @@ class CartPoleBulletEnv():
 
         # Change target
         if np.random.rand() < self.target_change_prob:
-            self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -1, 1)
+            self.target = np.random.rand() * 2 * self.target_var - self.target_var
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
         if self.latent_input:
@@ -117,6 +128,12 @@ class CartPoleBulletEnv():
             obs = np.concatenate((obs, ctrl))
 
         obs = np.concatenate((obs, [self.target]))
+
+        # Add observation to queue
+        self.obs_mem.append(obs)
+        self.obs_mem.popleft()
+
+        obs = np.concatenate(self.obs_mem).astype(np.float32)
 
         return obs, r, done, (self.mass)
 

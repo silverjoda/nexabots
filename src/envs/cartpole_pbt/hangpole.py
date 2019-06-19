@@ -1,7 +1,3 @@
-"""
-Classic cart-pole system implemented by Rich Sutton et al.
-Copied from https://webdocs.cs.ualberta.ca/~sutton/book/code/pole.c
-"""
 import os, inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 parentdir = os.path.dirname(os.path.dirname(currentdir))
@@ -22,7 +18,7 @@ if socket.gethostname() != "goedel":
     from gym import spaces
     from gym.utils import seeding
 
-class CartPoleBulletEnv():
+class HangPoleBulletEnv():
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
@@ -45,7 +41,7 @@ class CartPoleBulletEnv():
         p.setRealTimeSimulation(0)
 
         self.target_debug_line = None
-        self.target_var = 1.0
+        self.target_var = 2.0
         self.target_change_prob = 0.007
         self.dist_var = 2
         self.mass_var = 2.0
@@ -99,6 +95,12 @@ class CartPoleBulletEnv():
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
+
+        print(theta)
+        time.sleep(0.02)
+
+        # TODO: Make theta range correctly, fix reward function and make memory version of this environment
+
         angle_rew = 0.5 - np.abs(theta)
         cart_pen = np.square(x - self.target) * 0.5 * (1 - abs(theta))
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
@@ -108,7 +110,7 @@ class CartPoleBulletEnv():
 
         # Change target
         if np.random.rand() < self.target_change_prob:
-            self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -1, 1)
+            self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
 
         if self.latent_input:
@@ -203,5 +205,5 @@ class CartPoleBulletEnv():
 
 
 if __name__ == "__main__":
-    env = CartPoleBulletEnv(animate=True)
+    env = HangPoleBulletEnv(animate=True)
     env.demo()

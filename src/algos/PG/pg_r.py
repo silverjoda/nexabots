@@ -191,7 +191,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        expert = T.load('agents/CartPoleBulletEnv_RNN_V3_LN_PG_5YD_pg.p')
+        expert = T.load('agents/CartPoleBulletEnv_RNN_PG_OFA_pg.p')
         env.test_recurrent(expert)
 
 

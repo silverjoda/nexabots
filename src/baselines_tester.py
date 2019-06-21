@@ -5,9 +5,8 @@ from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines import PPO2, ACKTR, SAC, A2C
 
 from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-#env = CartPoleBulletEnv(animate=False, latent_input=False, action_input=False)
+env = CartPoleBulletEnv(animate=False, latent_input=False, action_input=False)
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
-
 
 # def make_env():
 #     def _init():
@@ -17,8 +16,9 @@ env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environm
 #
 # env = SubprocVecEnv([make_env() for i in range(4)])
 
-model = PPO2(MlpPolicy, env, verbose=1, n_steps=400)
-model.learn(total_timesteps=2000000)
+model = A2C(MlpPolicy, env, verbose=1)
+#model = PPO2(MlpPolicy, env, verbose=1, n_steps=400)
+model.learn(total_timesteps=500000)
 
 [e.kill() for e in env.unwrapped.envs]
 del env

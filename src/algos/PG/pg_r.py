@@ -168,8 +168,8 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "lr": 0.001, "decay" : 0.0001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
-              "comments" : "CDP, m=2, policy: 1f3r1f", "Env_list" : env_list,
+              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : False,
+              "comments" : "CDP, m=4, policy: 1f2r1f 2.5 pen", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -179,13 +179,12 @@ if __name__=="__main__":
     from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
     env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
 
-
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, hid_dim=12, memory_dim=12, n_temp=3, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_PG(env, hid_dim=16, memory_dim=16, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

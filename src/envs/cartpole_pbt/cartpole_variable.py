@@ -22,7 +22,7 @@ if socket.gethostname() != "goedel":
     from gym import spaces
     from gym.utils import seeding
 
-class CartPoleBulletEnv():
+class CartPoleBulletEnv(gym.Env):
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
@@ -48,7 +48,7 @@ class CartPoleBulletEnv():
         self.target_var = 1.0
         self.target_change_prob = 0.007
         self.dist_var = 2
-        self.mass_var = 2.0
+        self.mass_var = 4.0
         self.mass_min = 0.1
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
@@ -117,8 +117,12 @@ class CartPoleBulletEnv():
             obs = np.concatenate((obs, ctrl))
 
         obs = np.concatenate((obs, [self.target]))
+        #p.removeAllUserDebugItems()
+        #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
+        #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
+        #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
 
-        return obs, r, done, (self.mass)
+        return obs, r, done, {}
 
 
     def reset(self):
@@ -149,10 +153,14 @@ class CartPoleBulletEnv():
                                                     lineWidth=6,
                                                     lineColorRGB=[1, 0, 0])
 
+    def kill(self):
+        p.disconnect()
+
+
     def test(self, policy):
         self.render_prob = 1.0
         total_rew = 0
-        for i in range(100):
+        for i in range(1000):
             obs = self.reset()
             cr = 0
             for j in range(self.max_steps):
@@ -167,7 +175,7 @@ class CartPoleBulletEnv():
 
     def test_recurrent(self, policy):
         total_rew = 0
-        for i in range(100):
+        for i in range(1000):
             obs = self.reset()
             h = None
             cr = 0

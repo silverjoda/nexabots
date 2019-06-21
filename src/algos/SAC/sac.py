@@ -9,6 +9,7 @@ import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
 from torch.distributions import Normal
+import socket
 
 import string
 import os
@@ -255,34 +256,37 @@ def train(env, params):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    params = {"max_frames": 800000,
-              "max_steps" : 600,
+    params = {"max_frames": 8000000,
+              "max_steps" : 400,
               "batch_size": 64,
-              "hidden_dim": 64,
-              "gamma": 0.98,
+              "hidden_dim": 16,
+              "gamma": 0.99,
               "mean_lambda" : 1e-4,
               "std_lambda" : 1e-4,
               "z_lambda" : 0.000,
               "soft_tau" : 1e-3,
               "value_lr": 1e-4,
               "soft_q_lr": 1e-4,
-              "policy_lr": 1e-5,
+              "policy_lr": 1e-4,
               "replay_buffer_size" : 1000000,
-              "render": True,
+              "render": False,
               "ID" : ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))}
 
-    # Gym env
-    #import gym
-    #env = gym.make("HalfCheetah-v2")
 
-    from src.envs.hexapod_flat_pd_mjc import hexapod_pd
-    env = hexapod_pd.Hexapod()
+    if socket.gethostname() == "goedel":
+        params["animate"] = False
+        params["train"] = True
 
-    print(params, env.__class__.__name__)
+    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
+    env = CartPoleBulletEnv(animate=False, latent_input=False, action_input=False)
 
-    #from src.envs.ant_feelers_mjc import ant_feelers_mjc
-    #env = ant_feelers_mjc.AntFeelersMjc()
+    # from src.envs.cartpole_pbt.cartpole_mem import CartPoleBulletEnv
+    # env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
-    #env = gym.make("Hopper-v2")
+    # from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
+    # env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+
+    # Test
+    print("Training")
     train(env, params)
 

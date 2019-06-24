@@ -22,7 +22,7 @@ if socket.gethostname() != "goedel":
     from gym import spaces
     from gym.utils import seeding
 
-class CartPoleBulletEnv(gym.Env):
+class CartPoleBulletEnv():
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
@@ -100,7 +100,7 @@ class CartPoleBulletEnv(gym.Env):
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
         angle_rew = 0.5 - np.abs(theta)
-        cart_pen = np.square(x - self.target) * 0.5 * (1 - abs(theta))
+        cart_pen = np.clip(np.abs(x - self.target) * 2.5 * (1 - abs(theta)), -2, 2)
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
         r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.03
         
@@ -118,6 +118,7 @@ class CartPoleBulletEnv(gym.Env):
 
         obs = np.concatenate((obs, [self.target]))
         #p.removeAllUserDebugItems()
+        #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
         #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
         #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
         #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])

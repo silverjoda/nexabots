@@ -47,7 +47,7 @@ class HangPoleBulletEnv():
         self.mass_var = 2.0
         self.mass_min = 0.1
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole.urdf"))
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
         if socket.gethostname() != "goedel":
@@ -95,23 +95,20 @@ class HangPoleBulletEnv():
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
-
-        print(theta)
-        time.sleep(0.02)
-
-        # TODO: Make theta range correctly, fix reward function and make memory version of this environment
-
         angle_rew = 0.5 - np.abs(theta)
-        cart_pen = np.square(x - self.target) * 0.5 * (1 - abs(theta))
+        cart_pen = np.clip(np.abs(x - self.target) * 2.5 * (1 - abs(theta)), -2, 2)
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
         r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.03
+
+        #print(r)
+        #time.sleep(0.1)
         
         done = self.step_ctr > self.max_steps
 
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, 1], [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
         if self.latent_input:
             obs = np.concatenate((obs, [self.mass]))
@@ -127,13 +124,13 @@ class HangPoleBulletEnv():
         self.step_ctr = 0
         self.theta_prev = 1
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
-        p.resetBasePositionAndOrientation(self.target_vis, [self.target,0,1], [0,0,0,1])
+        p.resetBasePositionAndOrientation(self.target_vis, [self.target,0,0], [0,0,0,1])
 
         self.dist = 0.5 + np.random.rand() * self.dist_var
         self.mass = self.mass_min + np.random.rand() * self.mass_var
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
-        p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
+        p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)
         p.changeDynamics(self.cartpole, 1, mass=self.mass)
         p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass / (self.mass_min + self.mass_var), 1 - self.mass / (self.mass_min + self.mass_var), 0, 1])
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)

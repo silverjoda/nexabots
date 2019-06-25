@@ -31,7 +31,8 @@ class HangPoleBulletEnv():
 
         # Simulator parameters
         self.max_steps = 400
-        self.obs_dim = 4 + 1 * int(self.latent_input) + int(self.action_input) + 1
+        self.latent_dim = 1
+        self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
 
         self.timeStep = 0.02
@@ -80,6 +81,10 @@ class HangPoleBulletEnv():
 
         self.state = np.array([x, x_dot, theta, theta_dot])
         return self.state
+
+
+    def get_latent_label(self):
+        return np.array(self.mass)
 
 
     def render(self, close=False):

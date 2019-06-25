@@ -30,35 +30,42 @@ class Valuefun(nn.Module):
         return x
 
 
-def train(env, policy, params):
+def train(env, policy, latent_predictor, params):
 
     policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"])
+    latent_predictor_optim = T.optim.Adam(latent_predictor.parameters(), lr=params["latent_predictor_lr"], weight_decay=params["weight_decay"])
 
     batch_states = []
     batch_actions = []
     batch_rewards = []
     batch_new_states = []
     batch_terminals = []
+    batch_latents = []
 
     batch_ctr = 0
     batch_rew = 0
 
     for i in range(params["iters"]):
         s_0 = env.reset()
+        latent_label = env.get_latent_label()
+        batch_latents.append(T.tensor(latent_label).repeat(env.max_steps))
+
+        h_0 = None
+        l_0 = np.zeros(env.latent_dim)
         done = False
 
         step_ctr = 0
 
         while not done:
             # Sample action from policy
-            action = policy.sample_action(my_utils.to_tensor(s_0, True)).detach()
+            action = policy.sample_action(my_utils.to_tensor(np.concatenate((s_0, l_0)), True)).detach()
+            l_1, h_1 = latent_predictor((T.cat((my_utils.to_tensor(s_0, True), action), 1), h_0)).detach()
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
-            assert r < 10, print("Large rew {}, step: {}".format(r, step_ctr))
+            assert np.abs(r) < 10, print("Large rew {}, step: {}".format(r, step_ctr))
             r = np.clip(r, -3, 3)
             step_ctr += 1
-
             batch_rew += r
 
             if params["animate"]:
@@ -72,6 +79,8 @@ def train(env, policy, params):
             batch_terminals.append(done)
 
             s_0 = s_1
+            h_0 = h_1
+            l_0 = l_1
 
         # Just completed an episode
         batch_ctr += 1
@@ -81,7 +90,9 @@ def train(env, policy, params):
 
             batch_states = T.cat(batch_states)
             batch_actions = T.cat(batch_actions)
+            batch_state_actions = T.cat((batch_states, batch_actions), 1)
             batch_rewards = T.cat(batch_rewards)
+            batch_latents = T.stack(batch_latents)
 
             # Scale rewards
             batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
@@ -97,6 +108,13 @@ def train(env, policy, params):
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {:.2f}".
                   format(i, params["iters"], None, None, batch_rew / params["batchsize"], T.exp(policy.log_std)[0][0].detach().numpy())) # T.exp(policy.log_std).detach().numpy())
 
+            # Update latent variable model
+            latent_predictions = latent_predictor(batch_state_actions)
+            latent_prediction_loss = (latent_predictions - batch_latents).square().mean()
+            latent_predictor_optim.zero_grad()
+            latent_prediction_loss.backward()
+            latent_predictor_optim.step()
+
             # Finally reset all batch lists
             batch_ctr = 0
             batch_rew = 0
@@ -106,6 +124,7 @@ def train(env, policy, params):
             batch_rewards = []
             batch_new_states = []
             batch_terminals = []
+            batch_latents = []
 
         if i % 300 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -264,24 +283,14 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes", "tiles", "pipe"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
-    if len(sys.argv) > 1:
-        env_list = [sys.argv[1]]
-
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "HP, m=4, 2.5 , no angle pen", "ID" : ID}
+    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "latent_predictor_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
+              "ppo_update_iters": 6, "animate": True, "train" : False,
+              "note" : "HP, m=4, 2.5 , Linear", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
-
-    #from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    #env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
-
-    #from src.envs.cartpole_pbt.cartpole_mem import CartPoleBulletEnv
-    #env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
     from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
     env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
@@ -290,8 +299,9 @@ if __name__=="__main__":
     if params["train"]:
         print("Training")
         policy = policies.NN_PG(env, 16, tanh=False, std_fixed=True)
+        latent_predictor = policies.RNN_PG(env, hid_dim=24, memory_dim=24, n_temp=2, obs_dim = env.obs_dim + env.act_dim, act_dim=env.latent_dim)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
-        train(env, policy, params)
+        train(env, policy, latent_predictor, params)
     else:
         print("Testing")
 

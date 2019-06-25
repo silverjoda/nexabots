@@ -7,5 +7,6 @@ def to_tensor(x, add_batchdim=False):
         x = x.unsqueeze(0)
     return x
 
+
 def l_barron(x, a):
     return ((a - 2) / a) * (np.pow(np.square(x) / np.abs(a - 2), a/2) - 1)

@@ -95,14 +95,19 @@ class HangPoleBulletEnv():
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
-        angle_rew = 0.5 - np.abs(theta)
-        cart_pen = np.clip(np.abs(x - self.target) * 2.5 * (1 - abs(theta)), -2, 2)
-        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
-        r = angle_rew - cart_pen - vel_pen - np.square(ctrl[0]) * 0.03
+        x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0])
 
-        #print(r)
-        #time.sleep(0.1)
-        
+        target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta)), -2, 2)
+        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
+        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.03
+
+        #p.removeAllUserDebugItems()
+        #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
+        #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
+        #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
+        #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
+        #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
+
         done = self.step_ctr > self.max_steps
 
         # Change target
@@ -124,7 +129,7 @@ class HangPoleBulletEnv():
         self.step_ctr = 0
         self.theta_prev = 1
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
-        p.resetBasePositionAndOrientation(self.target_vis, [self.target,0,0], [0,0,0,1])
+        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
         self.dist = 0.5 + np.random.rand() * self.dist_var
         self.mass = self.mass_min + np.random.rand() * self.mass_var

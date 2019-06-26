@@ -48,7 +48,7 @@ def train(env, policy, latent_predictor, params):
     for i in range(params["iters"]):
         s_0 = env.reset()
         latent_label = env.get_latent_label()
-        batch_latents.append(T.tensor(latent_label).repeat(env.max_steps))
+        batch_latents.append(T.tensor(latent_label).repeat(env.max_steps, 1))
 
         h_0 = None
         l_0 = np.zeros(env.latent_dim)
@@ -57,12 +57,16 @@ def train(env, policy, latent_predictor, params):
         step_ctr = 0
 
         while not done:
-            # Sample action from policy
-            action = policy.sample_action(my_utils.to_tensor(np.concatenate((s_0, l_0)), True)).detach()
-            l_1, h_1 = latent_predictor((T.cat((my_utils.to_tensor(s_0, True), action), 1), h_0)).detach()
+            with T.no_grad():
+                # Sample action from policy
+                action = policy.sample_action(my_utils.to_tensor(np.concatenate((s_0, l_0)), True))
+                l_1, h_1 = latent_predictor((T.cat((my_utils.to_tensor(s_0, True), action), 1).unsqueeze(0), h_0))
+
+            l_1 = l_1[0][0]
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
+
             assert np.abs(r) < 10, print("Large rew {}, step: {}".format(r, step_ctr))
             r = np.clip(r, -3, 3)
             step_ctr += 1
@@ -72,10 +76,10 @@ def train(env, policy, latent_predictor, params):
                 env.render()
 
             # Record transition
-            batch_states.append(my_utils.to_tensor(s_0, True))
+            batch_states.append(my_utils.to_tensor(np.concatenate((s_0, l_0)), True))
             batch_actions.append(action)
             batch_rewards.append(my_utils.to_tensor(np.asarray(r, dtype=np.float32), True))
-            batch_new_states.append(my_utils.to_tensor(s_1, True))
+            batch_new_states.append(my_utils.to_tensor(np.concatenate((s_1, l_1)), True))
             batch_terminals.append(done)
 
             s_0 = s_1
@@ -90,9 +94,11 @@ def train(env, policy, latent_predictor, params):
 
             batch_states = T.cat(batch_states)
             batch_actions = T.cat(batch_actions)
-            batch_state_actions = T.cat((batch_states, batch_actions), 1)
             batch_rewards = T.cat(batch_rewards)
-            batch_latents = T.stack(batch_latents)
+            batch_latents = T.stack(batch_latents).float()
+
+            batch_state_actions = T.cat((batch_states[:, :-1].view(params["batchsize"], env.max_steps, env.obs_dim),
+                                         batch_actions.view(params["batchsize"], env.max_steps, env.act_dim)), 2)
 
             # Scale rewards
             batch_rewards = (batch_rewards - batch_rewards.mean()) / batch_rewards.std()
@@ -105,15 +111,17 @@ def train(env, policy, latent_predictor, params):
             else:
                 update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
-            print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {:.2f}".
-                  format(i, params["iters"], None, None, batch_rew / params["batchsize"], T.exp(policy.log_std)[0][0].detach().numpy())) # T.exp(policy.log_std).detach().numpy())
 
             # Update latent variable model
-            latent_predictions = latent_predictor(batch_state_actions)
-            latent_prediction_loss = (latent_predictions - batch_latents).square().mean()
+            latent_predictions, _ = latent_predictor((batch_state_actions, None))
+            latent_prediction_loss = (latent_predictions - batch_latents).pow(2).mean()
             latent_predictor_optim.zero_grad()
             latent_prediction_loss.backward()
             latent_predictor_optim.step()
+
+            print("Episode {}/{}, loss_latent_pred: {:.3f}, mean ep_rew: {:.3f}, std: {:.2f}".
+                  format(i, params["iters"], latent_prediction_loss, batch_rew / params["batchsize"],
+                         T.exp(policy.log_std)[0][0].detach().numpy()))  # T.exp(policy.log_std).detach().numpy())
 
             # Finally reset all batch lists
             batch_ctr = 0
@@ -146,60 +154,6 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss.backward()
         policy.soft_clip_grads(1.)
         policy_optim.step()
-
-    if False:
-        # Symmetry loss
-        batch_states_rev = batch_states.clone()
-
-        # Joint angles
-        batch_states_rev[:, 0:3] = batch_states[:, 6:9]
-        batch_states_rev[:, 3:6] = batch_states[:, 9:12]
-        batch_states_rev[:, 15:18] = batch_states[:, 12:15]
-
-        batch_states_rev[:, 6:9] = batch_states[:, 0:3]
-        batch_states_rev[:, 9:12] = batch_states[:, 3:6]
-        batch_states_rev[:, 12:15] = batch_states[:, 15:18]
-
-        # Joint angle velocities
-        batch_states_rev[:, 0 + 18:3 + 18] = batch_states[:, 6 + 18:9 + 18]
-        batch_states_rev[:, 3 + 18:6 + 18] = batch_states[:, 9 + 18:12 + 18]
-        batch_states_rev[:, 15 + 18:18 + 18] = batch_states[:, 12 + 18:15 + 18]
-
-        batch_states_rev[:, 6 + 18:9 + 18] = batch_states[:, 0 + 18:3 + 18]
-        batch_states_rev[:, 9 + 18:12 + 18] = batch_states[:, 3 + 18:6 + 18]
-        batch_states_rev[:, 12 + 18:15 + 18] = batch_states[:, 15 + 18:18 + 18]
-
-        # Reverse yaw and y
-        batch_states_rev[44] = - batch_states[44]
-        batch_states_rev[45] = - batch_states[45]
-
-        # Reverse contacts
-        batch_states_rev[46] = batch_states[48]
-        batch_states_rev[47] = batch_states[49]
-        batch_states_rev[51] = batch_states[50]
-
-        batch_states_rev[48] = batch_states[46]
-        batch_states_rev[49] = batch_states[47]
-        batch_states_rev[50] = batch_states[51]
-
-        # Actions
-        for i in range(3):
-            actions = policy(batch_states)
-            actions_rev = T.zeros_like(actions)
-
-            actions_rev[:, 0:3] = actions[:, 6:9]
-            actions_rev[:, 3:6] = actions[:, 9:12]
-            actions_rev[:, 15:18] = actions[:, 12:15]
-
-            actions_rev[:, 6:9] = actions[:, 0:3]
-            actions_rev[:, 9:12] = actions[:, 3:6]
-            actions_rev[:, 12:15] = actions[:, 15:18]
-
-            loss = (actions - actions_rev).pow(2).mean()
-            policy_optim.zero_grad()
-            loss.backward()
-            policy.soft_clip_grads(1.)
-            policy_optim.step()
 
 
 
@@ -284,8 +238,8 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "latent_predictor_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False,
+    params = {"iters": 500000, "batchsize": 4, "gamma": 0.99, "policy_lr": 0.0005, "latent_predictor_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
+              "ppo_update_iters": 6, "animate": False, "train" : True,
               "note" : "HP, m=4, 2.5 , Linear", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -298,8 +252,8 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 16, tanh=False, std_fixed=True)
-        latent_predictor = policies.RNN_PG(env, hid_dim=24, memory_dim=24, n_temp=2, obs_dim = env.obs_dim + env.act_dim, act_dim=env.latent_dim)
+        policy = policies.NN_PG(env, 16, obs_dim=env.obs_dim + env.latent_dim, tanh=False, std_fixed=True)
+        latent_predictor = policies.RNN_PG(env, hid_dim=8, memory_dim=8, n_temp=2, obs_dim = env.obs_dim + env.act_dim, act_dim=env.latent_dim)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, latent_predictor, params)
     else:

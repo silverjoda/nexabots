@@ -48,7 +48,7 @@ def train(env, policy, latent_predictor, params):
     for i in range(params["iters"]):
         s_0 = env.reset()
         latent_label = env.get_latent_label()
-        batch_latents.append(T.tensor(latent_label).repeat(env.max_steps, 1))
+        batch_latents.append(T.Tensor(latent_label).repeat(env.max_steps, 1))
 
         h_0 = None
         l_0 = np.zeros(env.latent_dim)
@@ -238,9 +238,9 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 4, "gamma": 0.99, "policy_lr": 0.0005, "latent_predictor_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
+    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "latent_predictor_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": False, "train" : True,
-              "note" : "HP, m=4, 2.5 , Linear", "ID" : ID}
+              "note" : "HP, latent_estimation", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False

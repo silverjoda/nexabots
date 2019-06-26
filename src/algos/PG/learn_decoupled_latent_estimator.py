@@ -13,8 +13,6 @@ import string
 import socket
 
 
-
-
 def train(env, policy, latent_predictor, params):
 
     predictor_optim = T.optim.Adam(predictor.parameters(), lr=params["predictor_lr"], weight_decay=params["weight_decay"])
@@ -37,10 +35,8 @@ def train(env, policy, latent_predictor, params):
         while not done:
             with T.no_grad():
                 # Sample action from policy
-                action = policy.sample_action(my_utils.to_tensor(np.concatenate((s_0, np.array([2]))), True))
+                action = policy(my_utils.to_tensor(np.concatenate((s_0[:-1], l_0, s_0[-1:])), True))
                 l_1, h_1 = latent_predictor((T.cat((my_utils.to_tensor(s_0, True), action), 1).unsqueeze(0), h_0))
-
-            time.sleep(0.02)
 
             l_1 = l_1[0][0]
 
@@ -102,7 +98,7 @@ if __name__=="__main__":
               "train" : True, "note" : "HP, latent_estimation", "ID" : ID}
 
     from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
-    env = HangPoleBulletEnv(animate=True, latent_input=False, action_input=False)
+    env = HangPoleBulletEnv(animate=False, latent_input=False, action_input=False)
 
     # Load ready policy
     policy = T.load('agents/HangPoleBulletEnv_NN_PG_D9T_pg.p')

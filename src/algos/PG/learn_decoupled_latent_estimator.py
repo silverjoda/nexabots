@@ -22,6 +22,7 @@ def train(env, policy, latent_predictor, params):
     batch_latents = []
 
     batch_ctr = 0
+    batch_rew = 0
 
     for i in range(params["iters"]):
         s_0 = env.reset()
@@ -51,12 +52,14 @@ def train(env, policy, latent_predictor, params):
             h_0 = h_1
             l_0 = l_1
 
+            batch_rew += r
+
         # Just completed an episode
         batch_ctr += 1
 
+
         # If enough data gathered, then perform update
         if batch_ctr == params["batchsize"]:
-
             batch_states = T.cat(batch_states)
             batch_actions = T.cat(batch_actions)
             batch_latents = T.stack(batch_latents).float()

@@ -45,6 +45,8 @@ def train(env, policy, latent_predictor, params):
     batch_ctr = 0
     batch_rew = 0
 
+    lam = params["lambda_init"]
+
     for i in range(params["iters"]):
         s_0 = env.reset()
         latent_label = env.get_latent_label()
@@ -66,6 +68,12 @@ def train(env, policy, latent_predictor, params):
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
+
+            # Error latent
+            r_latent = 1 / (1 + np.abs(latent_label - l_1))
+
+            # Subtract error from latent variable classification
+            r = r * (1 - lam) + r_latent * lam
 
             assert np.abs(r) < 10, print("Large rew {}, step: {}".format(r, step_ctr))
             r = np.clip(r, -3, 3)
@@ -238,9 +246,9 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0005, "latent_predictor_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
+    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "lambda_init" : 1., "lambda_min" : 0.3, "policy_lr": 0.0005, "latent_predictor_lr": 0.0005, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": False, "train" : True,
-              "note" : "HP, latent_estimation", "ID" : ID}
+              "note" : "HP, active latent estimation", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False

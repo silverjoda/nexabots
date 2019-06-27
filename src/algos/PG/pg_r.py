@@ -167,17 +167,17 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "lr": 0.001, "decay" : 0.0001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : False,
-              "comments" : "CDP, m=4, policy: 1f2r1f 2.5 pen", "Env_list" : env_list,
+    params = {"iters": 2000000, "batchsize": 20, "gamma": 0.995, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
+              "comments" : "CDP comparison", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
+    from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
+    env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
 
     print(params, env.__class__.__name__)
 

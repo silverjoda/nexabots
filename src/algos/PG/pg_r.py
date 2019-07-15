@@ -167,9 +167,9 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 2000000, "batchsize": 20, "gamma": 0.995, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
-              "comments" : "CDP comparison", "Env_list" : env_list,
+    params = {"iters": 1000000, "batchsize": 20, "gamma": 0.99, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : False,
+              "comments" : "Hangpole, m_var = 10", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -189,8 +189,9 @@ if __name__=="__main__":
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        print("Testing")
-        expert = T.load('agents/CartPoleBulletEnv_RNN_PG_OFA_pg.p')
-        env.test_recurrent(expert)
+        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_72V_pg.p'
+        policy = T.load(policy_path)
+        env.test_recurrent(policy, slow=False)
+        print(policy_path)
 
 

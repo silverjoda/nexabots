@@ -30,7 +30,7 @@ class HangPoleBulletEnv():
         self.action_input = action_input
 
         # Simulator parameters
-        self.max_steps = 400
+        self.max_steps = 300
         self.latent_dim = 1
         self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
@@ -43,9 +43,9 @@ class HangPoleBulletEnv():
 
         self.target_debug_line = None
         self.target_var = 2.0
-        self.target_change_prob = 0.007
+        self.target_change_prob = 0.012
         self.dist_var = 2
-        self.mass_var = 2.0
+        self.mass_var = 10.0
         self.mass_min = 0.1
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
@@ -107,6 +107,7 @@ class HangPoleBulletEnv():
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.03
 
         #p.removeAllUserDebugItems()
+        #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
         #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
         #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
         #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
@@ -158,10 +159,10 @@ class HangPoleBulletEnv():
                                                     lineWidth=6,
                                                     lineColorRGB=[1, 0, 0])
 
-    def test(self, policy):
+    def test(self, policy, slow=True):
         self.render_prob = 1.0
         total_rew = 0
-        for i in range(100):
+        for i in range(1000):
             obs = self.reset()
             cr = 0
             for j in range(self.max_steps):
@@ -169,14 +170,15 @@ class HangPoleBulletEnv():
                 obs, r, done, od, = self.step(action[0].numpy())
                 cr += r
                 total_rew += r
-                time.sleep(0.01)
+                if slow:
+                    time.sleep(0.01)
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 
 
-    def test_recurrent(self, policy):
+    def test_recurrent(self, policy, slow=True):
         total_rew = 0
-        for i in range(100):
+        for i in range(1000):
             obs = self.reset()
             h = None
             cr = 0
@@ -185,7 +187,8 @@ class HangPoleBulletEnv():
                 obs, r, done, od, = self.step(action[0][0].detach().numpy())
                 cr += r
                 total_rew += r
-                time.sleep(0.01)
+                if slow:
+                    time.sleep(0.01)
             print("Total episode reward: {}".format(cr))
         print("Total reward: {}".format(total_rew))
 

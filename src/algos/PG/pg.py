@@ -269,19 +269,13 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 64, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
+    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "HP, m=4, 2.5 , latent input, larger batch size", "ID" : ID}
+              "note" : "Hangpole, m_var = 10", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
-
-    #from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-    #env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
-
-    #from src.envs.cartpole_pbt.cartpole_mem import CartPoleBulletEnv
-    #env = CartPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
     from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
     env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
@@ -289,11 +283,14 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.NN_PG(env, 24, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 16, tanh=False, std_fixed=True)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
 
-        policy = T.load('agents/HangPoleBulletEnv_NN_PG_GO5_pg.p')
-        env.test(policy)
+        policy_path = 'agents/HangPoleBulletEnv_NN_PG_GO5_pg.p'
+        policy = T.load(policy_path)
+        env.test(policy, slow=False)
+        print(policy_path)
+

@@ -43,10 +43,10 @@ class HangPoleBulletEnv():
 
         self.target_debug_line = None
         self.target_var = 2.0
-        self.target_change_prob = 0.012
+        self.target_change_prob = 0.008
         self.dist_var = 2
-        self.mass_var = 10.0
-        self.mass_min = 0.1
+        self.mass_var = 8.0
+        self.mass_min = 1
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
@@ -84,7 +84,8 @@ class HangPoleBulletEnv():
 
 
     def get_latent_label(self):
-        return np.array(self.mass)
+        mass_norm = (2 * self.mass - 2 * self.mass_min) / self.mass_var - 1
+        return mass_norm
 
 
     def render(self, close=False):
@@ -122,7 +123,7 @@ class HangPoleBulletEnv():
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
         if self.latent_input:
-            obs = np.concatenate((obs, [self.mass]))
+            obs = np.concatenate((obs, [self.get_latent_label()]))
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
 
@@ -159,10 +160,12 @@ class HangPoleBulletEnv():
                                                     lineWidth=6,
                                                     lineColorRGB=[1, 0, 0])
 
-    def test(self, policy, slow=True):
+    def test(self, policy, slow=True, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
         self.render_prob = 1.0
         total_rew = 0
-        for i in range(1000):
+        for i in range(100):
             obs = self.reset()
             cr = 0
             for j in range(self.max_steps):
@@ -176,9 +179,11 @@ class HangPoleBulletEnv():
         print("Total reward: {}".format(total_rew))
 
 
-    def test_recurrent(self, policy, slow=True):
+    def test_recurrent(self, policy, slow=True, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
         total_rew = 0
-        for i in range(1000):
+        for i in range(100):
             obs = self.reset()
             h = None
             cr = 0

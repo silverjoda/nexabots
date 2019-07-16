@@ -189,9 +189,9 @@ if __name__=="__main__":
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_72V_pg.p'
+        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_VUG_pg.p'
         policy = T.load(policy_path)
-        env.test_recurrent(policy, slow=False)
+        env.test_recurrent(policy, slow=False, seed=1337)
         print(policy_path)
 
 

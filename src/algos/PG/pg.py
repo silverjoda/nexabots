@@ -270,8 +270,8 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Hangpole, m_var = 10, latent input", "ID" : ID}
+              "ppo_update_iters": 6, "animate": False, "train" : False, "env_list" : env_list,
+              "note" : "Hangpole, m_var = 7, latent input", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -289,8 +289,15 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        policy_path = 'agents/HangPoleBulletEnv_NN_PG_R4R_pg.p'
+        policy_path = 'agents/HangPoleBulletEnv_NN_PG_XXX_pg.p'
         policy = T.load(policy_path)
-        env.test(policy, slow=True)
+        env.test(policy, slow=params["animate"], seed=1338)
         print(policy_path)
+
+        # 5OV: 4635 7221
+        # HE0: 3987 6709
+        # CFA: 3306 6346
+        # XXX: 3744 6004
+
+
 

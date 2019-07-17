@@ -4,8 +4,8 @@ from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines import PPO2, ACKTR, SAC, A2C
 
-from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv
-env = CartPoleBulletEnv(animate=False, latent_input=False, action_input=False)
+from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
+env = HangPoleBulletEnv(animate=False, latent_input=False, action_input=False)
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 # def make_env():
@@ -16,14 +16,13 @@ env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environm
 #
 # env = SubprocVecEnv([make_env() for i in range(4)])
 
-model = A2C(MlpPolicy, env, verbose=1)
-#model = PPO2(MlpPolicy, env, verbose=1, n_steps=400)
-model.learn(total_timesteps=500000)
+model = PPO2(MlpPolicy, env, verbose=1, n_steps=300)
+model.learn(total_timesteps=1000000)
 
 [e.kill() for e in env.unwrapped.envs]
 del env
 
-env = CartPoleBulletEnv(animate=True, latent_input=False, action_input=False)
+env = HangPoleBulletEnv(animate=True, latent_input=False, action_input=False)
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
 
 for _ in range(100):
@@ -35,3 +34,5 @@ for _ in range(100):
         env.render()
 
 env.close()
+
+# TODO: Try PPO and PPO with LSTM on hangpole_po

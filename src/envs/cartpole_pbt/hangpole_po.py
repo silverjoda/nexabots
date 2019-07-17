@@ -13,12 +13,12 @@ import src.my_utils as my_utils
 import time
 import socket
 
-if socket.gethostname() != "goedel" or True:
+if socket.gethostname() != "goedel":
     import gym
     from gym import spaces
     from gym.utils import seeding
 
-class HangPoleBulletEnv(gym.Env):
+class HangPoleBulletEnv():
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
@@ -32,7 +32,7 @@ class HangPoleBulletEnv(gym.Env):
         # Simulator parameters
         self.max_steps = 300
         self.latent_dim = 1
-        self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
+        self.obs_dim = 2 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
 
         self.timeStep = 0.02
@@ -61,10 +61,6 @@ class HangPoleBulletEnv(gym.Env):
     def get_obs(self):
         x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
 
-        # Clip velocities
-        x_dot = np.clip(x_dot / 3, -7, 7)
-        theta_dot = np.clip(theta_dot / 3, -7, 7)
-
         # Change theta range to [-pi, pi]
         if theta > 0:
             if theta % (2 * np.pi) <= np.pi:
@@ -79,7 +75,7 @@ class HangPoleBulletEnv(gym.Env):
 
         theta /= np.pi
 
-        self.state = np.array([x, x_dot, theta, theta_dot])
+        self.state = np.array([x, theta])
         return self.state
 
 
@@ -100,12 +96,11 @@ class HangPoleBulletEnv(gym.Env):
 
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
-        x, x_dot, theta, theta_dot = obs
+        x, theta = obs
         x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0])
 
         target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta)), -2, 2)
-        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
-        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.03
+        r = 1 - target_pen - np.square(ctrl[0]) * 0.03
 
         #p.removeAllUserDebugItems()
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
@@ -129,7 +124,7 @@ class HangPoleBulletEnv(gym.Env):
 
         obs = np.concatenate((obs, [self.target]))
 
-        return obs, r, done, {}
+        return obs, r, done, (self.mass)
 
 
     def reset(self):
@@ -221,7 +216,6 @@ class HangPoleBulletEnv(gym.Env):
 
     def kill(self):
         p.disconnect()
-
 
 
 if __name__ == "__main__":

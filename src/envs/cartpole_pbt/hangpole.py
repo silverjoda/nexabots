@@ -45,8 +45,8 @@ class HangPoleBulletEnv(gym.Env):
         self.target_var = 2.0
         self.target_change_prob = 0.008
         self.dist_var = 2
-        self.mass_var = 0.0
-        self.mass_min = 5
+        self.mass_var = 7.0
+        self.mass_min = 1.0
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))

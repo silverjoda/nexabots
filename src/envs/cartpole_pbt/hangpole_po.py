@@ -57,9 +57,12 @@ class HangPoleBulletEnv():
 
         print(self.dist_var, self.mass_var)
 
-
     def get_obs(self):
         x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
+
+        # Clip velocities
+        x_dot = np.clip(x_dot / 3, -7, 7)
+        theta_dot = np.clip(theta_dot / 3, -7, 7)
 
         # Change theta range to [-pi, pi]
         if theta > 0:
@@ -75,18 +78,15 @@ class HangPoleBulletEnv():
 
         theta /= np.pi
 
-        self.state = np.array([x, theta])
+        self.state = np.array([x, x_dot, theta, theta_dot])
         return self.state
-
 
     def get_latent_label(self):
         mass_norm = (2 * self.mass - 2 * self.mass_min) / self.mass_var - 1
         return mass_norm
 
-
     def render(self, close=False):
         pass
-
 
     def step(self, ctrl):
         p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 20)
@@ -96,19 +96,21 @@ class HangPoleBulletEnv():
 
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
-        x, theta = obs
+        x, x_dot, theta, theta_dot = obs
+        obs = np.array((x, theta))
         x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0])
 
         target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta)), -2, 2)
-        r = 1 - target_pen - np.square(ctrl[0]) * 0.03
+        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
+        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.03
 
-        #p.removeAllUserDebugItems()
-        #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
-        #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
-        #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
-        #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
-        #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
-        #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
+        # p.removeAllUserDebugItems()
+        # p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
+        # p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
+        # p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
+        # p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
+        # p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
+        # p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
 
         done = self.step_ctr > self.max_steps
 
@@ -124,7 +126,7 @@ class HangPoleBulletEnv():
 
         obs = np.concatenate((obs, [self.target]))
 
-        return obs, r, done, (self.mass)
+        return obs, r, done, {}
 
 
     def reset(self):

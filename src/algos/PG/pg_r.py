@@ -168,7 +168,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 1000000, "batchsize": 20, "gamma": 0.99, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : False,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
               "comments" : "Hangpole, po", "Env_list" : env_list,
               "ID": ID}
 
@@ -176,7 +176,7 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.cartpole_pbt.hangpole_po import HangPoleBulletEnv
+    from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
     env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
 
     print(params, env.__class__.__name__)
@@ -189,9 +189,9 @@ if __name__=="__main__":
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_VUG_pg.p'
+        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_UCJ_pg.p'
         policy = T.load(policy_path)
-        env.test_recurrent(policy, slow=False, seed=1337)
+        env.test_recurrent(policy, slow=params["animate"], seed=1337)
         print(policy_path)
 
 

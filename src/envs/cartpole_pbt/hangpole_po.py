@@ -18,7 +18,7 @@ if socket.gethostname() != "goedel":
     from gym import spaces
     from gym.utils import seeding
 
-class HangPoleBulletEnv():
+class HangPoleBulletEnv(gym.Env):
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)

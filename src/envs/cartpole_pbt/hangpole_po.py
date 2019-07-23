@@ -57,6 +57,7 @@ class HangPoleBulletEnv(gym.Env):
 
         print(self.dist_var, self.mass_var)
 
+
     def get_obs(self):
         x, x_dot, theta, theta_dot = p.getJointState(self.cartpole, 0)[0:2] + p.getJointState(self.cartpole, 1)[0:2]
 

@@ -37,7 +37,7 @@ class MLPCustom(FeedForwardPolicy):
 
 
 model = A2C(CustomLSTMPolicy, env, n_steps=250, verbose=1)
-model.learn(total_timesteps=10000000)
+model.learn(total_timesteps=5000000)
 model.save("lstmodel")
 
 [e.kill() for e in env.unwrapped.envs]

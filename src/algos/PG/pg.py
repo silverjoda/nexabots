@@ -294,10 +294,6 @@ if __name__=="__main__":
         env.test(policy, slow=params["animate"], seed=1338)
         print(policy_path)
 
-        # HE0: 5689 8510
-        # 5OV: 3834 6306
-        # CFA: 2703 5981
-        # XXX: 4048 6907
 
 
 

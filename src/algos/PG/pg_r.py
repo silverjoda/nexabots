@@ -167,7 +167,7 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 1000000, "batchsize": 20, "gamma": 0.99, "lr": 0.0007, "decay" : 0.00003, "ppo": True,
+    params = {"iters": 1000000, "batchsize": 50, "gamma": 0.999, "lr": 0.0007, "decay" : 0.00003, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
               "comments" : "Hangpole, po, pg_rnn search:  n_temp=1", "Env_list" : env_list,
               "ID": ID}
@@ -189,7 +189,7 @@ if __name__=="__main__":
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_3NP_pg.p'
+        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_1HL_pg.p' # 1HL
         policy = T.load(policy_path)
         env.test_recurrent(policy, slow=params["animate"], seed=1337)
         print(policy_path)

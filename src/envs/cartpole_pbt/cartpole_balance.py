@@ -13,7 +13,7 @@ import src.my_utils as my_utils
 import time
 import socket
 
-if socket.gethostname() != "goedel" or True:
+if socket.gethostname() != "goedel":
     import gym
     from gym import spaces
     from gym.utils import seeding
@@ -31,7 +31,7 @@ class CartPoleBalanceBulletEnv():
 
         # Simulator parameters
         self.max_steps = 300
-        self.latent_dim = 1
+        self.latent_dim = 2
         self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
 
@@ -44,11 +44,11 @@ class CartPoleBalanceBulletEnv():
         self.target_debug_line = None
         self.target_var = 2.0
         self.target_change_prob = 0.008
-        self.mass_min = 0.1
-        self.mass_var = 0.0
+        self.mass_min = 0.2
+        self.mass_var = 3.0
 
-        self.weight_position_min = 0.3
-        self.weight_position_var = 0.0
+        self.weight_position_min = 0.5
+        self.weight_position_var = 0.5
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_balance.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
@@ -112,6 +112,8 @@ class CartPoleBalanceBulletEnv():
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.005
 
         #p.removeAllUserDebugItems()
+        #p.addUserDebugText("theta: {0:.3f}".format(theta), [0, 0, 2])
+
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
         #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
         #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
@@ -119,7 +121,7 @@ class CartPoleBalanceBulletEnv():
         #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
         #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
 
-        done = self.step_ctr > self.max_steps
+        done = self.step_ctr > self.max_steps or abs(theta) > 0.5
 
         # Change target
         if np.random.rand() < self.target_change_prob:
@@ -127,7 +129,7 @@ class CartPoleBalanceBulletEnv():
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, self.weight_position], [0, 0, 0, 1])
 
         if self.latent_input:
-            obs = np.concatenate((obs, [self.get_latent_label()]))
+            obs = np.concatenate((obs, self.get_latent_label()))
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
 

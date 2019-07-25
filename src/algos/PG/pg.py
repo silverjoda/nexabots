@@ -269,9 +269,9 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 20, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
+    params = {"iters": 500000, "batchsize": 20, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Hangpole, po", "ID" : ID}
+              "note" : "Double Hangpole, mv=7, latent input", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -279,6 +279,9 @@ if __name__=="__main__":
 
     from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
     env = HangPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
+
+    #from src.envs.cartpole_pbt.double_hangpole import DoubleHangPoleBulletEnv
+    #env = DoubleHangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
     # Test
     if params["train"]:
@@ -289,11 +292,12 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        policy_path = 'agents/HangPoleBulletEnv_NN_PG_ETX_pg.p'
+        policy_path = 'agents/HangPoleBulletEnv_NN_PG_ETX_pg.p' # ETX
         policy = T.load(policy_path)
-        env.test(policy, slow=params["animate"], seed=1338)
+        env.test(policy, slow=params["animate"], seed=1337)
         print(policy_path)
 
-
+        # HPW: -1197, 9W0: -774.96
+        # X48: -1331, 2MO
 
 

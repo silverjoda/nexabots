@@ -27,6 +27,7 @@
         <color rgba="0 0 .8 1"/>
       </material>
     </visual>
+
     <inertial>
       <mass value="1"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
@@ -42,56 +43,39 @@
     <dynamics damping="0.1" friction="0.0"/>
   </joint>
 
-  <link name="pole_1">
+  <link name="sphere">
     <visual>
       <geometry>
-        <box size="0.05 0.05 0.5"/>
+        <sphere radius="0.1"/>
       </geometry>
-      <origin xyz="0 0 -0.25"/>
-      <material name="pmat1">
-        <color rgba="0 0.0 1. 1"/>
+      <origin rpy="0 0 0" xyz="0 0 -1.0"/>
+      <material name="red">
+        <color rgba="1 0 0 1"/>
       </material>
     </visual>
+
     <inertial>
-      <origin xyz="0 0 -0.25"/>
-      <mass value="1"/>
+      <origin xyz="0 0 -1.0"/>
+      <mass value="1.0"/>
       <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
     </inertial>
+
+    <collision>
+      <geometry>
+        <box size="0.05 0.05 1.0"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0.5"/>
+    </collision>
   </link>
 
-  <joint name="swing_1" type="continuous">
+  <joint name="swing" type="continuous">
     <axis xyz="0 1 0"/>
     <origin xyz="0.0 0.0 0"/>
     <parent link="cart"/>
-    <child link="pole_1"/>
+    <child link="sphere"/>
     <limit effort="1000.0" lower="-2" upper="2" velocity="10"/>
     <joint_properties damping="0.0" friction="0.0"/>
   </joint>
 
-  <link name="pole_2">
-    <visual>
-      <geometry>
-        <box size="0.05 0.05 0.5"/>
-      </geometry>
-      <origin xyz="0 0 -0.25"/>
-      <material name="pmat2">
-        <color rgba="0 0.0 1. 1"/>
-      </material>
-    </visual>
-    <inertial>
-      <origin xyz="0 0 -0.25"/>
-      <mass value="1"/>
-      <inertia ixx="1.0" ixy="0.0" ixz="0.0" iyy="1.0" iyz="0.0" izz="1.0"/>
-    </inertial>
-  </link>
-
-  <joint name="swing_2" type="continuous">
-    <axis xyz="0 1 0"/>
-    <origin xyz="0.0 0.0 -0.5"/>
-    <parent link="pole_1"/>
-    <child link="pole_2"/>
-    <limit effort="1000.0" lower="-2" upper="2" velocity="10"/>
-    <joint_properties damping="0.0" friction="0.0"/>
-  </joint>
 
 </robot>

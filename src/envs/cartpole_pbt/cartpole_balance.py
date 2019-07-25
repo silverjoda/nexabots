@@ -18,7 +18,7 @@ if socket.gethostname() != "goedel" or True:
     from gym import spaces
     from gym.utils import seeding
 
-class HangPoleBulletEnv(gym.Env):
+class CartPoleBalanceBulletEnv():
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
@@ -44,18 +44,20 @@ class HangPoleBulletEnv(gym.Env):
         self.target_debug_line = None
         self.target_var = 2.0
         self.target_change_prob = 0.008
-        self.dist_var = 2
-        self.mass_var = 7.0
-        self.mass_min = 1.0
+        self.mass_min = 0.1
+        self.mass_var = 0.0
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
+        self.weight_position_min = 0.3
+        self.weight_position_var = 0.0
+
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_balance.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
         if socket.gethostname() != "goedel":
             self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
             self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
 
-        print(self.dist_var, self.mass_var)
+        print(self.mass_min, self.mass_var)
 
 
     def get_obs(self):
@@ -84,8 +86,9 @@ class HangPoleBulletEnv(gym.Env):
 
 
     def get_latent_label(self):
-        mass_norm = (2 * self.mass - 2 * self.mass_min) / self.mass_var - 1
-        return mass_norm
+        mass_norm = (2 * self.cartpole_mass - 2 * self.mass_min) / self.mass_var - 1
+        weight_pos = (2 * self.weight_position - 2 * self.weight_position_min) / self.weight_position_var - 1
+        return np.array((mass_norm, weight_pos))
 
 
     def render(self, close=False):
@@ -93,7 +96,8 @@ class HangPoleBulletEnv(gym.Env):
 
 
     def step(self, ctrl):
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 20)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 5)
+        p.setJointMotorControl2(self.cartpole, 2, p.POSITION_CONTROL, self.weight_position)
         p.stepSimulation()
 
         self.step_ctr += 1
@@ -120,7 +124,7 @@ class HangPoleBulletEnv(gym.Env):
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, self.weight_position], [0, 0, 0, 1])
 
         if self.latent_input:
             obs = np.concatenate((obs, [self.get_latent_label()]))
@@ -135,16 +139,17 @@ class HangPoleBulletEnv(gym.Env):
     def reset(self):
         self.step_ctr = 0
         self.theta_prev = 1
-        self.target = np.random.rand() * 2 * self.target_var - self.target_var
-        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
-        self.dist = 0.5 + np.random.rand() * self.dist_var
-        self.mass = self.mass_min + np.random.rand() * self.mass_var
+        self.weight_position = self.weight_position_min + np.random.rand() * self.weight_position_var
+        self.cartpole_mass = self.mass_min + np.random.rand() * self.mass_var
+
+        self.target = np.random.rand() * 2 * self.target_var - self.target_var
+        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, self.weight_position], [0, 0, 0, 1])
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)
-        p.changeDynamics(self.cartpole, 1, mass=self.mass)
-        p.changeVisualShape(self.cartpole, 1, rgbaColor=[self.mass / (self.mass_min + self.mass_var), 1 - self.mass / (self.mass_min + self.mass_var), 0, 1])
+        p.changeDynamics(self.cartpole, 0, mass=self.cartpole_mass)
+        p.changeVisualShape(self.cartpole, 0, rgbaColor=[self.cartpole_mass / (self.mass_min + self.mass_var), 1 - self.cartpole_mass / (self.mass_min + self.mass_var), 0, 1])
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
@@ -225,5 +230,5 @@ class HangPoleBulletEnv(gym.Env):
 
 
 if __name__ == "__main__":
-    env = HangPoleBulletEnv(animate=True)
+    env = CartPoleBalanceBulletEnv(animate=True)
     env.demo()

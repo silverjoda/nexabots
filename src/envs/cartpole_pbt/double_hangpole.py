@@ -13,12 +13,12 @@ import src.my_utils as my_utils
 import time
 import socket
 
-if socket.gethostname() != "goedel" or True:
+if socket.gethostname() != "goedel":
     import gym
     from gym import spaces
     from gym.utils import seeding
 
-class DoubleHangPoleBulletEnv(gym.Env):
+class DoubleHangPoleBulletEnv():
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
@@ -49,7 +49,6 @@ class DoubleHangPoleBulletEnv(gym.Env):
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "double_hangpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
-
 
         if socket.gethostname() != "goedel":
             self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
@@ -120,7 +119,7 @@ class DoubleHangPoleBulletEnv(gym.Env):
 
         target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta_2)), -2, 2)
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot_1) * 0.5 + np.square(theta_dot_2) * 0.5) * (1 - abs(theta_1)) * (1 - abs(theta_2))
-        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.03
+        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.01
 
         #p.removeAllUserDebugItems()
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
@@ -138,7 +137,7 @@ class DoubleHangPoleBulletEnv(gym.Env):
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -2], [0, 0, 0, 1])
 
         if self.latent_input:
-            obs = np.concatenate((obs, [self.get_latent_label()]))
+            obs = np.concatenate((obs, self.get_latent_label()))
         if self.action_input:
             obs = np.concatenate((obs, ctrl))
 
@@ -151,7 +150,7 @@ class DoubleHangPoleBulletEnv(gym.Env):
         self.step_ctr = 0
         self.theta_prev = 1
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
-        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -2], [0, 0, 0, 1])
+        p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
         self.mass_1, self.mass_2 = self.mass_min + np.random.rand(2) * self.mass_range
 

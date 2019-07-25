@@ -167,17 +167,20 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 1000000, "batchsize": 50, "gamma": 0.999, "lr": 0.0007, "decay" : 0.00003, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
-              "comments" : "Hangpole, po, pg_rnn search:  n_temp=1", "Env_list" : env_list,
+    params = {"iters": 1000000, "batchsize": 50, "gamma": 0.995, "lr": 0.0007, "decay" : 0.00003, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : False,
+              "comments" : "Double Hangpole:  n_temp=1", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.cartpole_pbt.hangpole_po import HangPoleBulletEnv
-    env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+    #from src.envs.cartpole_pbt.hangpole_po import HangPoleBulletEnv
+    #env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+
+    from src.envs.cartpole_pbt.double_hangpole import DoubleHangPoleBulletEnv
+    env = DoubleHangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
     print(params, env.__class__.__name__)
 
@@ -189,7 +192,7 @@ if __name__=="__main__":
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_1HL_pg.p' # 1HL
+        policy_path = 'agents/DoubleHangPoleBulletEnv_RNN_PG_O5K_pg.p' # 1HL
         policy = T.load(policy_path)
         env.test_recurrent(policy, slow=params["animate"], seed=1337)
         print(policy_path)

@@ -48,7 +48,7 @@ class HangPoleBulletEnv(gym.Env):
         self.mass_var = 7.0
         self.mass_min = 1.0
 
-        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
+        self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole_vl.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
 
         if socket.gethostname() != "goedel":
@@ -105,7 +105,7 @@ class HangPoleBulletEnv(gym.Env):
 
         target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta)), -2, 2)
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
-        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.005
+        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.03
 
         #p.removeAllUserDebugItems()
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])

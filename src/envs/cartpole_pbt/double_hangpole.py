@@ -134,7 +134,7 @@ class DoubleHangPoleBulletEnv():
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
-            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -2], [0, 0, 0, 1])
+            p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
         if self.latent_input:
             obs = np.concatenate((obs, self.get_latent_label()))

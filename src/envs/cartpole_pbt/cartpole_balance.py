@@ -13,12 +13,14 @@ import src.my_utils as my_utils
 import time
 import socket
 
-if socket.gethostname() != "goedel":
+GYM = True
+
+if socket.gethostname() != "goedel" or GYM:
     import gym
     from gym import spaces
     from gym.utils import seeding
 
-class CartPoleBalanceBulletEnv():
+class CartPoleBalanceBulletEnv(gym.Env):
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)
@@ -30,7 +32,7 @@ class CartPoleBalanceBulletEnv():
         self.action_input = action_input
 
         # Simulator parameters
-        self.max_steps = 300
+        self.max_steps = 150
         self.latent_dim = 2
         self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
@@ -42,13 +44,13 @@ class CartPoleBalanceBulletEnv():
         p.setRealTimeSimulation(0)
 
         self.target_debug_line = None
-        self.target_var = 2.0
+        self.target_var = 1.2
         self.target_change_prob = 0.008
-        self.mass_min = 0.2
-        self.mass_var = 3.0
+        self.mass_min = 0.1
+        self.mass_var = 0.0
 
         self.weight_position_min = 0.5
-        self.weight_position_var = 0.5
+        self.weight_position_var = 0.0
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "cartpole_balance.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
@@ -96,7 +98,7 @@ class CartPoleBalanceBulletEnv():
 
 
     def step(self, ctrl):
-        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 5)
+        p.setJointMotorControl2(self.cartpole, 0, p.TORQUE_CONTROL, force=ctrl * 10)
         p.setJointMotorControl2(self.cartpole, 2, p.POSITION_CONTROL, self.weight_position)
         p.stepSimulation()
 
@@ -105,15 +107,25 @@ class CartPoleBalanceBulletEnv():
         # x, x_dot, theta, theta_dot
         obs = self.get_obs()
         x, x_dot, theta, theta_dot = obs
-        x_sphere = x - np.sin(p.getJointState(self.cartpole, 1)[0])
 
-        target_pen = np.clip(np.abs(x_sphere - self.target) * 3.0 * (1 - abs(theta)), -2, 2)
-        vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
-        r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.005
+        x_current = x + 0.5 * np.sin(p.getJointState(self.cartpole, 1)[0])
+        target_dist = abs(self.target - x_current)
+
+        if abs(theta) < 0.3:
+            angle_rew = 0.5
+        else:
+            angle_rew = 0.5 - np.square(theta) * 1
+
+        target_rew = (self.target_dist_prev - target_dist) * 1
+        ctrl_pen = np.square(ctrl[0]) * 0.005
+        r = angle_rew + target_rew - ctrl_pen # Second is default, first is with if
+
+        self.target_dist_prev = target_dist
 
         #p.removeAllUserDebugItems()
+        #p.addUserDebugText("Generic: {0:.3f}".format(x_current), [0, 0, 2])
+        #time.sleep(0.1)
         #p.addUserDebugText("theta: {0:.3f}".format(theta), [0, 0, 2])
-
         #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
         #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
         #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
@@ -126,6 +138,7 @@ class CartPoleBalanceBulletEnv():
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -2, 2)
+            self.target_dist_prev = abs(self.target - x_current)
             p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, self.weight_position], [0, 0, 0, 1])
 
         if self.latent_input:
@@ -142,11 +155,14 @@ class CartPoleBalanceBulletEnv():
         self.step_ctr = 0
         self.theta_prev = 1
 
+
         self.weight_position = self.weight_position_min + np.random.rand() * self.weight_position_var
         self.cartpole_mass = self.mass_min + np.random.rand() * self.mass_var
 
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, self.weight_position], [0, 0, 0, 1])
+
+        self.target_dist_prev = self.target
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)
@@ -154,6 +170,7 @@ class CartPoleBalanceBulletEnv():
         p.changeVisualShape(self.cartpole, 0, rgbaColor=[self.cartpole_mass / (self.mass_min + self.mass_var), 1 - self.cartpole_mass / (self.mass_min + self.mass_var), 0, 1])
         p.setJointMotorControl2(self.cartpole, 0, p.VELOCITY_CONTROL, force=0)
         p.setJointMotorControl2(self.cartpole, 1, p.VELOCITY_CONTROL, force=0)
+        #p.setJointMotorControl2(self.cartpole, 2, p.POSITION_CONTROL, self.weight_position)
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
         return obs
 
@@ -208,6 +225,7 @@ class CartPoleBalanceBulletEnv():
     def demo(self):
         for i in range(100):
             self.reset()
+            p.resetJointState(self.cartpole, 1, targetValue=np.pi, targetVelocity=0)
             for j in range(120):
                 # self.step(np.random.rand(self.act_dim) * 2 - 1)
                 self.step(np.array([-1]))

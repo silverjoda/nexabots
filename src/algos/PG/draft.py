@@ -277,11 +277,11 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
-    #env = HangPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
+    from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
+    env = HangPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
 
-    from src.envs.cartpole_pbt.cartpole_balance import CartPoleBalanceBulletEnv
-    env = CartPoleBalanceBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+    #from src.envs.cartpole_pbt.cartpole_balance import CartPoleBalanceBulletEnv
+    #env = CartPoleBalanceBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
 
     #from src.envs.cartpole_pbt.double_hangpole import DoubleHangPoleBulletEnv
     #env = DoubleHangPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
@@ -295,7 +295,7 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        policy_path = 'agents/CartPoleBalanceBulletEnv_NN_PG_YCK_pg.p' # ETX
+        policy_path = 'agents/HangPoleBulletEnv_NN_PG_ETX_pg.p' # ETX
         policy = T.load(policy_path)
         env.test(policy, slow=params["animate"], seed=1337)
         print(policy_path)

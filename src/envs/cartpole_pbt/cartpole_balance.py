@@ -110,17 +110,14 @@ class CartPoleBalanceBulletEnv(gym.Env):
 
         x_current = x + 0.5 * np.sin(p.getJointState(self.cartpole, 1)[0])
         target_dist = abs(self.target - x_current)
+        target_pen = target_dist * 0.3
+        angle_pen = np.square(theta) * 1
+        velocity_pen = abs(x_dot) * 1 / (target_dist * 10 + 1)
 
-        if abs(theta) < 0.3:
-            angle_rew = 0.5
-        else:
-            angle_rew = 0.5 - np.square(theta) * 1
-
-        target_rew = (self.target_dist_prev - target_dist) * 1
         ctrl_pen = np.square(ctrl[0]) * 0.005
-        r = angle_rew + target_rew - ctrl_pen # Second is default, first is with if
+        r = - angle_pen - target_pen - velocity_pen - ctrl_pen # Second is default, first is with if
 
-        self.target_dist_prev = target_dist
+        #self.target_dist_prev = target_dist
 
         #p.removeAllUserDebugItems()
         #p.addUserDebugText("Generic: {0:.3f}".format(x_current), [0, 0, 2])
@@ -133,7 +130,7 @@ class CartPoleBalanceBulletEnv(gym.Env):
         #p.addUserDebugText("x_target: {0:.3f}".format(self.target), [0, 0, 2.2])
         #p.addUserDebugText("cart_pen: {0:.3f}".format(cart_pen), [0, 0, 2.4])
 
-        done = self.step_ctr > self.max_steps or abs(theta) > 0.5
+        done = self.step_ctr > self.max_steps #or abs(theta) > 0.5
 
         # Change target
         if np.random.rand() < self.target_change_prob:

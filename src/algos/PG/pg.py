@@ -270,18 +270,18 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 20, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Cartpole balance, var", "ID" : ID}
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "note" : "hp, m=var", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
-    #env = HangPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
+    from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
+    env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
-    from src.envs.cartpole_pbt.cartpole_balance import CartPoleBalanceBulletEnv
-    env = CartPoleBalanceBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+    #from src.envs.cartpole_pbt.cartpole_balance import CartPoleBalanceBulletEnv
+    #env = CartPoleBalanceBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
     #from src.envs.cartpole_pbt.double_hangpole import DoubleHangPoleBulletEnv
     #env = DoubleHangPoleBulletEnv(animate=params["animate"], latent_input=True, action_input=False)
@@ -295,12 +295,11 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        policy_path = 'agents/CartPoleBalanceBulletEnv_NN_PG_YCK_pg.p' # ETX
+        policy_path = 'agents/CartPoleBalanceBulletEnv_NN_PG_VEP_pg.p' # ETX,
         policy = T.load(policy_path)
         env.test(policy, slow=params["animate"], seed=1337)
         print(policy_path)
 
-        # HPW: -1197, 9W0: -774.96
-        # X48: -1331, 2MO
+        #hp:  QQB,  BWR, BPH , 7A9
 
 

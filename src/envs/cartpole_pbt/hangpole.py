@@ -8,6 +8,7 @@ import numpy as np
 import pybullet as p
 
 import numpy as np
+import random
 import cv2
 import src.my_utils as my_utils
 import time
@@ -45,8 +46,8 @@ class HangPoleBulletEnv(gym.Env):
         self.target_var = 2.0
         self.target_change_prob = 0.008
         self.dist_var = 2
-        self.mass_var = 7.0
-        self.mass_min = 1.0
+        self.mass_var = 0.0
+        self.mass_min = 10.0
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))
         self.target_vis = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "target.urdf"))
@@ -139,7 +140,7 @@ class HangPoleBulletEnv(gym.Env):
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
         self.dist = 0.5 + np.random.rand() * self.dist_var
-        self.mass = self.mass_min + np.random.rand() * self.mass_var
+        self.mass = random.sample([1,5,10], 1)[0]#self.mass_min + np.random.rand() * self.mass_var
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)

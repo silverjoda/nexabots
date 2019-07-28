@@ -14,12 +14,12 @@ import src.my_utils as my_utils
 import time
 import socket
 
-if socket.gethostname() != "goedel" or True:
+if socket.gethostname() != "goedel" or False:
     import gym
     from gym import spaces
     from gym.utils import seeding
 
-class HangPoleBulletEnv(gym.Env):
+class HangPoleBulletEnv():
     def __init__(self, animate=False, latent_input=False, action_input=False):
         if (animate):
           p.connect(p.GUI)

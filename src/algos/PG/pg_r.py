@@ -179,15 +179,18 @@ if __name__=="__main__":
     #from src.envs.cartpole_pbt.hangpole_po import HangPoleBulletEnv
     #env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
-    from src.envs.cartpole_pbt.double_hangpole import DoubleHangPoleBulletEnv
-    env = DoubleHangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+    #from src.envs.cartpole_pbt.double_hangpole import DoubleHangPoleBulletEnv
+    #env = DoubleHangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
+
+    from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
+    env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, hid_dim=16, memory_dim=16, n_temp=1, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_PG(env, hid_dim=12, memory_dim=12, n_temp=1, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

@@ -31,7 +31,7 @@ class HangPoleBulletEnv():
         self.action_input = action_input
 
         # Simulator parameters
-        self.max_steps = 300
+        self.max_steps = 150
         self.latent_dim = 1
         self.obs_dim = 4 + self.latent_dim * int(self.latent_input) + int(self.action_input) + 1
         self.act_dim = 1
@@ -55,6 +55,7 @@ class HangPoleBulletEnv():
         if socket.gethostname() != "goedel":
             self.observation_space = spaces.Box(low=-1, high=1, shape=(self.obs_dim,))
             self.action_space = spaces.Box(low=-1, high=1, shape=(self.act_dim,))
+            self.metadata = None
 
         print(self.dist_var, self.mass_var)
 
@@ -108,8 +109,8 @@ class HangPoleBulletEnv():
         vel_pen = (np.square(x_dot) * 0.1 + np.square(theta_dot) * 0.5) * (1 - abs(theta))
         r = 1 - target_pen - vel_pen - np.square(ctrl[0]) * 0.005
 
-        #p.removeAllUserDebugItems()
-        #p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
+        p.removeAllUserDebugItems()
+        p.addUserDebugText("sphere mass: {0:.3f}".format(self.mass), [0, 0, 2])
         #p.addUserDebugText("sphere x: {0:.3f}".format(x_sphere), [0, 0, 2])
         #p.addUserDebugText("cart pen: {0:.3f}".format(cart_pen), [0, 0, 2])
         #p.addUserDebugText("x: {0:.3f}".format(x), [0, 0, 2])
@@ -140,7 +141,7 @@ class HangPoleBulletEnv():
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
         self.dist = 0.5 + np.random.rand() * self.dist_var
-        self.mass = 10 # random.sample([1,5,10], 1)[0]#self.mass_min + np.random.rand() * self.mass_var
+        self.mass = random.sample([1,5,15], 1)[0]#self.mass_min + np.random.rand() * self.mass_var
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)

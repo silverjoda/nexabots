@@ -1,14 +1,26 @@
 import gym
 import time
-from stable_baselines.common.policies import MlpPolicy, LstmPolicy, MlpLnLstmPolicy, FeedForwardPolicy
+import numpy as np
+from stable_baselines.common.policies import LstmPolicy, MlpLnLstmPolicy, FeedForwardPolicy
+from stable_baselines.ddpg.policies import DDPGPolicy, MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv, SubprocVecEnv
 from stable_baselines import PPO2, ACKTR, SAC, A2C, ACER, DDPG, TRPO
+from stable_baselines.ddpg.noise import NormalActionNoise, OrnsteinUhlenbeckActionNoise, AdaptiveParamNoiseSpec
 
 from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
 from src.envs.cartpole_pbt.cartpole_balance import CartPoleBalanceBulletEnv
-#env = HangPoleBulletEnv(animate=False, latent_input=False, action_input=False)
-env = CartPoleBalanceBulletEnv(animate=False, latent_input=False, action_input=False)
+env = HangPoleBulletEnv(animate=False, latent_input=False, action_input=False)
+#env = CartPoleBalanceBulletEnv(animate=False, latent_input=False, action_input=False)
 env = DummyVecEnv([lambda: env])  # The algorithms require a vectorized environment to run
+
+# the noise objects for DDPG
+n_actions = env.action_space.shape[-1]
+param_noise = None
+action_noise = OrnsteinUhlenbeckActionNoise(mean=np.zeros(n_actions), sigma=float(0.5) * np.ones(n_actions))
+
+model = DDPG(MlpPolicy, env, verbose=1, param_noise=param_noise, action_noise=action_noise)
+model.learn(total_timesteps=400000)
+model.save("ddpg_mountain")
 
 # def make_env():
 #     def _init():
@@ -37,7 +49,7 @@ class MLPCustom(FeedForwardPolicy):
                                                           vf=[12, 12])],
                                            feature_extraction="mlp")
 
-model = PPO2(MLPCustom, env, gamma=0.995, learning_rate=5e-4, n_steps=150, verbose=1, nminibatches=1)
+model = DDPG(DDPGPolicy, env, gamma=0.995, verbose=1, nb_train_steps=170, nb_rollout_steps=170)
 model.learn(total_timesteps=800000)
 model.save("model")
 

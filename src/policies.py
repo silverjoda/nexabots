@@ -916,6 +916,10 @@ class NN_PG(nn.Module):
         self.m2 = nn.LayerNorm(hid_dim)
         self.fc3 = nn.Linear(hid_dim, self.act_dim)
 
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='leaky_relu')
+
         if std_fixed:
             self.log_std = T.zeros(1, self.act_dim)
         else:
@@ -923,8 +927,8 @@ class NN_PG(nn.Module):
 
 
     def forward(self, x):
-        x = F.relu(self.m1(self.fc1(x)))
-        x = F.relu(self.m2(self.fc2(x)))
+        x = F.leaky_relu(self.m1(self.fc1(x)))
+        x = F.leaky_relu(self.m2(self.fc2(x)))
         if self.tanh:
             x = T.tanh(self.fc3(x))
         else:
@@ -1589,6 +1593,9 @@ class RNN_PG(nn.Module):
         self.rnn = nn.LSTM(self.hid_dim, self.memory_dim, n_temp, batch_first=True)
         self.fc2 = nn.Linear(self.memory_dim, self.act_dim)
 
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
+
         if to_gpu:
             self.log_std_gpu = T.zeros(1, self.act_dim).cuda()
         else:
@@ -1619,7 +1626,7 @@ class RNN_PG(nn.Module):
 
     def forward(self, input):
         x, h = input
-        rnn_features = F.selu(self.m1(self.fc1(x)))
+        rnn_features = F.leaky_relu(self.m1(self.fc1(x)))
 
         output, h = self.rnn(rnn_features, h)
 

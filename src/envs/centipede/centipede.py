@@ -109,7 +109,7 @@ class Centipede:
         roll, pitch, yaw = my_utils.quat_to_rpy((q0,q1,q2,q3))
 
         # Reevaluate termination condition
-        done = self.step_ctr >= self.max_steps or yaw > 0.9 or z > 1.2 or z < 0.2 or abs(y) > 0.8
+        done = self.step_ctr >= self.max_steps #or yaw > 0.9 or z > 1.2 or z < 0.2 or abs(y) > 0.8
 
         ctrl_effort = np.square(ctrl).mean() * 0.01
         target_progress = -vel[0]

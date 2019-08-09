@@ -587,25 +587,35 @@ class ConvPolicy_Iter_PG_c(nn.Module):
 
 
 class ConvPolicy8_PG(nn.Module):
-    def __init__(self, env):
+    def __init__(self, env, N_neurons, tanh=False, std_fixed=True):
         super(ConvPolicy8_PG, self).__init__()
         self.N_links = 4
         self.act_dim = self.N_links * 6 - 2
 
         # rep conv
-        self.conv_1 = nn.Conv1d(12, 4, kernel_size=3, stride=1, padding=1)
-        self.conv_2 = nn.Conv1d(4, 8, kernel_size=3, stride=1, padding=1)
+        self.conv_1 = nn.Conv1d(14, 8, kernel_size=3, stride=1, padding=1)
+        self.conv_2 = nn.Conv1d(8, 8, kernel_size=3, stride=1, padding=1)
         self.conv_3 = nn.Conv1d(8, 8, kernel_size=3, stride=1)
         self.conv_4 = nn.Conv1d(8, 8, kernel_size=2, stride=1)
 
         # Embedding layers
-        self.conv_emb_1 = nn.Conv1d(13, 8, kernel_size=1, stride=1)
-        self.conv_emb_2 = nn.Conv1d(8, 8, kernel_size=1, stride=1)
+        self.conv_emb_1 = nn.Conv1d(18, 12, kernel_size=1, stride=1)
+        self.conv_emb_2 = nn.Conv1d(12, 12, kernel_size=1, stride=1)
 
-        self.deconv_1 = nn.ConvTranspose1d(8, 4, kernel_size=3, stride=1)
-        self.deconv_2 = nn.ConvTranspose1d(4, 4, kernel_size=3, stride=1, padding=1)
-        self.deconv_3 = nn.ConvTranspose1d(4, 8, kernel_size=3, stride=1, padding=1)
+        self.deconv_1 = nn.ConvTranspose1d(12, 8, kernel_size=3, stride=1)
+        self.deconv_2 = nn.ConvTranspose1d(8, 8, kernel_size=3, stride=1, padding=1)
+        self.deconv_3 = nn.ConvTranspose1d(8, 8, kernel_size=3, stride=1, padding=1)
         self.deconv_4 = nn.ConvTranspose1d(14, 6, kernel_size=3, stride=1, padding=1)
+        #
+        # T.nn.init.kaiming_normal_(self.conv_1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        # T.nn.init.kaiming_normal_(self.conv_2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        # T.nn.init.kaiming_normal_(self.conv_3.weight, mode='fan_in', nonlinearity='leaky_relu')
+        # T.nn.init.kaiming_normal_(self.conv_4.weight, mode='fan_in', nonlinearity='leaky_relu')
+        #
+        # T.nn.init.kaiming_normal_(self.deconv_1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        # T.nn.init.kaiming_normal_(self.deconv_2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        # T.nn.init.kaiming_normal_(self.deconv_3.weight, mode='fan_in', nonlinearity='leaky_relu')
+        # T.nn.init.kaiming_normal_(self.deconv_4.weight, mode='fan_in', nonlinearity='leaky_relu')
 
         self.upsample = nn.Upsample(size=4)
 
@@ -614,22 +624,27 @@ class ConvPolicy8_PG(nn.Module):
         self.log_std = T.zeros(1, self.act_dim)
 
     def forward(self, x):
+        N_joints = self.N_links * 6 - 2
         N = x.shape[0]
-        obs = x[:, :7]
-        obsd = x[:, 7 + self.N_links * 6 - 2: 7 + self.N_links * 6 - 2 + 6]
+
 
         # (psi, psid)
-        ext_obs = T.cat((obs[:, 3:7], obsd[:, -1:]), 1)
+        global_obs = T.cat((x[:, N_joints*2 + self.N_links * 2:N_joints*2 + self.N_links * 2 + 4],
+                            x[:, N_joints*2 + self.N_links * 2 + 4:]), 1)
 
         # Joints angles
-        jl = T.cat((T.zeros(N, 2), x[:, 7:7 + self.N_links * 6 - 2]), 1)
+        jl = T.cat((T.zeros(N, 2), x[:, :N_joints]), 1)
         jlrs = jl.view((N, 6, -1))
 
         # Joint angle velocities
-        jdl = T.cat((T.zeros(N, 2), x[:, 7 + self.N_links * 6 - 2 + 6:]), 1)
+        jdl = T.cat((T.zeros(N, 2), x[:, N_joints:N_joints*2]), 1)
         jdlrs = jdl.view((N, 6, -1))
 
-        jcat = T.cat((jlrs, jdlrs), 1)  # Concatenate j and jd so that they are 2 parallel channels
+        # Contacts
+        contacts = x[:, N_joints * 2:N_joints * 2 + self.N_links * 2]
+        jcrs = contacts.view((N, 2, -1))
+
+        jcat = T.cat((jlrs, jdlrs, jcrs), 1)  # Concatenate j, jd and contacts so that they are 3 parallel channels
 
         fm_c1 = self.afun(self.conv_1(jcat))
         fm_c2 = self.afun(self.conv_2(fm_c1))
@@ -637,7 +652,7 @@ class ConvPolicy8_PG(nn.Module):
         fm_c4 = self.afun(self.conv_4(fm_c3))
 
         # Combine obs with featuremaps
-        emb_1 = self.afun(self.conv_emb_1(T.cat((fm_c4, ext_obs.unsqueeze(2)), 1)))
+        emb_1 = self.afun(self.conv_emb_1(T.cat((fm_c4, global_obs.unsqueeze(2)), 1)))
         emb_2 = self.afun(self.conv_emb_2(emb_1))
 
         # Project back to action space
@@ -654,6 +669,23 @@ class ConvPolicy8_PG(nn.Module):
 
     def sample_action(self, s):
         return T.normal(self.forward(s), T.exp(self.log_std))
+
+
+    def soft_clip_grads(self, bnd=1):
+        # Find maximum
+        maxval = 0
+
+        for p in self.parameters():
+            m = T.abs(p.grad).max()
+            if m > maxval:
+                maxval = m
+
+        if maxval > bnd:
+            # print("Soft clipping grads")
+            for p in self.parameters():
+                if p.grad is None: continue
+                p.grad = (p.grad / maxval) * bnd
+
 
 
     def log_probs(self, batch_states, batch_actions):

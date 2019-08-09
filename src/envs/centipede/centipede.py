@@ -21,7 +21,7 @@ class Centipede:
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
         # j, jd, ctcts
-        self.obs_dim = self.N_links * 6 - 2 + self.N_links * 6 - 2 + self.N_links * 2 + 1 + 10
+        self.obs_dim = self.N_links * 6 - 2 + self.N_links * 6 - 2 + self.N_links * 2 + 10
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Environent inner parameters
@@ -91,11 +91,13 @@ class Centipede:
 
 
     def step(self, ctrl):
-        #ctrl = self.scale_action(ctrl)
+        ctrl = self.scale_action(ctrl)
 
-        joint_list = np.array(self.sim.get_state().qpos.tolist()[7:31])
-        joint_list += ctrl
-        ctrl = np.clip(joint_list, self.joints_rads_low, self.joints_rads_high)
+        # This is for additive control
+        #joint_list = np.array(self.sim.get_state().qpos.tolist()[7:31])
+        #joint_list += ctrl
+
+        ctrl = np.clip(ctrl, self.joints_rads_low, self.joints_rads_high)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.step()
@@ -105,19 +107,19 @@ class Centipede:
         pos = self.sim.get_state().qpos.tolist()
 
         xd, yd = vel[:2]
-        x, y, z, q0, q1, q2, q3 = pos[:7]
-        roll, pitch, yaw = my_utils.quat_to_rpy((q0,q1,q2,q3))
+        #x, y, z, q0, q1, q2, q3 = pos[:7]
+        #roll, pitch, yaw = my_utils.quat_to_rpy((q0,q1,q2,q3))
 
         # Reevaluate termination condition
         done = self.step_ctr >= self.max_steps #or yaw > 0.9 or z > 1.2 or z < 0.2 or abs(y) > 0.8
 
         ctrl_effort = np.square(ctrl).mean() * 0.01
-        target_progress = -vel[0]
+        #target_progress = -vel[0]
         target_vel = 1.5
         velocity_rew = 1. / (abs(-xd - target_vel) + 1.) - 1. / (target_vel + 1.)
 
         obs_dict = self.get_obs_dict()
-        obs = np.concatenate((pos[3:], vel, obs_dict["contacts"], [yaw]))
+        obs = np.concatenate((pos[7:], vel[6:], obs_dict["contacts"], pos[3:7], vel[:6]))
 
         r = velocity_rew - ctrl_effort - abs(yd) * 0.05
 
@@ -136,16 +138,13 @@ class Centipede:
         init_q[2] = 0.80
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
+        # Set environment state
+        self._set_state(init_q, init_qvel)
+
         for i in range(10):
             self.sim.step()
 
-        obs = np.concatenate((init_q[3:], init_qvel)).astype(np.float32)
-
-        obs_dict = self.get_obs_dict()
-        obs = np.concatenate((obs, obs_dict["contacts"], [0]))
-
-        # Set environment state
-        self._set_state(init_q, init_qvel)
+        obs, _, _, _ = self.step([0] * self.act_dim)
 
         return obs
 

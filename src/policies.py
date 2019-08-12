@@ -593,19 +593,19 @@ class ConvPolicy8_PG(nn.Module):
         self.act_dim = self.N_links * 6 - 2
 
         # rep conv
-        self.conv_1 = nn.Conv1d(14, 8, kernel_size=3, stride=1, padding=1)
-        self.conv_2 = nn.Conv1d(8, 8, kernel_size=3, stride=1, padding=1)
-        self.conv_3 = nn.Conv1d(8, 8, kernel_size=3, stride=1)
-        self.conv_4 = nn.Conv1d(8, 8, kernel_size=2, stride=1)
+        self.conv_1 = nn.Conv1d(14, 12, kernel_size=3, stride=1, padding=1)
+        self.conv_2 = nn.Conv1d(12, 12, kernel_size=3, stride=1, padding=1)
+        self.conv_3 = nn.Conv1d(12, 12, kernel_size=3, stride=1)
+        self.conv_4 = nn.Conv1d(12, 12, kernel_size=2, stride=1)
 
         # Embedding layers
-        self.conv_emb_1 = nn.Conv1d(18, 12, kernel_size=1, stride=1)
+        self.conv_emb_1 = nn.Conv1d(22, 12, kernel_size=1, stride=1)
         self.conv_emb_2 = nn.Conv1d(12, 12, kernel_size=1, stride=1)
 
-        self.deconv_1 = nn.ConvTranspose1d(12, 8, kernel_size=3, stride=1)
-        self.deconv_2 = nn.ConvTranspose1d(8, 8, kernel_size=3, stride=1, padding=1)
-        self.deconv_3 = nn.ConvTranspose1d(8, 8, kernel_size=3, stride=1, padding=1)
-        self.deconv_4 = nn.ConvTranspose1d(14, 6, kernel_size=3, stride=1, padding=1)
+        self.deconv_1 = nn.ConvTranspose1d(12, 12, kernel_size=3, stride=1)
+        self.deconv_2 = nn.ConvTranspose1d(12, 12, kernel_size=3, stride=1, padding=1)
+        self.deconv_3 = nn.ConvTranspose1d(12, 12, kernel_size=3, stride=1, padding=1)
+        self.deconv_4 = nn.ConvTranspose1d(18, 6, kernel_size=3, stride=1, padding=1)
         #
         # T.nn.init.kaiming_normal_(self.conv_1.weight, mode='fan_in', nonlinearity='leaky_relu')
         # T.nn.init.kaiming_normal_(self.conv_2.weight, mode='fan_in', nonlinearity='leaky_relu')

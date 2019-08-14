@@ -15,7 +15,7 @@ class AntFeelersMjc:
         # Environent inner parameters
         self.step_ctr = 0
         self.N_boxes = 5
-        self.max_steps = 1000
+        self.max_steps = 600
         self.mem_dim = 6
 
         self.joints_rads_low = np.array([-0.7, 0.8] * 4 + [-1, -1, -1, -1])

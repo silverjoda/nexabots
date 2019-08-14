@@ -271,27 +271,30 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 30, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "centipede, Conv, hard action pen", "ID" : ID}
+              "note" : "Ant feelers goal mjc", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.centipede.centipede import Centipede
-    env = Centipede(4)
+    #from src.envs.centipede.centipede import Centipede
+    #env = Centipede(4)
+
+    from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
+    env = AntFeelersMjc()
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.ConvPolicy8_PG(env, 64, tanh=False, std_fixed=True)
-        #policy = policies.NN_PG(env, 80)
+        #policy = policies.ConvPolicy8_PG(env, 64, tanh=False, std_fixed=True)
+        policy = policies.NN_PG(env, 80)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:
         print("Testing")
 
-        #policy_path = 'agents/Centipede_NN_PG_2HM_pg.p' # ETX,
-        policy_path = 'agents/Centipede_ConvPolicy8_PG_R60_pg.p' # ETX,
+        policy_path = 'agents/AntFeelersMjc_NN_PG_EYE_pg.p' # ETX,
+        #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX,
         policy = T.load(policy_path)
 
         env.test(policy)

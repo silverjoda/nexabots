@@ -61,7 +61,44 @@ def hm_corridor_turns(res):
     M = math.ceil(res * 10) * 2
     N = math.ceil(res * 100) * 2
     mat = np.zeros((M, N), dtype=np.float32)
-    pass
+
+    N_junctions = 6
+    box_size = 30
+    c_x, c_y = (box_size / 2, 0)
+    wall_set = []
+
+    def getbox(x, y, size):
+        halfsize = size / 2
+        return (x - halfsize, x + halfsize, y - halfsize), \
+               (x - halfsize, x + halfsize, y + halfsize), \
+               (y - halfsize, y + halfsize, x - halfsize), \
+               (y - halfsize, y + halfsize, x + halfsize)
+
+    # Add first box
+    [wall_set.add(w) for w in getbox(c_x, c_y, box_size)]
+
+    for i in range(N_junctions):
+        d = np.random.choice(["N", "W", "E"])
+        if d == "N":
+            # Move
+            c_x += box_size
+        if d == "W":
+            # Move
+            c_y -= box_size
+        if d == "E":
+            # Move
+            c_y += box_size
+
+        # Add to wall_list while removing overlapping walls
+        [wall_set.add(w) for w in getbox(c_x, c_y, box_size)]
+
+    for [w1, w2, w3, w4] in wall_set:
+        mat[w1[0]:w1[1], w1[2]] = 1.
+        mat[w2[0]:w2[1], w2[2]] = 1.
+        mat[w3[0], w3[1], w3[2]] = 1.
+        mat[w4[0], w4[1], w4[2]] = 1.
+
+    return mat
 
 
 def img_generation():

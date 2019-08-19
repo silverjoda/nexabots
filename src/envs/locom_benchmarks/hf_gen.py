@@ -7,6 +7,7 @@ import math
 def hm_flat(res):
     M = int(res * 100)
     N = int(res * 100)
+
     return np.zeros((M, N), dtype=np.float32)
 
 
@@ -101,6 +102,45 @@ def hm_corridor_turns(res):
     return mat
 
 
+def hm_corridor_various_width(res):
+    # Make even dimensions
+    M = math.ceil(res * 10) * 2
+    N = math.ceil(res * 100) * 2
+    mat = np.zeros((M, N), dtype=np.float32)
+
+    N_segments = 5
+    min_width, max_width, min_length, max_length = (40, 80, 40, 80)
+    wall_set = []
+
+    c_x, c_y = (10, M / 2)
+
+    def getbox(x, y, width, length):
+        halfwidth = int(width / 2)
+        halflength = int(length / 2)
+        return (x - halflength, x + halflength, y - halfwidth), \
+               (x - halflength, x + halflength, y + halfwidth), \
+               (y - halfwidth, y + halfwidth, x - halflength), \
+               (y - halfwidth, y + halfwidth, x + halflength)
+
+    # Add first box
+    [wall_set.add(w) for w in getbox(c_x, c_y, max_width, max_length)]
+
+    for i in range(N_segments):
+        width = np.random.randint(min_width, max_width)
+        length = np.random.randint(min_width, max_width)
+
+        # Add to wall_list while removing overlapping walls
+        [wall_set.add(w) for w in getbox(c_x, c_y, width, length)]
+
+    for [w1, w2, w3, w4] in wall_set:
+        mat[w1[0]:w1[1], w1[2]] = 1.
+        mat[w2[0]:w2[1], w2[2]] = 1.
+        mat[w3[0], w3[1], w3[2]] = 1.
+        mat[w4[0], w4[1], w4[2]] = 1.
+
+    return mat
+
+
 def hm_stairs(res):
     # Make even dimensions
     M = math.ceil(res * 10) * 2
@@ -122,10 +162,10 @@ def hm_stairs(res):
             seq = [curr_height + h for h in range(np.random.randint(lim_asc[0], lim_asc[1]))]
             curr_height += len(seq)
         if c == "d":
-            seq = [max(curr_height - h, 0) for h in range(np.random.randint(lim_asc[0], lim_asc[1]))]
+            seq = [max(curr_height - h, 0) for h in range(np.random.randint(lim_desc[0], lim_desc[1]))]
             curr_height = max(0, curr_height - len(seq))
         if c == "f":
-            seq = [curr_height for _ in range(np.random.randint(lim_asc[0], lim_asc[1]))]
+            seq = [curr_height for _ in range(np.random.randint(lim_flat[0], lim_flat[1]))]
         steps.extend(seq)
 
     # Step dimensions
@@ -144,6 +184,49 @@ def hm_stairs(res):
     max_height = max(steps) * step_height
     mat[:N_steps * step_len, 0] = max_height + 10
     mat[:N_steps * step_len, M] = max_height + 10
+
+    return mat
+
+
+def hm_pillars(res):
+    # Make even dimensions
+    tiling_res = 6
+    M = math.ceil(res * 8) * tiling_res
+    N = math.ceil(res * 30) * tiling_res
+    mat = np.zeros((M, N), dtype=np.float32)
+
+    pillar_size = 10
+    padding = 5
+    block_size = int(M / tiling_res)
+
+    M_tiles = int(M / tiling_res)
+    N_tiles = int(N / tiling_res)
+
+    # Add blocks
+    for i in range(M_tiles):
+        for j in range(N_tiles):
+            if np.random.randn() < 0.5: continue
+            rnd_x = np.random.randint(j * block_size + padding, (j + 1) * block_size - pillar_size - padding)
+            rnd_y = np.random.randint(i * block_size + padding, (i + 1) * block_size - pillar_size - padding)
+            mat[i * block_size + rnd_x: i * block_size + rnd_x + pillar_size,
+            j * block_size + rnd_y: j * block_size + rnd_y + pillar_size] = 1
+
+    # Add walls
+    mat[0, 0:] = 1.
+    mat[:, 0:] = 1.
+    mat[0:, 0] = 1.
+    mat[0:, :] = 1.
+
+    return mat
+
+
+def hm_pipe(res, diameter):
+    # Make even dimensions
+    M = math.ceil(res * 10) * 2
+    N = math.ceil(res * 100) * 2
+    mat = np.zeros((M, N), dtype=np.float32)
+
+
 
     return mat
 

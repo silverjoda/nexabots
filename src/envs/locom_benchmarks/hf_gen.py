@@ -236,6 +236,27 @@ def hm_pipe(res, diameter):
     return mat
 
 
+def hm_pipe_variable_dim(res):
+    # Make even dimensions
+    M = math.ceil(res * 10) * 2
+    N = math.ceil(res * 100) * 2
+
+    mat = np.ones((M, N), dtype=np.float32)
+    inc = np.random.randint(-1, 2)
+    diameter, diameter_max, diameter_min = 30, 60, 15
+    for i in range(N):
+        diameter = np.clip(diameter + inc, diameter_min, diameter_max)
+        mat[M / 2 - diameter, M / 2 + diameter, i] = 1 - np.abs(np.linspace(diameter * -np.pi/2, diameter *  np.pi/2, M).repeat(N).reshape(M, N))
+
+    # Add walls
+    mat[0, 0:] = 1.
+    mat[:, 0:] = 1.
+    mat[0:, 0] = 1.
+    mat[0:, :] = 1.
+
+    return mat
+
+
 def hm_tunnel(res, diameter):
 
     # Make even dimensions
@@ -255,6 +276,24 @@ def hm_tunnel(res, diameter):
         curr_z += np.random.rand() * 0.02 - 0.01
 
     return mat
+
+
+def hm_verts(res):
+    # Make even dimensions
+    M = math.ceil(res * 10) * 2
+    N = math.ceil(res * 100) * 2
+
+    wdiv = 4
+    ldiv = 14
+    mat = np.random.rand((M // wdiv, N // ldiv)).repeat(wdiv, axis=0).repeat(ldiv, axis=1)
+    mat[:, :50] = 0
+    mat[mat < 0.5] = 0
+    mat = 1 - mat
+
+    return mat
+
+
+
 
 
 def img_generation():
@@ -306,4 +345,26 @@ def img_generation():
 
 
 if __name__ == "__main__":
-    pass
+    import noise
+    import numpy as np
+    from scipy.misc import toimage
+
+    shape = (256, 256)
+    scale = 100.0
+    octaves = 6
+    persistence = 0.5
+    lacunarity = 2.0
+
+    world = np.zeros(shape)
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            world[i][j] = noise.pnoise2(i / scale,
+                                        j / scale,
+                                        octaves=octaves,
+                                        persistence=persistence,
+                                        lacunarity=lacunarity,
+                                        repeatx=256,
+                                        repeaty=256,
+                                        base=0)
+
+    toimage(world).show()

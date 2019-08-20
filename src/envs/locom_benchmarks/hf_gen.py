@@ -224,9 +224,35 @@ def hm_pipe(res, diameter):
     # Make even dimensions
     M = math.ceil(res * 10) * 2
     N = math.ceil(res * 100) * 2
-    mat = np.zeros((M, N), dtype=np.float32)
+
+    mat = 1 - np.abs(np.linspace(diameter * -np.pi/2, diameter *  np.pi/2, M).repeat(N).reshape(M, N))
+
+    # Add walls
+    mat[0, 0:] = 1.
+    mat[:, 0:] = 1.
+    mat[0:, 0] = 1.
+    mat[0:, :] = 1.
+
+    return mat
 
 
+def hm_tunnel(res, diameter):
+
+    # Make even dimensions
+    M = math.ceil(res * 10) * 2
+    N = math.ceil(res * 100) * 2
+
+    # Base
+    mat = np.ones((M, N), dtype=np.float32)
+
+    # Generate trajectory points
+    N_pts = 30
+    step = np.floor(N / N_pts)
+    curr_y, curr_z = M / 2, 0.3
+    for i in range(1, N_pts):
+        mat[curr_y - diameter * 10:curr_y + diameter * 10,step * i:step * i + step] = 1 - curr_z - np.abs(np.linspace(diameter * -np.pi/2, diameter *  np.pi/2, M).repeat(N).reshape(M, N))
+        curr_y += np.random.rand() * 0.02 - 0.01
+        curr_z += np.random.rand() * 0.02 - 0.01
 
     return mat
 

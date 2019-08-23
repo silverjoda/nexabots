@@ -2,34 +2,49 @@ import numpy as np
 import cv2
 import os
 import math
-
+import noise
+from scipy.misc import toimage
 
 def hm_flat(res):
     M = int(res * 100)
     N = int(res * 100)
-
-    return np.zeros((M, N), dtype=np.float32)
-
-
-def hm_corridor(res):
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
     mat = np.zeros((M, N), dtype=np.float32)
 
     # Walls
-    mat[0, 0:] = 1.
-    mat[:, 0:] = 1.
-    mat[0:, 0] = 1.
-    mat[0:, :] = 1.
+    mat[0, :] = 1.
+    mat[-1, :] = 1.
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+
     return mat
 
 
-def hm_corridor_holes(res):
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
+def hm_corridor(res, cw=6):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 100)
     mat = np.zeros((M, N), dtype=np.float32)
+
+    # Corridor width
+    N_2 = math.ceil(N / 2)
+
+    # Walls
+    mat[N_2 - cw : N_2 + cw, 0] = 1.
+    mat[N_2 - cw : N_2 + cw, -1] = 1.
+    mat[N_2 - cw, :] = 1.
+    mat[N_2 + cw, :] = 1.
+    return mat
+
+
+def hm_corridor_holes(res, cw=6):
+    # Make even dimensions
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 100)
+    mat = np.zeros((M, N), dtype=np.float32)
+
+    # Corridor width
+    N_2 = math.ceil(N / 2)
+
+    # TODO: Continue here, don't forget x and y reversed
 
     # Amount of 'tiles'
     Mt = 2
@@ -48,11 +63,11 @@ def hm_corridor_holes(res):
         mat[0:Mt_res, i * Nt_res: i * Nt_res + Nt_res] = tiles_array[0, i]
         mat[Mt_res:, i * Nt_res: i * Nt_res + Nt_res] = tiles_array[1, i]
 
-    # Walls
-    mat[0, 0:] = 1.
-    mat[:, 0:] = 1.
-    mat[0:, 0] = 1.
-    mat[0:, :] = 1.
+        # Walls
+    mat[N_2 - cw: N_2 + cw, 0] = 1.
+    mat[N_2 - cw: N_2 + cw, -1] = 1.
+    mat[N_2 - cw, :] = 1.
+    mat[N_2 + cw, :] = 1.
 
     return mat
 
@@ -293,6 +308,23 @@ def hm_verts(res):
     return mat
 
 
+def hm_perlin(res, scale_x, scale_y, base, octaves=3, persistence=0.5, lacunarity=2.0):
+    shape = (res, res)
+    scale_x = scale_x
+    scale_y = scale_y
+
+    world = np.zeros(shape)
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            world[i][j] = noise.pnoise2(i / scale_x,
+                                        j / scale_y,
+                                        octaves=octaves,
+                                        persistence=persistence,
+                                        lacunarity=lacunarity,
+                                        repeatx=256,
+                                        repeaty=256,
+                                        base=base)
+
 
 
 
@@ -350,16 +382,17 @@ if __name__ == "__main__":
     from scipy.misc import toimage
 
     shape = (256, 256)
-    scale = 100.0
-    octaves = 6
+    scale_x = 400.0
+    scale_y = 100.0
+    octaves = 3
     persistence = 0.5
     lacunarity = 2.0
 
     world = np.zeros(shape)
     for i in range(shape[0]):
         for j in range(shape[1]):
-            world[i][j] = noise.pnoise2(i / scale,
-                                        j / scale,
+            world[i][j] = noise.pnoise2(i / scale_x,
+                                        j / scale_y,
                                         octaves=octaves,
                                         persistence=persistence,
                                         lacunarity=lacunarity,

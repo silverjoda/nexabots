@@ -44,7 +44,7 @@ def hm_corridor_holes(res, cw=6):
     # Corridor width
     N_2 = math.ceil(N / 2)
 
-    # TODO: Continue here, don't forget x and y reversed
+    # TODO: Continue here, don't forget x and y reversed.
 
     # Amount of 'tiles'
     Mt = 2

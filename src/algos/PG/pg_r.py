@@ -176,15 +176,6 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.cartpole_pbt.hangpole_po import HangPoleBulletEnv
-    #env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
-
-    #from src.envs.cartpole_pbt.double_hangpole import DoubleHangPoleBulletEnv
-    #env = DoubleHangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=False)
-
-    #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv
-    #env = HangPoleBulletEnv(animate=params["animate"], latent_input=False, action_input=True)
-
     from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
     env = AntFeelersMjc()
 
@@ -193,7 +184,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, hid_dim=80, memory_dim=80, n_temp=1, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_PG(env, hid_dim=80, memory_dim=80, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

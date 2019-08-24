@@ -5,6 +5,7 @@ import time
 import os
 import src.envs.ant_feelers_mem_mjc.xml_gen as xml_gen
 
+
 class AntFeelersMjc:
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)), "afgm_env.xml")
     def __init__(self, animate=False):
@@ -99,9 +100,13 @@ class AntFeelersMjc:
 
         x, y, z, qw, qx, qy, qz = obs_c[:7]
         angle = 2 * np.arccos(qw)
+        _, _, yaw = my_utils.quat_to_rpy((qw, qx, qy, qz))
+
+        target_angle = np.arctan2(self.goal_pos[1] -y, self.goal_pos[0] - x)
+        target_err = abs(yaw - target_angle)
 
         # Reevaluate termination condition.
-        done = self.step_ctr > self.max_steps or obs_dict['torso_contact'] > 0.1
+        done = self.step_ctr > self.max_steps #or obs_dict['torso_contact'] > 0.1
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
@@ -110,7 +115,7 @@ class AntFeelersMjc:
         #print(target_progress)
 
         obs = np.concatenate((self.goal_pos - obs_c[:2], obs_c[2:], obs_dict["contacts"], [obs_dict['torso_contact']], mem))
-        r = target_progress - ctrl_effort + obs_dict["contacts"][-2:].sum() * 0.05 - obs_dict['torso_contact'] * 0.5 - angle * 0.0
+        r = target_progress - ctrl_effort - min(target_err, 3) * 0.1
 
         return obs, r, done, obs_dict
 

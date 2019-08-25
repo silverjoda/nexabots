@@ -97,82 +97,82 @@
 
 <!-- DEFINE CUBES AND GOAL HERE -->
     <body> 
-        <geom conaffinity='1' condim='3' name='cube0_geom' pos='-6.250932654292949 -6.448889681500459 0.6' size='0.6190526003354315 0.5208158941516869 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube0_geom' pos='-6.624132153950618 -4.70751380406415 0.6' size='0.33675148212889866 0.6130657452645387 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube1_geom' pos='-4.998060166139991 -2.183954769679099 0.6' size='0.6124156671130311 0.3601451191067276 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube1_geom' pos='-5.379428008403618 -1.6510016737190232 0.6' size='0.4188511618630135 0.6152740674044439 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube2_geom' pos='-4.605235552065317 -0.39372578676875425 0.6' size='0.556650451393955 0.617012790445916 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube2_geom' pos='-6.061925088177759 -0.799275584998091 0.6' size='0.3667043484606791 0.6075460073109838 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube3_geom' pos='-5.901121216136052 3.0600620639369343 0.6' size='0.4587511403591391 0.5806829108190712 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube3_geom' pos='-7.313495616745573 2.0625399454837225 0.6' size='0.42073759359617935 0.3112822708790627 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube4_geom' pos='-4.9871970644074235 6.894008305367887 0.6' size='0.5387913719212765 0.30414065350291497 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube4_geom' pos='-4.87785251860212 7.311611497672324 0.6' size='0.3989925241779305 0.37797515674137294 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube5_geom' pos='-1.7928117916676274 -5.666224049681357 0.6' size='0.47237119492236196 0.3663847591572291 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube5_geom' pos='-1.9970141181107173 -7.21598425264785 0.6' size='0.37781182533290136 0.6160198506259781 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube6_geom' pos='-2.2439077275177564 -3.4504929079299926 0.6' size='0.5847323903118824 0.44066199268987394 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube6_geom' pos='-2.5388893557036907 -1.5119176341323946 0.6' size='0.42443815199381985 0.5748634522963687 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube7_geom' pos='-2.662152896625247 1.4777402848437564 0.6' size='0.3197018757520472 0.4140232889698522 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube7_geom' pos='-2.9020567429920017 -1.2821806957206123 0.6' size='0.5526803734976382 0.5476241617725851 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube8_geom' pos='-3.2268474226546124 2.776381608294349 0.6' size='0.4958437220437995 0.42061678286965776 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube8_geom' pos='-4.36659356683937 2.9520212170105946 0.6' size='0.4617479632055156 0.6213319246797261 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube9_geom' pos='-4.124661766530793 5.78964739439842 0.6' size='0.3905699469088009 0.5569135167116334 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube9_geom' pos='-2.7773687845778143 6.351646146126533 0.6' size='0.3637259919791728 0.629354029411991 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube10_geom' pos='-0.5465784629888862 -7.28302790503348 0.6' size='0.37956794973035135 0.4467978816512218 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube10_geom' pos='1.2935068000355616 -5.196254184895889 0.6' size='0.6190214616170522 0.39009365258802364 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube11_geom' pos='1.198205462921524 -3.1488169028063897 0.6' size='0.5461543764709245 0.5005239732868796 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube11_geom' pos='-0.604978282144897 -3.5785233015395943 0.6' size='0.36595517747397693 0.528168178632467 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube12_geom' pos='-0.33873244395052593 1.2378999088796085 0.6' size='0.4090019554706867 0.49371471448779436 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube12_geom' pos='0.7299334497219738 -1.3715194587420942 0.6' size='0.32295634350828767 0.46283968760690886 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube13_geom' pos='-0.3678779364346114 1.6965819171938943 0.6' size='0.47999265014746173 0.532300172342003 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube13_geom' pos='0.5960311774951905 4.444234793977268 0.6' size='0.4236378316389419 0.35355770569341616 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube14_geom' pos='0.7635651430415327 5.3375798722896715 0.6' size='0.3172628447039067 0.5492615809236886 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube14_geom' pos='0.34909628096031486 5.864340188963686 0.6' size='0.3394532358642698 0.584911804600349 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube15_geom' pos='1.7920444432033569 -5.997638595225319 0.6' size='0.6081483225516603 0.4297459645997277 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube15_geom' pos='3.277250111330515 -6.94875319688016 0.6' size='0.5445435780790004 0.4669564455745119 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube16_geom' pos='3.1577014053022214 -2.3785040464781866 0.6' size='0.30326204385462713 0.40442028285210985 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube16_geom' pos='1.7350702912685123 -4.360840031998166 0.6' size='0.4275537158782617 0.34603581253474935 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube17_geom' pos='3.9662831924078734 -0.012146072078464298 0.6' size='0.3178443030755541 0.5412109283486624 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube17_geom' pos='4.387194308754401 0.44309621307435787 0.6' size='0.5339575932893368 0.4994505146763517 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube18_geom' pos='2.7904121335900776 2.2881685992572645 0.6' size='0.4686851429638945 0.4760922602487614 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube18_geom' pos='4.160006704146568 4.285354421886549 0.6' size='0.49966200225505325 0.5987238754269947 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube19_geom' pos='2.217712604176101 5.819511849686689 0.6' size='0.6129495533040354 0.4840178907180221 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube19_geom' pos='4.494044500230862 4.781752609426062 0.6' size='0.43316610467900746 0.5956547869116192 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube20_geom' pos='7.205624594639644 -5.980619528019276 0.6' size='0.6055187707282567 0.37461398868080953 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube20_geom' pos='5.227982561500703 -6.244394793021316 0.6' size='0.4340775378775948 0.3445377357829429 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube21_geom' pos='4.807987483581896 -4.330555154154213 0.6' size='0.6124777885393285 0.32650726649442385 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube21_geom' pos='6.887360829823585 -3.28043568241012 0.6' size='0.403375069244178 0.576946107589154 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube22_geom' pos='6.1798221048598565 -1.3275740542133163 0.6' size='0.4498599192653317 0.320839293744526 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube22_geom' pos='6.307597042689832 1.2466882306264542 0.6' size='0.5180025772033097 0.45403583705639 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube23_geom' pos='4.63423317487599 1.6320764249440067 0.6' size='0.39835059918772886 0.5216997514157377 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube23_geom' pos='7.363699238884948 3.834409361798275 0.6' size='0.5499660793645349 0.5107890239879223 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='cube24_geom' pos='4.504713259473237 7.043621719778638 0.6' size='0.5949486894565094 0.3833707951617493 0.6' rgba='1 1 1 1' mass='70' type='box'/>
+        <geom conaffinity='1' condim='3' name='cube24_geom' pos='6.549569243060979 6.077381174014516 0.6' size='0.4411973036445008 0.5173300217713641 0.6' rgba='1 1 1 1' mass='70' type='box'/>
      </body> 
     <body> 
-        <geom conaffinity='1' condim='3' name='goal_geom' pos='-3.0337063258479797 -3.0056135930764127 0.6' size='0.3' rgba='1 0 0 1' mass='1' type='sphere'/>
+        <geom conaffinity='1' condim='3' name='goal_geom' pos='-2.6625503943577473 -2.536143853957156 0.6' size='0.3' rgba='1 0 0 1' mass='1' type='sphere'/>
      </body> 
 
 

@@ -99,14 +99,14 @@ class AntFeelersMjc:
         obs_dict = self.get_obs_dict()
 
         x, y, z, qw, qx, qy, qz = obs_c[:7]
-        angle = 2 * np.arccos(qw)
+        #angle = 2 * np.arccos(qw)
         _, _, yaw = my_utils.quat_to_rpy((qw, qx, qy, qz))
 
-        target_angle = np.arctan2(self.goal_pos[1] -y, self.goal_pos[0] - x)
+        target_angle = np.arctan2(self.goal_pos[1] - y, self.goal_pos[0] - x)
         target_err = abs(yaw - target_angle)
 
         # Reevaluate termination condition.
-        done = self.step_ctr > self.max_steps #or obs_dict['torso_contact'] > 0.1
+        done = self.step_ctr > self.max_steps # or obs_dict['torso_contact'] > 0.1
 
         xd, yd, _, _, _, _ = obs_dict["root_vel"]
 
@@ -115,7 +115,7 @@ class AntFeelersMjc:
         #print(target_progress)
 
         obs = np.concatenate((self.goal_pos - obs_c[:2], obs_c[2:], obs_dict["contacts"], [obs_dict['torso_contact']], mem))
-        r = target_progress - ctrl_effort - min(target_err, 3) * 0.1
+        r = np.clip(target_progress,-1, 1) - ctrl_effort - min(target_err, 3) * 0.1
 
         return obs, r, done, obs_dict
 
@@ -128,9 +128,14 @@ class AntFeelersMjc:
         self.xmlgen.generate(self.N_boxes, self.goal_pos)
 
         # Reset the model
-        self.model = mujoco_py.load_model_from_path(self.modelpath)
-        self.sim = mujoco_py.MjSim(self.model)
+        while True:
+            try:
+                self.model = mujoco_py.load_model_from_path(self.modelpath)
+                break
+            except Exception:
+                pass
 
+        self.sim = mujoco_py.MjSim(self.model)
         self.model.opt.timestep = 0.04
 
         # Environment dimensions

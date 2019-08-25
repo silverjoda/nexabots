@@ -6,8 +6,8 @@ import noise
 from scipy.misc import toimage
 
 def hm_flat(res):
-    M = int(res * 100)
-    N = int(res * 100)
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
     mat = np.zeros((M, N), dtype=np.float32)
 
     # Walls
@@ -19,55 +19,52 @@ def hm_flat(res):
     return mat
 
 
-def hm_corridor(res, cw=6):
+def hm_corridor(res, cw=8):
     M = math.ceil(res * 100)
-    N = math.ceil(res * 100)
+    N = math.ceil(res * 200)
     mat = np.zeros((M, N), dtype=np.float32)
-
-    # Corridor width
-    N_2 = math.ceil(N / 2)
+    M_2 = math.ceil(M / 2)
 
     # Walls
-    mat[N_2 - cw : N_2 + cw, 0] = 1.
-    mat[N_2 - cw : N_2 + cw, -1] = 1.
-    mat[N_2 - cw, :] = 1.
-    mat[N_2 + cw, :] = 1.
+    mat[M_2 - cw : M_2 + cw, 0] = 1.
+    mat[M_2 - cw : M_2 + cw, -1] = 1.
+    mat[M_2 - cw, :] = 1.
+    mat[M_2 + cw, :] = 1.
     return mat
 
 
-def hm_corridor_holes(res, cw=6):
+def hm_corridor_holes(res, cw=8):
     # Make even dimensions
     M = math.ceil(res * 100)
     N = math.ceil(res * 100)
-    mat = np.zeros((M, N), dtype=np.float32)
-
-    # Corridor width
-    N_2 = math.ceil(N / 2)
-
-    # TODO: Continue here, don't forget x and y reversed.
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
 
     # Amount of 'tiles'
     Mt = 2
     Nt = 20
-    Mt_res = M / Mt
-    Nt_res = N / Nt
 
     # Makes tiles array
-    p_kill = 0.1
-    tiles_array = np.random.rand(Mt, Nt)
-    tiles_array[tiles_array < p_kill] = 0
-    tiles_array[tiles_array > 0] = 1
+    p_kill = 0.5
+    tiles_array = np.ones((2, Nt)) * 0.4
+    for i in range(Nt):
+        if np.random.rand() < p_kill:
+            tiles_array[np.random.randint(0,2), i] = 0
 
     # Translate tiles array to real heightmap
-    for i in range(tiles_array.shape[1]):
-        mat[0:Mt_res, i * Nt_res: i * Nt_res + Nt_res] = tiles_array[0, i]
-        mat[Mt_res:, i * Nt_res: i * Nt_res + Nt_res] = tiles_array[1, i]
+    for i in range(Nt):
+        mat[M_2 - cw: M_2, i * cw: i * cw + cw] = tiles_array[0, i]
+        mat[M_2:M_2 + cw:, i * cw: i * cw + cw] = tiles_array[1, i]
 
-        # Walls
-    mat[N_2 - cw: N_2 + cw, 0] = 1.
-    mat[N_2 - cw: N_2 + cw, -1] = 1.
-    mat[N_2 - cw, :] = 1.
-    mat[N_2 + cw, :] = 1.
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+
+    # Flat starting pos
+    mat[M_2 - cw: M_2 + cw, : 3 * cw] = 0.4
+
+    # Multiply to full image resolution
+    mat *= 255
 
     return mat
 

@@ -257,22 +257,25 @@ def hm_stairs(res):
     # mat[:, 0] = 255
     # mat[:, -1] = 255
 
-
     return mat
 
 
-def hm_pipe(res, diameter):
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
+def hm_pipe(res, radius=8):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
 
-    mat = 1 - np.abs(np.linspace(diameter * -np.pi/2, diameter *  np.pi/2, M).repeat(N).reshape(M, N))
+    pipe_mat = np.linspace(-radius, radius, radius * 2).repeat(N).reshape(radius * 2, N)
+    mat[M_2 - radius: M_2 + radius, :] = 1 - np.sqrt(radius**2 - np.power(pipe_mat, 2)) / radius
 
-    # Add walls
-    mat[0, 0:] = 1.
-    mat[:, 0:] = 1.
-    mat[0:, 0] = 1.
-    mat[0:, :] = 1.
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+    mat[0, :] = 1.
+    mat[-1, :] = 1.
+
+    mat *= 255
 
     return mat
 

@@ -148,6 +148,66 @@ def hm_corridor_various_width(res):
     return mat
 
 
+def hm_pillars_random(res):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.zeros((M, N), dtype=np.float32)
+
+    block_size = 6
+
+    def addbox(m, n, size, mat):
+        hs = math.ceil(size / 2)
+        mat[m - hs: m + hs, n - hs: n + hs] = 1
+
+    # Add blocks
+    for i in range(40):
+            addbox(np.random.randint(block_size, M - block_size),
+                   np.random.randint(block_size + 13, N - block_size),
+                   block_size, mat)
+
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+    mat[0, :] = 1.
+    mat[-1, :] = 1.
+
+    return mat
+
+
+def hm_pillars_pseudorandom(res):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.zeros((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
+
+    block_size = 20
+
+    M_tiles = math.ceil(M / block_size)
+    N_tiles = math.ceil(N / block_size)
+
+    def addbox(m, n, size, mat):
+        hs = math.ceil(size / 2)
+        mat[m - hs: m + hs, n - hs: n + hs] = 1
+
+    # Add blocks
+    for m in range(M_tiles - 1):
+        for n in range(N_tiles - 1):
+            addbox(m * block_size + block_size + np.random.randint(math.ceil(-block_size / 2), math.ceil(block_size / 2)),
+                   n * block_size + block_size + np.random.randint(math.ceil(-block_size / 2), math.ceil(block_size / 2)),
+                   block_size / 4, mat)
+
+    # Clear initial starting position
+    mat[M_2 - block_size:M_2 + block_size, :14] = 0.
+
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+    mat[0, :] = 1.
+    mat[-1, :] = 1.
+
+    return mat
+
+
 def hm_stairs(res):
     # Make even dimensions
     M = math.ceil(res * 10) * 2
@@ -195,36 +255,7 @@ def hm_stairs(res):
     return mat
 
 
-def hm_pillars(res):
-    # Make even dimensions
-    tiling_res = 6
-    M = math.ceil(res * 8) * tiling_res
-    N = math.ceil(res * 30) * tiling_res
-    mat = np.zeros((M, N), dtype=np.float32)
 
-    pillar_size = 10
-    padding = 5
-    block_size = int(M / tiling_res)
-
-    M_tiles = int(M / tiling_res)
-    N_tiles = int(N / tiling_res)
-
-    # Add blocks
-    for i in range(M_tiles):
-        for j in range(N_tiles):
-            if np.random.randn() < 0.5: continue
-            rnd_x = np.random.randint(j * block_size + padding, (j + 1) * block_size - pillar_size - padding)
-            rnd_y = np.random.randint(i * block_size + padding, (i + 1) * block_size - pillar_size - padding)
-            mat[i * block_size + rnd_x: i * block_size + rnd_x + pillar_size,
-            j * block_size + rnd_y: j * block_size + rnd_y + pillar_size] = 1
-
-    # Add walls
-    mat[0, 0:] = 1.
-    mat[:, 0:] = 1.
-    mat[0:, 0] = 1.
-    mat[0:, :] = 1.
-
-    return mat
 
 
 def hm_pipe(res, diameter):

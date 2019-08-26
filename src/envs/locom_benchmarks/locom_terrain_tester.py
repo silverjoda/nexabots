@@ -15,7 +15,7 @@ class Hexapod():
 
         # Generate environment
         res = 1
-        hm = hf_gen.hm_corridor_various_width(res)
+        hm = hf_gen.hm_pillars_pseudorandom(res)
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/hm_test.png"), hm)
 

@@ -280,23 +280,30 @@ def hm_pipe(res, radius=8):
     return mat
 
 
-def hm_pipe_variable_dim(res):
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
-
+def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
     mat = np.ones((M, N), dtype=np.float32)
-    inc = np.random.randint(-1, 2)
-    diameter, diameter_max, diameter_min = 30, 60, 15
-    for i in range(N):
-        diameter = np.clip(diameter + inc, diameter_min, diameter_max)
-        mat[M / 2 - diameter, M / 2 + diameter, i] = 1 - np.abs(np.linspace(diameter * -np.pi/2, diameter *  np.pi/2, M).repeat(N).reshape(M, N))
+    M_2 = math.ceil(M / 2)
 
-    # Add walls
-    mat[0, 0:] = 1.
-    mat[:, 0:] = 1.
-    mat[0:, 0] = 1.
-    mat[0:, :] = 1.
+    # Initial position
+    init_l = 20
+    rad = np.ceil(max_rad * 0.5 + min_rad * 0.5).astype(np.int32)
+    pipe_mat = np.linspace(-rad, rad, rad * 2).repeat(init_l).reshape(rad * 2, init_l)
+    mat[M_2 - rad: M_2 + rad, :init_l] = 1 - np.sqrt(rad ** 2 - np.power(pipe_mat, 2)) / rad
+
+    for i in range(init_l, N):
+        rad = np.clip(rad + np.random.randint(-1, 2), min_rad, max_rad)
+        pipe_mat = np.linspace(-rad, rad, rad * 2)
+        mat[M_2 - rad: M_2 + rad, i] = 1 - np.sqrt(rad ** 2 - np.power(pipe_mat, 2)) / rad
+
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+    mat[0, :] = 1.
+    mat[-1, :] = 1.
+
+    mat *= 255
 
     return mat
 

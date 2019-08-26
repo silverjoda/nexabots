@@ -14,7 +14,7 @@ import socket
 
 def train(env, policy, params):
 
-    policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"])
+    policy_optim = T.optim.Adam(policy.parameters(), lr=params["lr"], weight_decay=params["decay"], eps=1e-4)
 
     batch_states = []
     batch_actions = []
@@ -168,7 +168,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 1000000, "batchsize": 50, "gamma": 0.995, "lr": 0.0007, "decay" : 0.00003, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
               "comments" : "Ant feelers goal mjc", "Env_list" : env_list,
               "ID": ID}
 
@@ -189,9 +189,9 @@ if __name__=="__main__":
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/HangPoleBulletEnv_RNN_PG_FBL_pg.p' # 1HL
+        policy_path = 'agents/AntFeelersMjc_RNN_PG_979_pg.p' # 1HL
         policy = T.load(policy_path)
-        env.test_recurrent(policy, slow=params["animate"], seed=1337)
+        env.test_recurrent(policy)
         print(policy_path)
 
 

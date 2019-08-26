@@ -17,7 +17,7 @@ class AntFeelersMjc:
         self.step_ctr = 0
         self.N_boxes = 5
         self.max_steps = 600
-        self.mem_dim = 6
+        self.mem_dim = 0
 
         self.joints_rads_low = np.array([-0.7, 0.8] * 4 + [-1, -1, -1, -1])
         self.joints_rads_high = np.array([0.7, 1.4] * 4 + [1, 1, 1, 1])
@@ -164,6 +164,7 @@ class AntFeelersMjc:
         obs_dict = self.get_obs_dict()
         obs = np.concatenate((self.goal_pos - obs[:2], obs[2:], obs_dict["contacts"], [obs_dict["torso_contact"]], np.zeros(self.mem_dim)))
 
+
         return obs
 
 
@@ -202,25 +203,26 @@ class AntFeelersMjc:
 
     def test_recurrent(self, policy):
         self.reset()
-        for i in range(100):
-            done = False
+        N = 20
+        rew = 0
+        for i in range(N):
+            h_list = []
             obs = self.reset()
             h = None
             cr = 0
-            self.max_steps = 600
-            import matplotlib.pyplot as plt
-            #fig = plt.figure()
-            acts = []
-            while not done:
-                action, h_ = policy((my_utils.to_tensor(obs, True), h))
-                acts.append(action[0].detach())
-                h = h_
-                obs, r, done, od, = self.step(action[0].detach())
+            for j in range(self.max_steps):
+                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
+                obs, r, done, od, = self.step(action[0].detach().numpy())
                 cr += r
+                rew += r
                 time.sleep(0.001)
                 self.render()
-
+                # h_list.append(h[0][:,0,:].detach().numpy())
             print("Total episode reward: {}".format(cr))
+            # h_arr = np.stack(h_list)
+            # h_episodes.append(h_arr)
+
+        print("Total average reward = {}".format(rew / N))
 
 if __name__ == "__main__":
     ant = AntFeelersMjc(animate=True)

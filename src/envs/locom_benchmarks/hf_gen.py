@@ -36,13 +36,13 @@ def hm_corridor(res, cw=8):
 def hm_corridor_holes(res, cw=8):
     # Make even dimensions
     M = math.ceil(res * 100)
-    N = math.ceil(res * 100)
+    N = math.ceil(res * 200)
     mat = np.ones((M, N), dtype=np.float32)
     M_2 = math.ceil(M / 2)
 
     # Amount of 'tiles'
     Mt = 2
-    Nt = 20
+    Nt = 25
 
     # Makes tiles array
     p_kill = 0.5
@@ -61,7 +61,7 @@ def hm_corridor_holes(res, cw=8):
     mat[:, -1] = 1.
 
     # Flat starting pos
-    mat[M_2 - cw: M_2 + cw, : 3 * cw] = 0.4
+    mat[M_2 - cw: M_2 + cw, : 4 * cw] = 0.4
 
     # Multiply to full image resolution
     mat *= 255
@@ -70,46 +70,46 @@ def hm_corridor_holes(res, cw=8):
 
 
 def hm_corridor_turns(res):
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
-    mat = np.zeros((M, N), dtype=np.float32)
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
 
-    N_junctions = 6
-    box_size = 30
-    c_x, c_y = (box_size / 2, 0)
-    wall_set = []
+    N_junctions = 8
+    box_size = 20
+    c_m, c_n = (M_2, math.ceil(box_size / 2))
 
-    def getbox(x, y, size):
-        halfsize = size / 2
-        return (x - halfsize, x + halfsize, y - halfsize), \
-               (x - halfsize, x + halfsize, y + halfsize), \
-               (y - halfsize, y + halfsize, x - halfsize), \
-               (y - halfsize, y + halfsize, x + halfsize)
+    def addbox(m, n, size, mat):
+        hs = math.ceil(size / 2)
+        mat[m - hs: m + hs, n - hs: n + hs] = 0
 
     # Add first box
-    [wall_set.add(w) for w in getbox(c_x, c_y, box_size)]
+    addbox(c_m, c_n, box_size, mat)
 
-    for i in range(N_junctions):
-        d = np.random.choice(["N", "W", "E"])
+    while True:
+        d = np.random.choice(["N", "W", "E"], p=[0.5, 0.25, 0.25])
         if d == "N":
             # Move
-            c_x += box_size
+            c_n += box_size
         if d == "W":
             # Move
-            c_y -= box_size
+            c_m -= box_size
         if d == "E":
             # Move
-            c_y += box_size
+            c_m += box_size
+
+        if c_m > M - box_size: c_m = M - box_size
+        if c_m < box_size: c_m = box_size
+
+        if c_n > N:
+            break
 
         # Add to wall_list while removing overlapping walls
-        [wall_set.add(w) for w in getbox(c_x, c_y, box_size)]
+        addbox(c_m, c_n, box_size, mat)
 
-    for [w1, w2, w3, w4] in wall_set:
-        mat[w1[0]:w1[1], w1[2]] = 1.
-        mat[w2[0]:w2[1], w2[2]] = 1.
-        mat[w3[0], w3[1], w3[2]] = 1.
-        mat[w4[0], w4[1], w4[2]] = 1.
+
+    # Add initial wall
+    # mat[M_2 - cw: M_2 + cw, 0] = 1.
 
     return mat
 

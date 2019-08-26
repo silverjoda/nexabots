@@ -32,7 +32,7 @@ class Valuefun(nn.Module):
 
 def train(env, policy, params):
 
-    policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"])
+    policy_optim = T.optim.Adam(policy.parameters(), lr=params["policy_lr"], weight_decay=params["weight_decay"], eps=1e-4)
 
     batch_states = []
     batch_actions = []
@@ -270,7 +270,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 50, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
               "note" : "Ant feelers goal mjc", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -293,8 +293,8 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        policy_path = 'agents/AntFeelersMjc_NN_PG_EYE_pg.p' # ETX,
-        #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX,
+        policy_path = 'agents/AntFeelersMjc_NN_PG_Z9T_pg.p'
+        #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX
         policy = T.load(policy_path)
 
         env.test(policy)

@@ -237,7 +237,7 @@ def hm_stairs(res):
         steps.extend(seq)
 
     # Step dimensions
-    step_len, step_height = 4, 16
+    step_len, step_height, step_width = 4, 16, 10
 
     # Buffer steps sequence initially with zeros
     steps.reverse()
@@ -246,10 +246,17 @@ def hm_stairs(res):
 
     # Fill in height map
     for i, s in enumerate(steps):
-        mat[M_2 - 10:M_2 + 10, i * step_len: (i + 1) * step_len] = s * step_height
+        mat[M_2 - step_width:M_2 + step_width, i * step_len: (i + 1) * step_len] = s * step_height
 
     # Heightmap normalization
     mat[0,0] = 255
+
+    # Fill
+    # mat[:M_2 - step_width] = 255
+    # mat[M_2 + step_width :] = 255
+    # mat[:, 0] = 255
+    # mat[:, -1] = 255
+
 
     return mat
 

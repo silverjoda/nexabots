@@ -115,40 +115,35 @@ def hm_corridor_turns(res):
 
 
 def hm_corridor_various_width(res):
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
-    mat = np.zeros((M, N), dtype=np.float32)
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
 
-    N_segments = 5
-    min_width, max_width, min_length, max_length = (40, 80, 40, 80)
-    wall_set = []
+    min_width, max_width, min_length, max_length = (5, 8, 6, 14)
 
-    c_x, c_y = (10, M / 2)
+    c_m, c_n = (M_2, 16)
 
-    def getbox(x, y, width, length):
-        halfwidth = int(width / 2)
-        halflength = int(length / 2)
-        return (x - halflength, x + halflength, y - halfwidth), \
-               (x - halflength, x + halflength, y + halfwidth), \
-               (y - halfwidth, y + halfwidth, x - halflength), \
-               (y - halfwidth, y + halfwidth, x + halflength)
+    def addbox(m, n, size_m, size_n, mat):
+        mat[m - size_m: m + size_m, n - size_n: n + size_n] = 0
 
     # Add first box
-    [wall_set.add(w) for w in getbox(c_x, c_y, max_width, max_length)]
+    addbox(c_m, c_n, max_width, max_length, mat)
+    c_n += max_length
 
-    for i in range(N_segments):
+    while True:
         width = np.random.randint(min_width, max_width)
-        length = np.random.randint(min_width, max_width)
+        length = np.random.randint(min_length, max_length)
+
+        c_n += length
+
+        if c_n > N: break
 
         # Add to wall_list while removing overlapping walls
-        [wall_set.add(w) for w in getbox(c_x, c_y, width, length)]
+        addbox(c_m, c_n, width, length, mat)
 
-    for [w1, w2, w3, w4] in wall_set:
-        mat[w1[0]:w1[1], w1[2]] = 1.
-        mat[w2[0]:w2[1], w2[2]] = 1.
-        mat[w3[0], w3[1], w3[2]] = 1.
-        mat[w4[0], w4[1], w4[2]] = 1.
+        c_n += length
+
 
     return mat
 

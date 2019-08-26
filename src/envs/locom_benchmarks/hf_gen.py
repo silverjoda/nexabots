@@ -209,14 +209,14 @@ def hm_pillars_pseudorandom(res):
 
 
 def hm_stairs(res):
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
-    mat = np.zeros((M, N), dtype=np.float32)
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32) * 0
+    M_2 = math.ceil(M / 2)
 
-    lim_asc = 1, 8
+    lim_asc = 1, 6
     lim_desc = 1, 6
-    lim_flat = 1, 5
+    lim_flat = 1, 4
 
     N_steps = 20
 
@@ -224,7 +224,8 @@ def hm_stairs(res):
     steps = []
     curr_height = 0
     for i in range(N_steps):
-        c = np.random.choice(("u", "d", "f"))
+        c = np.random.choice(("u", "d", "f"), p = [0.4, 0.4, 0.2])
+        seq = None
         if c == "u":
             seq = [curr_height + h for h in range(np.random.randint(lim_asc[0], lim_asc[1]))]
             curr_height += len(seq)
@@ -236,26 +237,21 @@ def hm_stairs(res):
         steps.extend(seq)
 
     # Step dimensions
-    step_len, step_height = 15, 10
+    step_len, step_height = 4, 16
 
     # Buffer steps sequence initially with zeros
     steps.reverse()
-    steps.extend([0] * 5)
+    steps.extend([0] * 4)
     steps.reverse()
 
     # Fill in height map
     for i, s in enumerate(steps):
-        mat[i * step_len: (i + 1) * step_len , :M] = s * step_height
+        mat[M_2 - 10:M_2 + 10, i * step_len: (i + 1) * step_len] = s * step_height
 
-    # Add walls
-    max_height = max(steps) * step_height
-    mat[:N_steps * step_len, 0] = max_height + 10
-    mat[:N_steps * step_len, M] = max_height + 10
+    # Heightmap normalization
+    mat[0,0] = 255
 
     return mat
-
-
-
 
 
 def hm_pipe(res, diameter):

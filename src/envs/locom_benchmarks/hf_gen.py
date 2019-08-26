@@ -208,6 +208,18 @@ def hm_pillars_pseudorandom(res):
     return mat
 
 
+def hm_tiles(res):
+    pass
+
+
+def hm_triangles(res):
+    pass
+
+
+def hm_domes(res):
+    pass
+
+
 def hm_stairs(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)

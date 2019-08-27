@@ -209,15 +209,126 @@ def hm_pillars_pseudorandom(res):
 
 
 def hm_tiles(res):
-    pass
+    cw = 10
+    # Make even dimensions
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
+
+    # Amount of 'tiles'
+    Mt = 2
+    Nt = 20
+
+    # Tile height
+    t_height = 0.3
+
+    # Makes tiles array
+    tiles_array = np.ones((Mt, Nt)) * 0.4
+    for i in range(Nt):
+        tiles_array[0, i] = np.random.rand() * t_height
+        tiles_array[1, i] = np.random.rand() * t_height
+
+    # Translate tiles array to real heightmap
+    for i in range(Nt):
+        mat[M_2 - cw: M_2, i * cw: i * cw + cw] = tiles_array[0, i]
+        mat[M_2:M_2 + cw:, i * cw: i * cw + cw] = tiles_array[1, i]
+
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+
+    # Multiply to full image resolution
+    mat *= 255
+
+    return mat
 
 
 def hm_triangles(res):
-    pass
+    cw = 10
+    # Make even dimensions
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
+
+    # Amount of 'tiles'
+    Mt = 2
+    Nt = 20
+    obstacle_height = 0.3
+
+    grad_mat = np.linspace(0, 1, cw)[:, np.newaxis].repeat(cw, 1)
+    template_1 = np.ones((cw, cw)) * grad_mat * grad_mat.T * obstacle_height
+    template_2 = np.ones((cw, cw)) * grad_mat * obstacle_height
+
+    for i in range(Nt):
+        if np.random.choice([True, False]):
+            mat[M_2 - cw: M_2, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0,4))
+        else:
+            mat[M_2 - cw: M_2, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0,4))
+
+        if np.random.choice([True, False]):
+            mat[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0,4))
+        else:
+            mat[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0,4))
+
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+
+    # Multiply to full image resolution
+    mat *= 255
+
+    return mat
 
 
 def hm_domes(res):
-    pass
+    cw = 10
+    # Make even dimensions
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
+
+    # Amount of 'tiles'
+    Mt = 2
+    Nt = 20
+    obstacle_height = 0.3
+
+    grad_mat = np.linspace(-1, 1, cw)[:, np.newaxis].repeat(cw, 1)
+    dome_mat = np.ones((cw, cw))
+    dome_mat = dome_mat * grad_mat * np.rot90(grad_mat, 1)
+    dome_mat = (1 - np.power(dome_mat, 2)) * obstacle_height
+
+    mat[M_2 - cw:M_2 + cw, :] = 0
+
+    for i in range(Nt):
+        if i > 1 and i < Nt - 1:
+            rnd_x, rnd_y = np.random.randint(-2,3, size=(2))
+        else:
+            rnd_x, rnd_y = 0, 0
+
+        mat[M_2 + rnd_x:M_2 + rnd_x + cw:, i * cw + rnd_y: i * cw + rnd_y + cw] = dome_mat
+
+        if i > 1 and i < Nt - 1:
+            rnd_x, rnd_y = np.random.randint(-2,3, size=(2))
+        else:
+            rnd_x, rnd_y = 0, 0
+
+        mat[M_2 + rnd_x - cw:M_2 + rnd_x:, i * cw + rnd_y: i * cw + rnd_y + cw] = dome_mat
+
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+    mat[0:M_2 - cw, :] = 1
+    mat[M_2 + cw:, :] = 1
+
+
+
+    # Multiply to full image resolution
+    mat *= 255
+
+    return mat
 
 
 def hm_stairs(res):

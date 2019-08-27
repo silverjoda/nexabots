@@ -15,7 +15,7 @@ class Hexapod():
 
         # Generate environment
         res = 1
-        hm = hf_gen.hm_pipe_variable_rad(res)
+        hm = hf_gen.hm_domes(res)
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/hm_test.png"), hm)
 

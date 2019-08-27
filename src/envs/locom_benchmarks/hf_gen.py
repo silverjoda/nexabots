@@ -445,60 +445,31 @@ def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
     return mat
 
 
-def hm_tunnel(res, diameter):
-
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
-
-    # Base
-    mat = np.ones((M, N), dtype=np.float32)
-
-    # Generate trajectory points
-    N_pts = 30
-    step = np.floor(N / N_pts)
-    curr_y, curr_z = M / 2, 0.3
-    for i in range(1, N_pts):
-        mat[curr_y - diameter * 10:curr_y + diameter * 10,step * i:step * i + step] = 1 - curr_z - np.abs(np.linspace(diameter * -np.pi/2, diameter *  np.pi/2, M).repeat(N).reshape(M, N))
-        curr_y += np.random.rand() * 0.02 - 0.01
-        curr_z += np.random.rand() * 0.02 - 0.01
-
-    return mat
-
-
-def hm_verts(res):
-    # Make even dimensions
-    M = math.ceil(res * 10) * 2
-    N = math.ceil(res * 100) * 2
-
-    wdiv = 4
-    ldiv = 14
-    mat = np.random.rand((M // wdiv, N // ldiv)).repeat(wdiv, axis=0).repeat(ldiv, axis=1)
-    mat[:, :50] = 0
-    mat[mat < 0.5] = 0
-    mat = 1 - mat
-
-    return mat
-
-
-def hm_perlin(res, scale_x, scale_y, base, octaves=3, persistence=0.5, lacunarity=2.0):
-    shape = (res, res)
-    scale_x = scale_x
-    scale_y = scale_y
-
-    world = np.zeros(shape)
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            world[i][j] = noise.pnoise2(i / scale_x,
-                                        j / scale_y,
+def hm_perlin(res, scale_x=100., scale_y=100., base=0, octaves=5, persistence=0.5, lacunarity=2.):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.zeros((M, N))
+    for i in range(M):
+        for j in range(N):
+            mat[i][j] = noise.pnoise2(float(i / scale_x),
+                                        float(j / scale_y),
                                         octaves=octaves,
                                         persistence=persistence,
                                         lacunarity=lacunarity,
-                                        repeatx=256,
-                                        repeaty=256,
+                                        repeatx=1024,
+                                        repeaty=1024,
                                         base=base)
 
+    wmin, wmax = mat.min(), mat.max()
+    mat = (mat - wmin) / (wmax - wmin) * 255
 
+    # Walls
+    mat[0, :] = 255.
+    mat[-1, :] = 255.
+    mat[:, 0] = 255.
+    mat[:, -1] = 255.
+
+    return mat
 
 
 def img_generation():
@@ -550,26 +521,26 @@ def img_generation():
 
 
 if __name__ == "__main__":
-    from math import exp
+    import noise
     import numpy as np
-    import matplotlib.pyplot as plt
+    from scipy.misc import toimage
 
+    shape = (100, 200)
+    scale = 100.0
+    octaves = 3
+    persistence = 0.5
+    lacunarity = 2.0
 
-    def rbf_kernel(x1, x2, variance=1):
-        return exp(-1 * ((x1 - x2) ** 2) / (2 * variance))
+    world = np.zeros(shape)
+    for i in range(shape[0]):
+        for j in range(shape[1]):
+            world[i][j] = noise.pnoise2(i / scale,
+                                        j / scale,
+                                        octaves=octaves,
+                                        persistence=persistence,
+                                        lacunarity=lacunarity,
+                                        repeatx=1024,
+                                        repeaty=1024,
+                                        base=0)
 
-
-    def gram_matrix(xs):
-        return [[rbf_kernel(x1, x2) for x2 in xs] for x1 in xs]
-
-
-    xs = np.arange(0, 20, 0.1)
-    mean = [0 for x in xs]
-    gram = gram_matrix(xs)
-
-    plt_vals = []
-    for i in range(0, 5):
-        ys = np.random.multivariate_normal(mean, gram)
-        plt_vals.extend([xs, ys, "k"])
-    plt.plot(*plt_vals)
-    plt.show()
+    toimage(world).show()

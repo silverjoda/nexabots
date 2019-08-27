@@ -5,6 +5,7 @@ import math
 from math import exp
 import noise
 from scipy.misc import toimage
+import time
 
 def hm_flat(res):
     M = math.ceil(res * 100)
@@ -445,20 +446,16 @@ def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
     return mat
 
 
-def hm_perlin(res, scale_x=100., scale_y=100., base=0, octaves=5, persistence=0.5, lacunarity=2.):
+def hm_perlin(res, scale_x=100., scale_y=100., base=0, octaves=1, persistence=0.5, lacunarity=2.):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.zeros((M, N))
+
+    OSim = OpenSimplex(seed=int(time.time()))
+
     for i in range(M):
         for j in range(N):
-            mat[i][j] = noise.pnoise2(float(i / scale_x),
-                                        float(j / scale_y),
-                                        octaves=octaves,
-                                        persistence=persistence,
-                                        lacunarity=lacunarity,
-                                        repeatx=1024,
-                                        repeaty=1024,
-                                        base=base)
+            mat[i][j] = OSim.noise2d(i, j)
 
     wmin, wmax = mat.min(), mat.max()
     mat = (mat - wmin) / (wmax - wmin) * 255

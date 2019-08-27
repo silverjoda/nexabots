@@ -2,6 +2,7 @@ import numpy as np
 import cv2
 import os
 import math
+from math import exp
 import noise
 from scipy.misc import toimage
 
@@ -411,12 +412,25 @@ def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
 
     # Initial position
     init_l = 20
-    rad = np.ceil(max_rad * 0.5 + min_rad * 0.5).astype(np.int32)
-    pipe_mat = np.linspace(-rad, rad, rad * 2).repeat(init_l).reshape(rad * 2, init_l)
-    mat[M_2 - rad: M_2 + rad, :init_l] = 1 - np.sqrt(rad ** 2 - np.power(pipe_mat, 2)) / rad
+    diff_rad = (max_rad - min_rad) / 2
+    mid_rad = max_rad * 0.5 + min_rad * 0.5
 
-    for i in range(init_l, N):
-        rad = np.clip(rad + np.random.randint(-1, 2), min_rad, max_rad)
+    def rbf_kernel(x1, x2, variance=1):
+        return exp(-1 * ((x1 - x2) ** 2) / (2 * variance))
+
+
+    def gram_matrix(xs):
+        return [[rbf_kernel(x1, x2) for x2 in xs] for x1 in xs]
+
+    xs = np.linspace(0, 20, N)
+    mean = [0 for _ in xs]
+    gram = gram_matrix(xs)
+    ys = np.random.multivariate_normal(mean, gram)
+
+    for i in range(0, N):
+        #rad = np.clip(rad + np.random.randint(-1, 2), min_rad, max_rad)
+        rad = int(np.clip(ys[i] * 2, -diff_rad, diff_rad)  + mid_rad)
+        #print(noise.pnoise1(float(prx + i)))
         pipe_mat = np.linspace(-rad, rad, rad * 2)
         mat[M_2 - rad: M_2 + rad, i] = 1 - np.sqrt(rad ** 2 - np.power(pipe_mat, 2)) / rad
 
@@ -536,27 +550,26 @@ def img_generation():
 
 
 if __name__ == "__main__":
-    import noise
+    from math import exp
     import numpy as np
-    from scipy.misc import toimage
+    import matplotlib.pyplot as plt
 
-    shape = (256, 256)
-    scale_x = 400.0
-    scale_y = 100.0
-    octaves = 3
-    persistence = 0.5
-    lacunarity = 2.0
 
-    world = np.zeros(shape)
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            world[i][j] = noise.pnoise2(i / scale_x,
-                                        j / scale_y,
-                                        octaves=octaves,
-                                        persistence=persistence,
-                                        lacunarity=lacunarity,
-                                        repeatx=256,
-                                        repeaty=256,
-                                        base=0)
+    def rbf_kernel(x1, x2, variance=1):
+        return exp(-1 * ((x1 - x2) ** 2) / (2 * variance))
 
-    toimage(world).show()
+
+    def gram_matrix(xs):
+        return [[rbf_kernel(x1, x2) for x2 in xs] for x1 in xs]
+
+
+    xs = np.arange(0, 20, 0.1)
+    mean = [0 for x in xs]
+    gram = gram_matrix(xs)
+
+    plt_vals = []
+    for i in range(0, 5):
+        ys = np.random.multivariate_normal(mean, gram)
+        plt_vals.extend([xs, ys, "k"])
+    plt.plot(*plt_vals)
+    plt.show()

@@ -326,8 +326,6 @@ def hm_domes(res):
     mat[0:M_2 - cw, :] = 1
     mat[M_2 + cw:, :] = 1
 
-
-
     # Multiply to full image resolution
     mat *= 255
 
@@ -447,18 +445,17 @@ def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
     return mat
 
 
-def hm_perlin(res, scale_x=100., scale_y=100., base=0, octaves=3, persistence=0.5, lacunarity=2.):
-
+def hm_perlin(res):
     oSim = OpenSimplex(seed=int(time.time()))
 
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.zeros((M, N))
 
-    scale_x = np.random.randint(20, 80)
-    scale_y = np.random.randint(20, 80)
-    octaves = np.random.randint(1, 5)
-    persistence = np.random.rand() * 0.5 + 0.3
+    scale_x = np.random.randint(30, 80)
+    scale_y = np.random.randint(30, 80)
+    octaves = 5 # np.random.randint(1, 5)
+    persistence = np.random.rand() * 0.3 + 0.3
     lacunarity = np.random.rand() + 1.5
 
     for i in range(M):
@@ -470,7 +467,7 @@ def hm_perlin(res, scale_x=100., scale_y=100., base=0, octaves=3, persistence=0.
                 mat[i][j] += oSim.noise2d(i / sx, j / sy) * amp
 
     wmin, wmax = mat.min(), mat.max()
-    mat = (mat - wmin) / (wmax - wmin) * 255
+    mat = (mat - wmin) / (wmax - wmin) * 200
 
     #mat[mat > 150] = 150
     #mat[mat < 50] = 50
@@ -484,75 +481,12 @@ def hm_perlin(res, scale_x=100., scale_y=100., base=0, octaves=3, persistence=0.
     return mat
 
 
-def img_generation():
-    N = 150
-    M = 30
-
+def img_generation(mat):
     filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/stairs.png")
 
-    # Generate stairs
-    mat = np.zeros((M, N))
-
-    stair_height = 20
-    stair_width = 3
-    current_height = 0
-
-    for i in range(6):
-        mat[:, 10 + i * stair_width : 10 + i * stair_width + stair_width] = current_height
-        current_height += stair_height
-
-    for i in range(3):
-        mat[:, 28 + i * stair_width :  28 + i * stair_width + stair_width] = current_height
-
-    for i in range(4):
-        mat[:, 37 + i * stair_width : 37 + i * stair_width + stair_width] = current_height
-        current_height -= stair_height
-
-    for i in range(2):
-        mat[:, 49 + i * stair_width :  49 + i * stair_width + stair_width] = current_height
-
-    for i in range(3):
-        mat[:, 55 + i * stair_width: 55 + i * stair_width + stair_width] = current_height
-        current_height -= stair_height
-
-    #---
-    for i in range(12):
-        mat[:, 55 + 10 + i * stair_width : 55 + 10 + i * stair_width + stair_width] = current_height
-        current_height += stair_height
-
-    for i in range(15):
-        mat[:, 70 + 28 + i * stair_width : 70 +  28 + i * stair_width + stair_width] = current_height
-
-
-    mat[0, :] = 255
-    mat[:, 0] = 255
-    mat[-1, :] = 255
-    mat[:, -1] = 255
     cv2.imwrite(filename, mat)
 
 
 if __name__ == "__main__":
-    import noise
-    import numpy as np
-    from scipy.misc import toimage
-
-    shape = (100, 200)
-    scale = 100.0
-    octaves = 3
-    persistence = 0.5
-    lacunarity = 2.0
-
-    world = np.zeros(shape)
-    for i in range(shape[0]):
-        for j in range(shape[1]):
-            world[i][j] = noise.pnoise2(i / scale,
-                                        j / scale,
-                                        octaves=octaves,
-                                        persistence=persistence,
-                                        lacunarity=lacunarity,
-                                        repeatx=1024,
-                                        repeaty=1024,
-                                        base=0)
-
-    toimage(world).show()
+    pass

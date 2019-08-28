@@ -448,13 +448,15 @@ def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
 def hm_perlin(res):
     oSim = OpenSimplex(seed=int(time.time()))
 
+    height = 255
+
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.zeros((M, N))
 
-    scale_x = np.random.randint(30, 80)
-    scale_y = np.random.randint(30, 80)
-    octaves = 5 # np.random.randint(1, 5)
+    scale_x = np.random.randint(30, 100)
+    scale_y = np.random.randint(30, 100)
+    octaves = 4 # np.random.randint(1, 5)
     persistence = np.random.rand() * 0.3 + 0.3
     lacunarity = np.random.rand() + 1.5
 
@@ -467,10 +469,14 @@ def hm_perlin(res):
                 mat[i][j] += oSim.noise2d(i / sx, j / sy) * amp
 
     wmin, wmax = mat.min(), mat.max()
-    mat = (mat - wmin) / (wmax - wmin) * 200
+    mat = (mat - wmin) / (wmax - wmin) * height
 
-    #mat[mat > 150] = 150
-    #mat[mat < 50] = 50
+    if np.random.rand() < 0.3:
+        num = np.random.randint(50, 120)
+        mat = np.clip(mat, num, 200)
+    if np.random.rand() < 0.3:
+        num = np.random.randint(120, 200)
+        mat = np.clip(mat, 0, num)
 
     # Walls
     mat[0, :] = 255.

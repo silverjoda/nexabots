@@ -11,10 +11,12 @@ from math import acos
 
 class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "hex_test.xml")
+                             "hex.xml")
 
-    def __init__(self):
-        print("Hexapod flat")
+    def __init__(self, hm_fun, *hm_args):
+        print("Hexapod on {} env".format(hm_fun.__name__))
+        self.hm_fun = hm_fun
+        self.hm_args = hm_args
 
         # External parameters
         self.joints_rads_low = np.array([-0.6, -1.4, -0.8] * 6)
@@ -22,19 +24,16 @@ class Hexapod(gym.Env):
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.target_vel = 0.4 # Target velocity with which we want agent to move
-        self.max_steps = 200
+        self.max_steps = 300
 
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
         #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
-        self.setupcam()
-
 
     def setupcam(self):
-        if self.viewer is None:
-            self.viewer = mujoco_py.MjViewer(self.sim)
+        self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.cam.trackbodyid = -1
         self.viewer.cam.distance = self.model.stat.extent * .3
         self.viewer.cam.lookat[0] = -0.1
@@ -84,7 +83,11 @@ class Hexapod(gym.Env):
         # Scale control according to joint ranges
         ctrl = self.scale_action(ctrl)
 
-        # TODO: !Continue building the first environment!, then copy to all the rest of the blind ones, then do rangefinder and feelers, then heterogeneous environments, then camera
+        # TODO: Make the Blind category of envs
+        # TODO: then copy to all the rest of the blind ones
+        # TODO: then do rangefinder and feelers,
+        # TODO: then heterogeneous environments,
+        # TODO: then camera
 
         # Step the simulator
         self.sim.data.ctrl[:] = ctrl
@@ -100,9 +103,9 @@ class Hexapod(gym.Env):
         velocity_rew = 1. / (abs(xd - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
         q_yaw = 2 * acos(qw)
 
-        r = velocity_rew * 10 - \
-            np.square(q_yaw) * 0.5 - \
-            np.square(ctrl_pen) * 0.1 - \
+        r = velocity_rew * 5 - \
+            np.square(q_yaw) * 2.5 - \
+            np.square(ctrl_pen) * 0.3 - \
             np.square(zd) * 0.7
 
         # Reevaluate termination condition
@@ -113,11 +116,17 @@ class Hexapod(gym.Env):
 
     def reset(self):
         # Generate environment
-        hm = hf_gen.hm_flat(1)
+        hm = self.hm_fun(*self.hm_args)
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hm.png"), hm)
 
         # Load simulator
-        self.model = mujoco_py.load_model_from_path(Hexapod.MODELPATH)
+        while True:
+            try:
+                self.model = mujoco_py.load_model_from_path(Hexapod.MODELPATH)
+                break
+            except Exception:
+                pass
+
         self.sim = mujoco_py.MjSim(self.model)
         self.model.opt.timestep = 0.02
         self.viewer = None
@@ -147,8 +156,26 @@ class Hexapod(gym.Env):
 
     def render(self, camera=None):
         if self.viewer is None:
-            self.viewer = mujoco_py.MjViewer(self.sim)
+            self.setupcam()
         self.viewer.render()
+
+
+    def test(self, policy, render=True):
+        N = 30
+        rew = 0
+        for i in range(N):
+            obs = self.reset()
+            cr = 0
+            for j in range(int(self.max_steps)):
+                action = policy(my_utils.to_tensor(obs, True)).detach()
+                obs, r, done, od, = self.step(action[0].numpy())
+                cr += r
+                rew += r
+                time.sleep(0.000)
+                if render:
+                    self.render()
+            print("Total episode reward: {}".format(cr))
+        print("Total average reward = {}".format(rew / N))
 
 
     def demo(self):

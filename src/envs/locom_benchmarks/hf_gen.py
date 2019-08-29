@@ -72,145 +72,6 @@ def hm_corridor_holes(res, cw=8):
     return mat
 
 
-def hm_corridor_turns(res):
-    M = math.ceil(res * 100)
-    N = math.ceil(res * 200)
-    mat = np.ones((M, N), dtype=np.float32)
-    M_2 = math.ceil(M / 2)
-
-    N_junctions = 8
-    box_size = 20
-    c_m, c_n = (M_2, math.ceil(box_size / 2))
-
-    def addbox(m, n, size, mat):
-        hs = math.ceil(size / 2)
-        mat[m - hs: m + hs, n - hs: n + hs] = 0
-
-    # Add first box
-    addbox(c_m, c_n, box_size, mat)
-
-    while True:
-        d = np.random.choice(["N", "W", "E"], p=[0.5, 0.25, 0.25])
-        if d == "N":
-            # Move
-            c_n += box_size
-        if d == "W":
-            # Move
-            c_m -= box_size
-        if d == "E":
-            # Move
-            c_m += box_size
-
-        if c_m > M - box_size: c_m = M - box_size
-        if c_m < box_size: c_m = box_size
-
-        if c_n > N:
-            break
-
-        # Add to wall_list while removing overlapping walls
-        addbox(c_m, c_n, box_size, mat)
-
-
-    # Add initial wall
-    # mat[M_2 - cw: M_2 + cw, 0] = 1.
-
-    return mat
-
-
-def hm_corridor_various_width(res):
-    M = math.ceil(res * 100)
-    N = math.ceil(res * 200)
-    mat = np.ones((M, N), dtype=np.float32)
-    M_2 = math.ceil(M / 2)
-
-    min_width, max_width, min_length, max_length = (5, 8, 6, 14)
-
-    c_m, c_n = (M_2, 16)
-
-    def addbox(m, n, size_m, size_n, mat):
-        mat[m - size_m: m + size_m, n - size_n: n + size_n] = 0
-
-    # Add first box
-    addbox(c_m, c_n, max_width, max_length, mat)
-    c_n += max_length
-
-    while True:
-        width = np.random.randint(min_width, max_width)
-        length = np.random.randint(min_length, max_length)
-
-        c_n += length
-
-        if c_n > N: break
-
-        # Add to wall_list while removing overlapping walls
-        addbox(c_m, c_n, width, length, mat)
-
-        c_n += length
-
-
-    return mat
-
-
-def hm_pillars_random(res):
-    M = math.ceil(res * 100)
-    N = math.ceil(res * 200)
-    mat = np.zeros((M, N), dtype=np.float32)
-
-    block_size = 6
-
-    def addbox(m, n, size, mat):
-        hs = math.ceil(size / 2)
-        mat[m - hs: m + hs, n - hs: n + hs] = 1
-
-    # Add blocks
-    for i in range(40):
-            addbox(np.random.randint(block_size, M - block_size),
-                   np.random.randint(block_size + 13, N - block_size),
-                   block_size, mat)
-
-    # Walls
-    mat[:, 0] = 1.
-    mat[:, -1] = 1.
-    mat[0, :] = 1.
-    mat[-1, :] = 1.
-
-    return mat
-
-
-def hm_pillars_pseudorandom(res):
-    M = math.ceil(res * 100)
-    N = math.ceil(res * 200)
-    mat = np.zeros((M, N), dtype=np.float32)
-    M_2 = math.ceil(M / 2)
-
-    block_size = 20
-
-    M_tiles = math.ceil(M / block_size)
-    N_tiles = math.ceil(N / block_size)
-
-    def addbox(m, n, size, mat):
-        hs = math.ceil(size / 2)
-        mat[m - hs: m + hs, n - hs: n + hs] = 1
-
-    # Add blocks
-    for m in range(M_tiles - 1):
-        for n in range(N_tiles - 1):
-            addbox(m * block_size + block_size + np.random.randint(math.ceil(-block_size / 2), math.ceil(block_size / 2)),
-                   n * block_size + block_size + np.random.randint(math.ceil(-block_size / 2), math.ceil(block_size / 2)),
-                   block_size / 4, mat)
-
-    # Clear initial starting position
-    mat[M_2 - block_size:M_2 + block_size, :14] = 0.
-
-    # Walls
-    mat[:, 0] = 1.
-    mat[:, -1] = 1.
-    mat[0, :] = 1.
-    mat[-1, :] = 1.
-
-    return mat
-
-
 def hm_tiles(res):
     cw = 10
     # Make even dimensions
@@ -404,6 +265,82 @@ def hm_pipe(res, radius=8):
     return mat
 
 
+def hm_perlin(res):
+    oSim = OpenSimplex(seed=int(time.time()))
+
+    height = 255
+
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.zeros((M, N))
+
+    scale_x = np.random.randint(30, 100)
+    scale_y = np.random.randint(30, 100)
+    octaves = 4 # np.random.randint(1, 5)
+    persistence = np.random.rand() * 0.3 + 0.3
+    lacunarity = np.random.rand() + 1.5
+
+    for i in range(M):
+        for j in range(N):
+            for o in range(octaves):
+                sx = scale_x * (1 / (lacunarity ** o))
+                sy = scale_y * (1 / (lacunarity ** o))
+                amp = persistence ** o
+                mat[i][j] += oSim.noise2d(i / sx, j / sy) * amp
+
+    wmin, wmax = mat.min(), mat.max()
+    mat = (mat - wmin) / (wmax - wmin) * height
+
+    if np.random.rand() < 0.3:
+        num = np.random.randint(50, 120)
+        mat = np.clip(mat, num, 200)
+    if np.random.rand() < 0.3:
+        num = np.random.randint(120, 200)
+        mat = np.clip(mat, 0, num)
+
+    # Walls
+    mat[0, :] = 255.
+    mat[-1, :] = 255.
+    mat[:, 0] = 255.
+    mat[:, -1] = 255.
+
+    return mat
+
+
+def hm_corridor_various_width(res):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
+
+    min_width, max_width, min_length, max_length = (5, 8, 6, 14)
+
+    c_m, c_n = (M_2, 16)
+
+    def addbox(m, n, size_m, size_n, mat):
+        mat[m - size_m: m + size_m, n - size_n: n + size_n] = 0
+
+    # Add first box
+    addbox(c_m, c_n, max_width, max_length, mat)
+    c_n += max_length
+
+    while True:
+        width = np.random.randint(min_width, max_width)
+        length = np.random.randint(min_length, max_length)
+
+        c_n += length
+
+        if c_n > N: break
+
+        # Add to wall_list while removing overlapping walls
+        addbox(c_m, c_n, width, length, mat)
+
+        c_n += length
+
+
+    return mat
+
+
 def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
@@ -445,44 +382,107 @@ def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
     return mat
 
 
-def hm_perlin(res):
-    oSim = OpenSimplex(seed=int(time.time()))
-
-    height = 255
-
+def hm_corridor_turns(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
-    mat = np.zeros((M, N))
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
 
-    scale_x = np.random.randint(30, 100)
-    scale_y = np.random.randint(30, 100)
-    octaves = 4 # np.random.randint(1, 5)
-    persistence = np.random.rand() * 0.3 + 0.3
-    lacunarity = np.random.rand() + 1.5
+    N_junctions = 8
+    box_size = 20
+    c_m, c_n = (M_2, math.ceil(box_size / 2))
 
-    for i in range(M):
-        for j in range(N):
-            for o in range(octaves):
-                sx = scale_x * (1 / (lacunarity ** o))
-                sy = scale_y * (1 / (lacunarity ** o))
-                amp = persistence ** o
-                mat[i][j] += oSim.noise2d(i / sx, j / sy) * amp
+    def addbox(m, n, size, mat):
+        hs = math.ceil(size / 2)
+        mat[m - hs: m + hs, n - hs: n + hs] = 0
 
-    wmin, wmax = mat.min(), mat.max()
-    mat = (mat - wmin) / (wmax - wmin) * height
+    # Add first box
+    addbox(c_m, c_n, box_size, mat)
 
-    if np.random.rand() < 0.3:
-        num = np.random.randint(50, 120)
-        mat = np.clip(mat, num, 200)
-    if np.random.rand() < 0.3:
-        num = np.random.randint(120, 200)
-        mat = np.clip(mat, 0, num)
+    while True:
+        d = np.random.choice(["N", "W", "E"], p=[0.5, 0.25, 0.25])
+        if d == "N":
+            # Move
+            c_n += box_size
+        if d == "W":
+            # Move
+            c_m -= box_size
+        if d == "E":
+            # Move
+            c_m += box_size
+
+        if c_m > M - box_size: c_m = M - box_size
+        if c_m < box_size: c_m = box_size
+
+        if c_n > N:
+            break
+
+        # Add to wall_list while removing overlapping walls
+        addbox(c_m, c_n, box_size, mat)
+
+
+    # Add initial wall
+    # mat[M_2 - cw: M_2 + cw, 0] = 1.
+
+    return mat
+
+
+def hm_pillars_random(res):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.zeros((M, N), dtype=np.float32)
+
+    block_size = 6
+
+    def addbox(m, n, size, mat):
+        hs = math.ceil(size / 2)
+        mat[m - hs: m + hs, n - hs: n + hs] = 1
+
+    # Add blocks
+    for i in range(40):
+            addbox(np.random.randint(block_size, M - block_size),
+                   np.random.randint(block_size + 13, N - block_size),
+                   block_size, mat)
 
     # Walls
-    mat[0, :] = 255.
-    mat[-1, :] = 255.
-    mat[:, 0] = 255.
-    mat[:, -1] = 255.
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+    mat[0, :] = 1.
+    mat[-1, :] = 1.
+
+    return mat
+
+
+def hm_pillars_pseudorandom(res):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.zeros((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
+
+    block_size = 20
+
+    M_tiles = math.ceil(M / block_size)
+    N_tiles = math.ceil(N / block_size)
+
+    def addbox(m, n, size, mat):
+        hs = math.ceil(size / 2)
+        mat[m - hs: m + hs, n - hs: n + hs] = 1
+
+    # Add blocks
+    for m in range(M_tiles - 1):
+        for n in range(N_tiles - 1):
+            addbox(m * block_size + block_size + np.random.randint(math.ceil(-block_size / 2), math.ceil(block_size / 2)),
+                   n * block_size + block_size + np.random.randint(math.ceil(-block_size / 2), math.ceil(block_size / 2)),
+                   block_size / 4, mat)
+
+    # Clear initial starting position
+    mat[M_2 - block_size:M_2 + block_size, :14] = 0.
+
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+    mat[0, :] = 1.
+    mat[-1, :] = 1.
 
     return mat
 

@@ -94,8 +94,8 @@ def train(env, policy, params):
             else:
                 update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
-            print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {:.2f}".
-                  format(i, params["iters"], None, None, batch_rew / params["batchsize"], T.exp(policy.log_std)[0][0].detach().numpy())) # T.exp(policy.log_std).detach().numpy())
+            print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
+                  format(i, params["iters"], None, None, batch_rew / params["batchsize"])) # T.exp(policy.log_std)[0][0].detach().numpy())
 
             # Finally reset all batch lists
             batch_ctr = 0
@@ -270,7 +270,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 50, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "Ant feelers goal mjc", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -283,8 +283,9 @@ if __name__=="__main__":
     #from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
     #env = AntFeelersMjc()
 
-    from src.envs.locom_benchmarks.flat_env.hex_flat import Hexapod
-    env = Hexapod()
+    from src.envs.locom_benchmarks.blind_locomotion.hex_blind import Hexapod
+    from src.envs.locom_benchmarks import hf_gen
+    env = Hexapod(hf_gen.hm_corridor, 1)
 
     # Test
     if params["train"]:
@@ -296,7 +297,7 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        policy_path = 'agents/AntFeelersMjc_NN_PG_Z9T_pg.p'
+        policy_path = 'agents/Hexapod_NN_PG_B5A_pg.p'
         #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX
         policy = T.load(policy_path)
 

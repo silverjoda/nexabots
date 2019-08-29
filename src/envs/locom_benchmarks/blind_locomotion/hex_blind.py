@@ -9,6 +9,7 @@ import gym
 from gym import spaces
 from math import acos
 
+
 class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "hex.xml")
@@ -83,11 +84,12 @@ class Hexapod(gym.Env):
         # Scale control according to joint ranges
         ctrl = self.scale_action(ctrl)
 
-        # TODO: Make the Blind category of envs
-        # TODO: then copy to all the rest of the blind ones
-        # TODO: then do rangefinder and feelers,
-        # TODO: then heterogeneous environments,
-        # TODO: then camera
+        # TODO: Fix height issue for the blind envs
+        # TODO: Change leg contacts to sensors
+        # TODO: Make simple rangefinder sensors for variable envs
+        # TODO: Make hetero blind envs
+        # TODO: Make rgbd envs
+        # TODO: Make Decathlon testing envs (3 at least)
 
         # Step the simulator
         self.sim.data.ctrl[:] = ctrl
@@ -131,6 +133,20 @@ class Hexapod(gym.Env):
         self.model.opt.timestep = 0.02
         self.viewer = None
 
+        # Height field
+        self.hf_data = self.model.hfield_data
+        self.hf_ncol = self.model.hfield_ncol[0]
+        self.hf_nrow = self.model.hfield_nrow[0]
+        self.hf_column_meters = self.model.hfield_size[0][0] * 2
+        self.hf_row_meters = self.model.hfield_size[0][1] * 2
+        self.hf_height_meters = self.model.hfield_size[0][2]
+        self.pixels_per_column = self.hf_ncol / float(self.hf_column_meters)
+        self.pixels_per_row = self.hf_nrow / float(self.hf_row_meters)
+        self.hf_grid = self.hf_data.reshape((self.hf_nrow, self.hf_ncol))
+
+        local_grid = self.hf_grid[45:55, 5:15]
+        max_height = np.max(local_grid) * self.hf_height_meters
+
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
@@ -142,7 +158,7 @@ class Hexapod(gym.Env):
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = 0.0
         init_q[1] = 0.0
-        init_q[2] = 0.10
+        init_q[2] = max_height + 0.05
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Set environment state
@@ -186,5 +202,5 @@ class Hexapod(gym.Env):
 
 
 if __name__ == "__main__":
-    hex = Hexapod()
+    hex = Hexapod(hf_gen.hm_perlin, 1)
     hex.demo()

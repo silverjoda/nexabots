@@ -270,7 +270,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 50, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
               "note" : "Ant feelers goal mjc", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -280,8 +280,11 @@ if __name__=="__main__":
     #from src.envs.centipede.centipede import Centipede
     #env = Centipede(4)
 
-    from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
-    env = AntFeelersMjc()
+    #from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
+    #env = AntFeelersMjc()
+
+    from src.envs.locom_benchmarks.flat_env.hex_flat import Hexapod
+    env = Hexapod()
 
     # Test
     if params["train"]:

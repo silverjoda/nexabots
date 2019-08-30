@@ -88,7 +88,6 @@ class Hexapod(gym.Env):
         # Scale control according to joint ranges
         ctrl = self.scale_action(ctrl)
 
-        # TODO: Make simple rangefinder sensors for variable envs
         # TODO: Make hetero blind envs
         # TODO: Make rgbd envs
         # TODO: Make Decathlon testing envs (3 at least)

@@ -42,7 +42,6 @@ class Hexapod(gym.Env):
         self.viewer.cam.lookat[2] = 0.5
         self.viewer.cam.elevation = -30
 
-
     def get_state(self):
         return self.sim.get_state()
 
@@ -67,8 +66,13 @@ class Hexapod(gym.Env):
     def get_agent_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(
-            np.float32)
+        contacts = np.array(self.sim.data.sensordata[0:6], dtype=np.float32)
+        contacts[contacts > 0.05] = 1
+        contacts[contacts <= 0.05] = -1
+
+        # Rangefinder data
+        #r0 = self.sim.data.get_sensor('r0')
+        #r1 = self.sim.data.get_sensor('r1')
 
         # Joints, joint velocities, quaternion, pose velocities (xd,yd,zd,thd,phd,psid), foot contacts
         return np.concatenate((self.scale_joints(qpos[7:]), qvel[6:], qpos[3:7], qvel[:6], contacts))
@@ -84,8 +88,6 @@ class Hexapod(gym.Env):
         # Scale control according to joint ranges
         ctrl = self.scale_action(ctrl)
 
-        # TODO: Fix height issue for the blind envs
-        # TODO: Change leg contacts to sensors
         # TODO: Make simple rangefinder sensors for variable envs
         # TODO: Make hetero blind envs
         # TODO: Make rgbd envs
@@ -118,7 +120,7 @@ class Hexapod(gym.Env):
 
     def reset(self):
         # Generate environment
-        hm = self.hm_fun(*self.hm_args)
+        hm, info = self.hm_fun(*self.hm_args)
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hm.png"), hm)
 
         # Load simulator
@@ -128,6 +130,9 @@ class Hexapod(gym.Env):
                 break
             except Exception:
                 pass
+
+        # Set appropriate height according to height map
+        self.model.hfield_size[0][2] = info["height"]
 
         self.sim = mujoco_py.MjSim(self.model)
         self.model.opt.timestep = 0.02
@@ -202,5 +207,5 @@ class Hexapod(gym.Env):
 
 
 if __name__ == "__main__":
-    hex = Hexapod(hf_gen.hm_perlin, 1)
+    hex = Hexapod(hf_gen.pillars_pseudorandom(), 1)
     hex.demo()

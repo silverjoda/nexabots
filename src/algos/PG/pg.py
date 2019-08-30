@@ -285,7 +285,7 @@ if __name__=="__main__":
 
     from src.envs.locom_benchmarks.blind_locomotion.hex_blind import Hexapod
     from src.envs.locom_benchmarks import hf_gen
-    env = Hexapod(hf_gen.hm_corridor, 1)
+    env = Hexapod(hf_gen.pillars_pseudorandom, 1)
 
     # Test
     if params["train"]:

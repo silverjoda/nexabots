@@ -8,7 +8,7 @@ from scipy.misc import toimage
 import time
 from opensimplex import OpenSimplex
 
-def hm_flat(res):
+def flat(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.zeros((M, N), dtype=np.float32)
@@ -19,24 +19,29 @@ def hm_flat(res):
     mat[:, 0] = 1.
     mat[:, -1] = 1.
 
-    return mat
+    return mat, {"height" : 0.3}
 
 
-def hm_corridor(res, cw=8):
+def corridor(res, cw=8):
+    # Make even dimensions
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
-    mat = np.zeros((M, N), dtype=np.float32)
+    mat = np.ones((M, N), dtype=np.float32)
     M_2 = math.ceil(M / 2)
 
+    mat[M_2 - cw: M_2 + cw, : ] = 0.4
+
     # Walls
-    mat[M_2 - cw : M_2 + cw, 0] = 1.
-    mat[M_2 - cw : M_2 + cw, -1] = 1.
-    mat[M_2 - cw, :] = 1.
-    mat[M_2 + cw, :] = 1.
-    return mat
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+
+    # Multiply to full image resolution
+    mat *= 255
+
+    return mat, {"height": 0.3}
 
 
-def hm_corridor_holes(res, cw=8):
+def corridor_holes(res, cw=8):
     # Make even dimensions
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
@@ -47,9 +52,11 @@ def hm_corridor_holes(res, cw=8):
     Mt = 2
     Nt = 25
 
+    floor_height = 0.6
+
     # Makes tiles array
     p_kill = 0.5
-    tiles_array = np.ones((2, Nt)) * 0.4
+    tiles_array = np.ones((2, Nt)) * floor_height
     for i in range(Nt):
         if np.random.rand() < p_kill:
             tiles_array[np.random.randint(0,2), i] = 0
@@ -59,20 +66,20 @@ def hm_corridor_holes(res, cw=8):
         mat[M_2 - cw: M_2, i * cw: i * cw + cw] = tiles_array[0, i]
         mat[M_2:M_2 + cw:, i * cw: i * cw + cw] = tiles_array[1, i]
 
+    # Flat starting pos
+    mat[M_2 - cw: M_2 + cw, : 4 * cw] = floor_height
+
     # Walls
     mat[:, 0] = 1.
     mat[:, -1] = 1.
 
-    # Flat starting pos
-    mat[M_2 - cw: M_2 + cw, : 4 * cw] = 0.4
-
     # Multiply to full image resolution
     mat *= 255
 
-    return mat
+    return mat, {"height" : 0.8}
 
 
-def hm_tiles(res):
+def tiles(res):
     cw = 10
     # Make even dimensions
     M = math.ceil(res * 100)
@@ -105,10 +112,10 @@ def hm_tiles(res):
     # Multiply to full image resolution
     mat *= 255
 
-    return mat
+    return mat, {"height" : 0.5}
 
 
-def hm_triangles(res):
+def triangles(res):
     cw = 10
     # Make even dimensions
     M = math.ceil(res * 100)
@@ -143,10 +150,10 @@ def hm_triangles(res):
     # Multiply to full image resolution
     mat *= 255
 
-    return mat
+    return mat, {"height" : 0.5}
 
 
-def hm_domes(res):
+def domes(res):
     cw = 10
     # Make even dimensions
     M = math.ceil(res * 100)
@@ -190,10 +197,10 @@ def hm_domes(res):
     # Multiply to full image resolution
     mat *= 255
 
-    return mat
+    return mat, {"height" : 0.5}
 
 
-def hm_stairs(res):
+def stairs(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.ones((M, N), dtype=np.float32) * 0
@@ -242,10 +249,10 @@ def hm_stairs(res):
     # mat[:, 0] = 255
     # mat[:, -1] = 255
 
-    return mat
+    return mat, {"height" : 2.0}
 
 
-def hm_pipe(res, radius=8):
+def pipe(res, radius=8):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.ones((M, N), dtype=np.float32)
@@ -262,10 +269,10 @@ def hm_pipe(res, radius=8):
 
     mat *= 255
 
-    return mat
+    return mat, {"height" : 0.5}
 
 
-def hm_perlin(res):
+def perlin(res):
     oSim = OpenSimplex(seed=int(time.time()))
 
     height = 255
@@ -304,10 +311,10 @@ def hm_perlin(res):
     mat[:, 0] = 255.
     mat[:, -1] = 255.
 
-    return mat
+    return mat, {"height" : 1.2}
 
 
-def hm_corridor_various_width(res):
+def corridor_various_width(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.ones((M, N), dtype=np.float32)
@@ -338,10 +345,10 @@ def hm_corridor_various_width(res):
         c_n += length
 
 
-    return mat
+    return mat, {"height" : 0.3}
 
 
-def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
+def pipe_variable_rad(res, min_rad=6, max_rad=12):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.ones((M, N), dtype=np.float32)
@@ -379,10 +386,10 @@ def hm_pipe_variable_rad(res, min_rad=6, max_rad=12):
 
     mat *= 255
 
-    return mat
+    return mat, {"height" : 0.3}
 
 
-def hm_corridor_turns(res):
+def corridor_turns(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.ones((M, N), dtype=np.float32)
@@ -420,14 +427,14 @@ def hm_corridor_turns(res):
         # Add to wall_list while removing overlapping walls
         addbox(c_m, c_n, box_size, mat)
 
+    # Add walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
 
-    # Add initial wall
-    # mat[M_2 - cw: M_2 + cw, 0] = 1.
-
-    return mat
+    return mat, {"height" : 0.3}
 
 
-def hm_pillars_random(res):
+def pillars_random(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.zeros((M, N), dtype=np.float32)
@@ -450,10 +457,10 @@ def hm_pillars_random(res):
     mat[0, :] = 1.
     mat[-1, :] = 1.
 
-    return mat
+    return mat, {"height" : 0.3}
 
 
-def hm_pillars_pseudorandom(res):
+def pillars_pseudorandom(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
     mat = np.zeros((M, N), dtype=np.float32)
@@ -484,14 +491,7 @@ def hm_pillars_pseudorandom(res):
     mat[0, :] = 1.
     mat[-1, :] = 1.
 
-    return mat
-
-
-def img_generation(mat):
-    filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                 "assets/stairs.png")
-
-    cv2.imwrite(filename, mat)
+    return mat, {"height" : 0.3}
 
 
 if __name__ == "__main__":

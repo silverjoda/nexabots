@@ -14,9 +14,8 @@ class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "hex.xml")
 
-    def __init__(self, hm_fun, *hm_args):
-        print("Hexapod on {} env".format(hm_fun.__name__))
-        self.hm_fun = hm_fun
+    def __init__(self, hm_fun_list, *hm_args):
+        self.hm_fun_list = hm_fun_list
         self.hm_args = hm_args
 
         # External parameters
@@ -27,7 +26,12 @@ class Hexapod(gym.Env):
         self.target_vel = 0.4 # Target velocity with which we want agent to move
         self.max_steps = 300
 
+        self.camera = False
         self.reset()
+
+        self.camera = False
+        if self.camera:
+            self.cam_viewer = mujoco_py.MjRenderContextOffscreen(self.sim, 0)
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
         #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
@@ -41,6 +45,7 @@ class Hexapod(gym.Env):
         self.viewer.cam.lookat[1] = -1
         self.viewer.cam.lookat[2] = 0.5
         self.viewer.cam.elevation = -30
+
 
     def get_state(self):
         return self.sim.get_state()
@@ -70,7 +75,14 @@ class Hexapod(gym.Env):
         contacts[contacts > 0.05] = 1
         contacts[contacts <= 0.05] = -1
 
-        # Rangefinder data
+        if self.camera:
+            # On board camera input
+            cam_array = self.sim.render(camera_name="frontal", width=64, height=64)
+            img = cv2.cvtColor(np.flipud(cam_array), cv2.COLOR_BGR2GRAY)
+            #cv2.imshow('render', img)
+            #cv2.waitKey(0)
+
+            # Rangefinder data
         #r0 = self.sim.data.get_sensor('r0')
         #r1 = self.sim.data.get_sensor('r1')
 
@@ -88,7 +100,6 @@ class Hexapod(gym.Env):
         # Scale control according to joint ranges
         ctrl = self.scale_action(ctrl)
 
-        # TODO: Make hetero blind envs
         # TODO: Make rgbd envs
         # TODO: Make Decathlon testing envs (3 at least)
 
@@ -119,7 +130,8 @@ class Hexapod(gym.Env):
 
     def reset(self):
         # Generate environment
-        hm, info = self.hm_fun(*self.hm_args)
+        hm_fun = np.random.choice(self.hm_fun_list)
+        hm, info = hm_fun(*self.hm_args)
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hm.png"), hm)
 
         # Load simulator

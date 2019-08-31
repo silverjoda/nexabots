@@ -26,54 +26,104 @@
     <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="3.2 0 -.1" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>    <!--geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="40 40 40" type="plane"/-->
 
     <body name="torso_0" pos="0 0 0">
-      <geom name="torsoGeom_0" pos="0 0 0" axisangle="0 1 0 1.57" rgba="0 0 1 1" size="0.02 0.03" type="capsule" density="100"/>
+      <geom name="torsoGeom_0" pos="0 0 0" axisangle="0 1 0 1.57079" rgba="0 0 1 1" size="0.02 0.03" type="capsule" density="100"/>
       <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
       <camera name="track" mode="track" pos="1 -5 2.7" xyaxes="1 0 0 0 0.5 1"/>
+      <site name="b_0_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+      <site name="b_0_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+      <site name="b_0_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+      <site name="b_0_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
 
       <body name="torso_1" pos="-0.06 0 0">
         <geom name="torsoGeom_1" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
         <joint axis="0 0 1" name="body_1" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
         <joint axis="0 1 0" name="bodyupdown_1" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
 
+        <site name="b_1_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+        <site name="b_1_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+        <site name="b_1_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+        <site name="b_1_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+
         <body name="torso_2" pos="-0.06 0 0">
             <geom name="torsoGeom_2" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
             <joint axis="0 0 1" name="body_2" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
             <joint axis="0 1 0" name="bodyupdown_2" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+
+            <site name="b_2_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+            <site name="b_2_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+            <site name="b_2_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+            <site name="b_2_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
 
             <body name="torso_3" pos="-0.06 0 0">
                 <geom name="torsoGeom_3" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
                 <joint axis="0 0 1" name="body_3" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
                 <joint axis="0 1 0" name="bodyupdown_3" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
 
+                <site name="b_3_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                <site name="b_3_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                <site name="b_3_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                <site name="b_3_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+
                 <body name="torso_4" pos="-0.06 0 0">
                     <geom name="torsoGeom_4" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
                     <joint axis="0 0 1" name="body_4" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
                     <joint axis="0 1 0" name="bodyupdown_4" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+
+                    <site name="b_4_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                    <site name="b_4_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                    <site name="b_4_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                    <site name="b_4_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
 
                     <body name="torso_5" pos="-0.06 0 0">
                         <geom name="torsoGeom_5" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
                         <joint axis="0 0 1" name="body_5" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
                         <joint axis="0 1 0" name="bodyupdown_5" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
 
+                        <site name="b_5_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                        <site name="b_5_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                        <site name="b_5_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                        <site name="b_5_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+
                         <body name="torso_6" pos="-0.06 0 0">
                             <geom name="torsoGeom_6" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
                             <joint axis="0 0 1" name="body_6" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
                             <joint axis="0 1 0" name="bodyupdown_6" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+
+                            <site name="b_6_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                            <site name="b_6_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                            <site name="b_6_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                            <site name="b_6_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
 
                             <body name="torso_7" pos="-0.06 0 0">
                                 <geom name="torsoGeom_7" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
                                 <joint axis="0 0 1" name="body_7" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
                                 <joint axis="0 1 0" name="bodyupdown_7" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
 
+                                <site name="b_7_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                <site name="b_7_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                <site name="b_7_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                <site name="b_7_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+
                                 <body name="torso_8" pos="-0.06 0 0">
                                     <geom name="torsoGeom_8" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
                                     <joint axis="0 0 1" name="body_8" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
                                     <joint axis="0 1 0" name="bodyupdown_8" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
 
+                                    <site name="b_8_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                    <site name="b_8_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                    <site name="b_8_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                    <site name="b_8_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+
                                     <body name="torso_9" pos="-0.06 0 0">
                                         <geom name="torsoGeom_9" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
                                         <joint axis="0 0 1" name="body_9" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
                                         <joint axis="0 1 0" name="bodyupdown_9" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+
+                                        <site name="b_9_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                        <site name="b_9_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                        <site name="b_9_2" pos="0.0 0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+                                        <site name="b_9_3" pos="0.0 -0.012 0" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
+
                                     </body>
 
                                 </body>
@@ -93,9 +143,140 @@
     </body>
   </worldbody>
 
-  <!--<sensor>-->
-     <!--<touch name="t0" site="l0" />-->
-  <!--</sensor>-->
+  <sensor>
+     <touch name="t_0_0" site="b_0_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_0_1" site="b_0_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_0_2" site="b_0_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_0_3" site="b_0_3" />
+  </sensor>
+
+  <sensor>
+     <touch name="t_1_0" site="b_1_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_1_1" site="b_1_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_1_2" site="b_1_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_1_3" site="b_1_3" />
+  </sensor>
+
+<sensor>
+     <touch name="t_2_0" site="b_2_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_2_1" site="b_2_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_2_2" site="b_2_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_2_3" site="b_2_3" />
+  </sensor>
+
+
+<sensor>
+     <touch name="t_3_0" site="b_3_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_3_1" site="b_3_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_3_2" site="b_3_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_3_3" site="b_3_3" />
+  </sensor>
+
+  <sensor>
+     <touch name="t_4_0" site="b_4_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_4_1" site="b_4_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_4_2" site="b_4_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_4_3" site="b_4_3" />
+  </sensor>
+
+    <sensor>
+     <touch name="t_5_0" site="b_5_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_5_1" site="b_5_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_5_2" site="b_5_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_5_3" site="b_5_3" />
+  </sensor>
+
+
+    <sensor>
+     <touch name="t_6_0" site="b_6_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_6_1" site="b_6_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_6_2" site="b_6_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_6_3" site="b_6_3" />
+  </sensor>
+
+
+    <sensor>
+     <touch name="t_7_0" site="b_7_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_7_1" site="b_7_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_7_2" site="b_7_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_7_3" site="b_7_3" />
+  </sensor>
+
+    <sensor>
+     <touch name="t_8_0" site="b_8_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_8_1" site="b_8_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_8_2" site="b_8_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_8_3" site="b_8_3" />
+  </sensor>
+
+    <sensor>
+     <touch name="t_9_0" site="b_9_0" />
+  </sensor>
+  <sensor>
+     <touch name="t_9_1" site="b_9_1" />
+  </sensor>
+  <sensor>
+     <touch name="t_9_2" site="b_9_2" />
+  </sensor>
+  <sensor>
+     <touch name="t_9_3" site="b_9_3" />
+  </sensor>
+
+
     <!---->
   <actuator>
     <position joint="body_1" kp="40"/>

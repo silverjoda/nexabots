@@ -283,7 +283,7 @@ if __name__=="__main__":
     #from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
     #env = AntFeelersMjc()
 
-    from src.envs.locom_benchmarks.blind_locomotion.hex_blind import Hexapod
+    from src.envs.locom_benchmarks.hex_locomotion.hex_blind import Hexapod
     from src.envs.locom_benchmarks import hf_gen
     env = Hexapod([hf_gen.triangles, hf_gen.tiles], 1)
 

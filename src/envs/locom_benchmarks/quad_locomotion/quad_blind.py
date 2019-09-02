@@ -19,8 +19,8 @@ class Quad(gym.Env):
         self.hm_args = hm_args
 
         # External parameters
-        self.joints_rads_low = np.array([-0.6, -1.4, -0.8] * 4)
-        self.joints_rads_high = np.array([0.6, 0.4, 0.8] * 4)
+        self.joints_rads_low = np.array([-0.2, -0.6, -0.6] * 4)
+        self.joints_rads_high = np.array([0.6, 0.6, 0.6] * 4)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.target_vel = 0.4 # Target velocity with which we want agent to move
@@ -71,7 +71,7 @@ class Quad(gym.Env):
     def get_agent_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        contacts = np.array(self.sim.data.sensordata[0:6], dtype=np.float32)
+        contacts = np.array(self.sim.data.sensordata[0:4], dtype=np.float32)
         contacts[contacts > 0.05] = 1
         contacts[contacts <= 0.05] = -1
 
@@ -110,6 +110,7 @@ class Quad(gym.Env):
         # Get agent telemetry data
         _, _, _, qw, qx, qy, qz = self.sim.get_state().qpos.tolist()[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
+        roll, pitch, yaw = my_utils.quat_to_rpy((qw, qx, qy, qz))
 
         # Reward conditions
         velocity_rew = 1. / (abs(xd - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
@@ -121,7 +122,7 @@ class Quad(gym.Env):
             np.square(zd) * 0.7
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps  # or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8
+        done = self.step_ctr > self.max_steps or abs(roll) > 0.8 or abs(pitch) > 0.8
 
         return self.get_agent_obs(), r, done, None
 

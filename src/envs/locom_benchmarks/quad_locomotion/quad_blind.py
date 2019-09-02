@@ -117,12 +117,12 @@ class Quad(gym.Env):
         q_yaw = 2 * acos(qw)
 
         r = velocity_rew * 5 - \
-            np.square(q_yaw) * 2.5 - \
-            np.square(ctrl_pen) * 0.3 - \
-            np.square(zd) * 0.7
+            np.square(q_yaw) * 1.5 - \
+            np.square(ctrl_pen) * 0.1 - \
+            np.square(zd) * 0.3
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or abs(roll) > 0.8 or abs(pitch) > 0.8
+        done = self.step_ctr > self.max_steps # or abs(roll) > 0.8 or abs(pitch) > 0.8
 
         return self.get_agent_obs(), r, done, None
 

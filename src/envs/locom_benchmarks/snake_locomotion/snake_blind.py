@@ -23,7 +23,7 @@ class Snake(gym.Env):
         self.joints_rads_high = np.array([0.6, 0.3] * 9)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.target_vel = 0.4  # Target velocity with which we want agent to move
+        self.target_vel = 0.3  # Target velocity with which we want agent to move
         self.max_steps = 300
 
         self.reset()
@@ -99,8 +99,8 @@ class Snake(gym.Env):
         q_yaw = 2 * acos(qw)
 
         r = velocity_rew * 5 - \
-            np.square(q_yaw) * 2.5 - \
-            np.square(ctrl_pen) * 0.3 - \
+            np.square(q_yaw) * 1.0 - \
+            np.square(ctrl_pen) * 0.1 - \
             np.square(zd) * 0.7
 
         # Reevaluate termination condition

@@ -10,7 +10,7 @@ from gym import spaces
 from math import acos
 
 
-class Hexapod(gym.Env):
+class Snake(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "snake.xml")
 
@@ -19,11 +19,11 @@ class Hexapod(gym.Env):
         self.hm_args = hm_args
 
         # External parameters
-        self.joints_rads_low = np.array([-0.6, -1.4, -0.8] * 6)
-        self.joints_rads_high = np.array([0.6, 0.4, 0.8] * 6)
+        self.joints_rads_low = np.array([-0.6, -0.3] * 9)
+        self.joints_rads_high = np.array([0.6, 0.3] * 9)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
-        self.target_vel = 0.4 # Target velocity with which we want agent to move
+        self.target_vel = 0.4  # Target velocity with which we want agent to move
         self.max_steps = 300
 
         self.reset()
@@ -66,7 +66,7 @@ class Hexapod(gym.Env):
     def get_agent_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
-        contacts = np.array(self.sim.data.sensordata[0:6], dtype=np.float32)
+        contacts = np.array(self.sim.data.sensordata, dtype=np.float32)
         contacts[contacts > 0.05] = 1
         contacts[contacts <= 0.05] = -1
 
@@ -118,7 +118,7 @@ class Hexapod(gym.Env):
         # Load simulator
         while True:
             try:
-                self.model = mujoco_py.load_model_from_path(Hexapod.MODELPATH)
+                self.model = mujoco_py.load_model_from_path(Snake.MODELPATH)
                 break
             except Exception:
                 pass
@@ -148,7 +148,7 @@ class Hexapod(gym.Env):
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 18 + 18 + 4 + 6 + 6 # j, jd, quat, pose_velocity, contacts
+        self.obs_dim = 18 + 18 + 4 + 6 + 40
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         # Set initial position
@@ -162,8 +162,7 @@ class Hexapod(gym.Env):
         self.set_state(init_q, init_qvel)
         self.step_ctr = 0
 
-        #obs, _, _, _ = self.step(np.zeros(self.act_dim))
-        obs = None
+        obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
         return obs
 
@@ -201,5 +200,5 @@ class Hexapod(gym.Env):
 
 
 if __name__ == "__main__":
-    hex = Hexapod([hf_gen.flat], 1)
+    hex = Snake([hf_gen.flat], 1)
     hex.demo()

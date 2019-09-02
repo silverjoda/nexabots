@@ -283,9 +283,9 @@ if __name__=="__main__":
     #from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
     #env = AntFeelersMjc()
 
-    from src.envs.locom_benchmarks.quad_locomotion.quad_blind import Quad
+    from src.envs.locom_benchmarks.snake_locomotion.snake_blind import Snake
     from src.envs.locom_benchmarks import hf_gen
-    env = Quad([hf_gen.flat], 1)
+    env = Snake([hf_gen.flat], 1)
 
     # Test
     if params["train"]:

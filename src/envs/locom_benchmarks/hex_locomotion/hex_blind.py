@@ -101,6 +101,7 @@ class Hexapod(gym.Env):
         ctrl = self.scale_action(ctrl)
 
         # TODO: Make Decathlon testing envs (3 at least)
+        # TODO: Quadruped and snake env
 
         # Step the simulator
         self.sim.data.ctrl[:] = ctrl

@@ -269,8 +269,8 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 500000, "batchsize": 50, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
+    params = {"iters": 500000, "batchsize": 30, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "--", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -284,11 +284,11 @@ if __name__=="__main__":
     #env = AntFeelersMjc()
 
     from src.envs.locom_benchmarks import hf_gen
-    from src.envs.locom_benchmarks.hex_locomotion.hex_blind import Hexapod as env
+    #from src.envs.locom_benchmarks.hex_locomotion.hex_blind import Hexapod as env
     #from src.envs.locom_benchmarks.quad_locomotion.quad_blind import Quad as env
-    #from src.envs.locom_benchmarks.snake_locomotion.snake_blind import Snake as env
+    from src.envs.locom_benchmarks.snake_locomotion.snake_blind import Snake as env
 
-    env = env([hf_gen.perlin], 1)
+    env = env([hf_gen.flat], 1)
 
     # Test
     if params["train"]:
@@ -300,7 +300,7 @@ if __name__=="__main__":
     else:
         print("Testing")
 
-        policy_path = 'agents/{}_NN_PG_VZL_pg.p'.format(env.__class__.__name__)
+        policy_path = 'agents/{}_NN_PG_96R_pg.p'.format(env.__class__.__name__)
         #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX
         policy = T.load(policy_path)
 

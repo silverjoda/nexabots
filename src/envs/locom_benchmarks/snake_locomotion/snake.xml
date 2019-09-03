@@ -5,7 +5,7 @@
 
   <default>
     <joint armature="0.5" damping="3" limited="true"/>
-    <geom conaffinity="0" condim="3" density="5.0" friction="1.0 0.5 0.5" margin="0.001" rgba="0.2 0.2 0.2 0.8"/>
+    <geom conaffinity="0" condim="3" density="5.0" friction="1.0 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>
   </default>
 
   <asset>
@@ -36,8 +36,8 @@
 
       <body name="torso_1" pos="-0.06 0 0">
         <geom name="torsoGeom_1" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-        <joint axis="0 0 1" name="body_1" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-        <joint axis="0 1 0" name="bodyupdown_1" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+        <joint axis="0 0 1" name="body_1" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+        <joint axis="0 1 0" name="bodyupdown_1" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
         <site name="b_1_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
         <site name="b_1_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -46,8 +46,8 @@
 
         <body name="torso_2" pos="-0.06 0 0">
             <geom name="torsoGeom_2" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-            <joint axis="0 0 1" name="body_2" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-            <joint axis="0 1 0" name="bodyupdown_2" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+            <joint axis="0 0 1" name="body_2" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+            <joint axis="0 1 0" name="bodyupdown_2" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
             <site name="b_2_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
             <site name="b_2_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -56,8 +56,8 @@
 
             <body name="torso_3" pos="-0.06 0 0">
                 <geom name="torsoGeom_3" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-                <joint axis="0 0 1" name="body_3" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-                <joint axis="0 1 0" name="bodyupdown_3" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+                <joint axis="0 0 1" name="body_3" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+                <joint axis="0 1 0" name="bodyupdown_3" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
                 <site name="b_3_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
                 <site name="b_3_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -66,8 +66,8 @@
 
                 <body name="torso_4" pos="-0.06 0 0">
                     <geom name="torsoGeom_4" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-                    <joint axis="0 0 1" name="body_4" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-                    <joint axis="0 1 0" name="bodyupdown_4" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+                    <joint axis="0 0 1" name="body_4" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+                    <joint axis="0 1 0" name="bodyupdown_4" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
                     <site name="b_4_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
                     <site name="b_4_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -76,8 +76,8 @@
 
                     <body name="torso_5" pos="-0.06 0 0">
                         <geom name="torsoGeom_5" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-                        <joint axis="0 0 1" name="body_5" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-                        <joint axis="0 1 0" name="bodyupdown_5" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+                        <joint axis="0 0 1" name="body_5" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+                        <joint axis="0 1 0" name="bodyupdown_5" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
                         <site name="b_5_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
                         <site name="b_5_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -86,8 +86,8 @@
 
                         <body name="torso_6" pos="-0.06 0 0">
                             <geom name="torsoGeom_6" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-                            <joint axis="0 0 1" name="body_6" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-                            <joint axis="0 1 0" name="bodyupdown_6" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+                            <joint axis="0 0 1" name="body_6" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+                            <joint axis="0 1 0" name="bodyupdown_6" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
                             <site name="b_6_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
                             <site name="b_6_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -96,8 +96,8 @@
 
                             <body name="torso_7" pos="-0.06 0 0">
                                 <geom name="torsoGeom_7" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-                                <joint axis="0 0 1" name="body_7" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-                                <joint axis="0 1 0" name="bodyupdown_7" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+                                <joint axis="0 0 1" name="body_7" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+                                <joint axis="0 1 0" name="bodyupdown_7" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
                                 <site name="b_7_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
                                 <site name="b_7_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -106,8 +106,8 @@
 
                                 <body name="torso_8" pos="-0.06 0 0">
                                     <geom name="torsoGeom_8" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-                                    <joint axis="0 0 1" name="body_8" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-                                    <joint axis="0 1 0" name="bodyupdown_8" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+                                    <joint axis="0 0 1" name="body_8" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+                                    <joint axis="0 1 0" name="bodyupdown_8" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
                                     <site name="b_8_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
                                     <site name="b_8_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -116,8 +116,8 @@
 
                                     <body name="torso_9" pos="-0.06 0 0">
                                         <geom name="torsoGeom_9" pos="0 0 0" axisangle="0 1 0 1.57" size="0.02 0.03" type="capsule" density="100"/>
-                                        <joint axis="0 0 1" name="body_9" pos="0.03 0.0 0.0" range="-0.3 0.3" type="hinge"/>
-                                        <joint axis="0 1 0" name="bodyupdown_9" pos="0.03 0.0 0.0" range="-0.2 0.2" type="hinge"/>
+                                        <joint axis="0 0 1" name="body_9" pos="0.03 0.0 0.0" range="-0.8 0.8" type="hinge"/>
+                                        <joint axis="0 1 0" name="bodyupdown_9" pos="0.03 0.0 0.0" range="-0.4 0.4" type="hinge"/>
 
                                         <site name="b_9_0" pos="0.0 0.0 -0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
                                         <site name="b_9_1" pos="0.0 0.0 0.012" axisangle="0 1 0 1.57079" size="0.01 0.02" type="capsule" rgba="1. 1. 1. 1.0"/>
@@ -279,24 +279,24 @@
 
     <!---->
   <actuator>
-    <position joint="body_1" kp="40"/>
-    <position joint="bodyupdown_1" kp="40"/>
-    <position joint="body_2" kp="40"/>
-    <position joint="bodyupdown_2" kp="40"/>
-    <position joint="body_3" kp="40"/>
-    <position joint="bodyupdown_3" kp="40"/>
-    <position joint="body_4" kp="40"/>
-    <position joint="bodyupdown_4" kp="40"/>
-    <position joint="body_5" kp="40"/>
-    <position joint="bodyupdown_5" kp="40"/>
-    <position joint="body_6" kp="40"/>
-    <position joint="bodyupdown_6" kp="40"/>
-    <position joint="body_7" kp="40"/>
-    <position joint="bodyupdown_7" kp="40"/>
-    <position joint="body_8" kp="40"/>
-    <position joint="bodyupdown_8" kp="40"/>
-    <position joint="body_9" kp="40"/>
-    <position joint="bodyupdown_9" kp="40"/>
+    <position joint="body_1" kp="50"/>
+    <position joint="bodyupdown_1" kp="50"/>
+    <position joint="body_2" kp="50"/>
+    <position joint="bodyupdown_2" kp="50"/>
+    <position joint="body_3" kp="50"/>
+    <position joint="bodyupdown_3" kp="50"/>
+    <position joint="body_4" kp="50"/>
+    <position joint="bodyupdown_4" kp="50"/>
+    <position joint="body_5" kp="50"/>
+    <position joint="bodyupdown_5" kp="50"/>
+    <position joint="body_6" kp="50"/>
+    <position joint="bodyupdown_6" kp="50"/>
+    <position joint="body_7" kp="50"/>
+    <position joint="bodyupdown_7" kp="50"/>
+    <position joint="body_8" kp="50"/>
+    <position joint="bodyupdown_8" kp="50"/>
+    <position joint="body_9" kp="50"/>
+    <position joint="bodyupdown_9" kp="50"/>
   </actuator>
 
 

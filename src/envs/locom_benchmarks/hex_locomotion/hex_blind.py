@@ -19,12 +19,12 @@ class Hexapod(gym.Env):
         self.hm_args = hm_args
 
         # External parameters
-        self.joints_rads_low = np.array([-0.6, -1.4, -0.8] * 6)
-        self.joints_rads_high = np.array([0.6, 0.4, 0.8] * 6)
+        self.joints_rads_low = np.array([-0.6, -1.2, -0.6] * 6)
+        self.joints_rads_high = np.array([0.6, 0.2, 0.6] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.target_vel = 0.4 # Target velocity with which we want agent to move
-        self.max_steps = 300
+        self.max_steps = 400
 
         self.camera = False
         self.reset()
@@ -100,9 +100,6 @@ class Hexapod(gym.Env):
         # Scale control according to joint ranges
         ctrl = self.scale_action(ctrl)
 
-        # TODO: Make Decathlon testing envs (3 at least)
-        # TODO: Quadruped and snake env
-
         # Step the simulator
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
@@ -117,10 +114,10 @@ class Hexapod(gym.Env):
         velocity_rew = 1. / (abs(xd - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
         q_yaw = 2 * acos(qw)
 
-        r = velocity_rew * 5 - \
-            np.square(q_yaw) * 2.5 - \
-            np.square(ctrl_pen) * 0.3 - \
-            np.square(zd) * 0.7
+        r = velocity_rew * 10 - \
+            np.square(q_yaw) * .7 - \
+            np.square(ctrl_pen) * 0.01 - \
+            np.square(zd) * 0.5
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps  # or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8

@@ -98,10 +98,10 @@ class Snake(gym.Env):
         velocity_rew = 1. / (abs(xd - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
         q_yaw = 2 * acos(qw)
 
-        r = velocity_rew * 5 - \
-            np.square(q_yaw) * 1.0 - \
-            np.square(ctrl_pen) * 0.1 - \
-            np.square(zd) * 0.7
+        r = velocity_rew * 10 - \
+            np.square(q_yaw) * 0.3 - \
+            np.square(ctrl_pen) * 0.01 - \
+            np.square(zd) * 0.5
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps

@@ -110,16 +110,16 @@ class Quad(gym.Env):
         # Get agent telemetry data
         _, _, _, qw, qx, qy, qz = self.sim.get_state().qpos.tolist()[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
-        roll, pitch, yaw = my_utils.quat_to_rpy((qw, qx, qy, qz))
+        #roll, pitch, yaw = my_utils.quat_to_rpy((qw, qx, qy, qz))
 
         # Reward conditions
         velocity_rew = 1. / (abs(xd - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
         q_yaw = 2 * acos(qw)
 
-        r = velocity_rew * 5 - \
-            np.square(q_yaw) * 1.5 - \
-            np.square(ctrl_pen) * 0.1 - \
-            np.square(zd) * 0.3
+        r = velocity_rew * 10 - \
+            np.square(q_yaw) * 0.5 - \
+            np.square(ctrl_pen) * 0.01 - \
+            np.square(zd) * 0.5
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps # or abs(roll) > 0.8 or abs(pitch) > 0.8

@@ -306,8 +306,3 @@ if __name__=="__main__":
 
         env.test(policy)
         print(policy_path)
-
-        # 9v9 1444, 1627, 1233
-        # Z32 1512  1777  1885
-        # UAV -273  -207  -233
-

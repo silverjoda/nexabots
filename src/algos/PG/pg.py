@@ -299,8 +299,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-
-        policy_path = 'agents/{}_NN_PG_96R_pg.p'.format(env.__class__.__name__)
+        policy_path = 'agents/{}_NN_PG_1GB_pg.p'.format(env.__class__.__name__)
         #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX
         policy = T.load(policy_path)
 

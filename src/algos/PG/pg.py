@@ -183,7 +183,6 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
             policy_optim.step()
 
 
-
 def update_V(V, V_optim, gamma, batch_states, batch_rewards, batch_terminals):
     assert len(batch_states) == len(batch_rewards) == len(batch_terminals)
     N = len(batch_states)

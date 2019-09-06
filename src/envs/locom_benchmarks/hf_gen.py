@@ -272,6 +272,44 @@ def pipe(res, radius=8):
     return mat, {"height" : 0.5}
 
 
+def slant(res):
+    M = math.ceil(res * 100)
+    N = math.ceil(res * 200)
+    mat = np.ones((M, N), dtype=np.float32)
+    M_2 = math.ceil(M / 2)
+    W_2 = 15
+
+    c_p = [30, 70, 120, 200]
+    flat_height = 0.4
+
+    mat[M_2 - W_2: M_2 + W_2, :c_p[0]] = np.linspace(flat_height, flat_height, W_2 * 2).repeat(c_p[0]).reshape(W_2 * 2, c_p[0])
+    for i in range(len(c_p) - 1):
+        d = np.random.choice(["f", "l", "r"])
+        if d == "f":
+            mat[M_2 - W_2: M_2 + W_2, c_p[i]: c_p[i+1]] = np.linspace(flat_height, flat_height, W_2 * 2).repeat(c_p[i+1] - c_p[i]).reshape(W_2 * 2, c_p[i+1] - c_p[i])
+        if d == "l":
+            mat[M_2 - W_2: M_2 + W_2, c_p[i]: c_p[i+1]] = np.linspace(1, 0, W_2 * 2).repeat(c_p[i+1] - c_p[i]).reshape(W_2 * 2, c_p[i+1] - c_p[i])
+        if d == "r":
+            mat[M_2 - W_2: M_2 + W_2, c_p[i]: c_p[i+1]] = np.linspace(0, 1, W_2 * 2).repeat(c_p[i+1] - c_p[i]).reshape(W_2 * 2, c_p[i+1] - c_p[i])
+
+    s_d = 5
+    for i in range(len(c_p) - 1):
+        tmp = np.zeros((W_2 * 2, s_d * 2))
+        for j in range(-s_d, s_d):
+            tmp[:, j + s_d] = np.mean(mat[M_2 - W_2: M_2 + W_2, c_p[i] + j - s_d:c_p[i] + j + s_d], axis=1, keepdims=False)
+        mat[M_2 - W_2: M_2 + W_2, c_p[i] - s_d:c_p[i] + s_d] = tmp
+
+    # Walls
+    mat[:, 0] = 1.
+    mat[:, -1] = 1.
+    mat[0, :] = 1.
+    mat[-1, :] = 1.
+
+    mat *= 255
+
+    return mat, {"height" : 0.5}
+
+
 def perlin(res):
     oSim = OpenSimplex(seed=int(time.time()))
 

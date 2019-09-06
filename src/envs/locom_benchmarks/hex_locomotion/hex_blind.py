@@ -215,5 +215,5 @@ class Hexapod(gym.Env):
 
 
 if __name__ == "__main__":
-    hex = Hexapod([hf_gen.slant], 1)
+    hex = Hexapod([hf_gen.flat], 1)
     hex.demo()

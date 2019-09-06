@@ -217,5 +217,5 @@ class Quad(gym.Env):
 
 
 if __name__ == "__main__":
-    quad = Quad([hf_gen.pillars_pseudorandom], 1)
+    quad = Quad([hf_gen.flat], 1)
     quad.demo()

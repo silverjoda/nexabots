@@ -39,8 +39,8 @@
           <geom fromto="0.0 0.0 0.0 -0.03 0.0 -0.08" name="thigh_fl_geom" size="0.012" type="capsule" material="MatLeg"/>
           <body pos="-0.03 0 -0.08">
             <joint axis="0 1 0" name="leg_fl" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
-            <geom fromto="0.0 0.03 0.0 0.03 0.03 -0.06" name="leg_fl_geom" size="0.012" type="capsule" material="MatLeg"/>
-            <site name="l0" pos="0.03 0.03 -0.06" size=".012" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
+            <geom fromto="0.0 0.03 0.0 0.03 0.03 -0.06" name="leg_fl_geom" size="0.012" type="capsule" material="MatLeg" rgba="0.0 1.0 1.0 1.0"/>
+            <site name="l0" pos="0.03 0.03 -0.06" size=".0125" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
           </body>
       </body>
 
@@ -51,7 +51,7 @@
           <body pos="0.03 0 -0.08">
             <joint axis="0 -1 0" name="leg_rl" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
             <geom fromto="0.0 0.03 0.0 -0.03 0.03 -0.06" name="leg_rl_geom" size="0.012" type="capsule" material="MatLeg"/>
-            <site name="l1" pos="-0.03 0.03 -0.06" size=".012" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
+            <site name="l1" pos="-0.03 0.03 -0.06" size=".0125" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
           </body>
       </body>
 
@@ -62,7 +62,7 @@
           <body pos="0.03 0 -0.08">
             <joint axis="0 -1 0" name="leg_rr" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
             <geom fromto="0.0 -0.03 0.0 -0.03 -0.03 -0.06" name="leg_rr_geom" size="0.012" type="capsule" material="MatLeg"/>
-            <site name="l2" pos="-0.03 -0.03 -0.06" size=".012" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
+            <site name="l2" pos="-0.03 -0.03 -0.06" size=".0125" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
           </body>
       </body>
 
@@ -72,8 +72,8 @@
           <geom fromto="0.0 0.0 0.0 -0.03 0.0 -0.08" name="thigh_fr_geom" size="0.012" type="capsule" material="MatLeg"/>
           <body pos="-0.03 0 -0.08">
             <joint axis="0 1 0" name="leg_fr" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
-            <geom fromto="0.0 -0.03 0.0 0.03 -0.03 -0.06" name="leg_fr_geom" size="0.012" type="capsule" material="MatLeg"/>
-            <site name="l3" pos="0.03 -0.03 -0.06" size=".012" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
+            <geom fromto="0.0 -0.03 0.0 0.03 -0.03 -0.06" name="leg_fr_geom" size="0.012" type="capsule" material="MatLeg" rgba="0.0 1.0 1.0 1.0"/>
+            <site name="l3" pos="0.03 -0.03 -0.06" size=".0125" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
           </body>
       </body>
 

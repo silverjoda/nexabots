@@ -45,7 +45,7 @@ def corridor_holes(res, cw=8):
     # Make even dimensions
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
-    mat = np.ones((M, N), dtype=np.float32)
+    mat = np.zeros((M, N), dtype=np.float32)
     M_2 = math.ceil(M / 2)
 
     # Amount of 'tiles'
@@ -70,8 +70,9 @@ def corridor_holes(res, cw=8):
     mat[M_2 - cw: M_2 + cw, : 4 * cw] = floor_height
 
     # Walls
-    mat[:, 0] = 1.
-    mat[:, -1] = 1.
+    mat[0, 0] = 1.
+    # mat[:, 0] = 1.
+    # mat[:, -1] = 1.
 
     # Multiply to full image resolution
     mat *= 255
@@ -105,6 +106,8 @@ def tiles(res):
         mat[M_2 - cw: M_2, i * cw: i * cw + cw] = tiles_array[0, i]
         mat[M_2:M_2 + cw:, i * cw: i * cw + cw] = tiles_array[1, i]
 
+
+
     # Walls
     mat[:, 0] = 1.
     mat[:, -1] = 1.
@@ -116,11 +119,13 @@ def tiles(res):
 
 
 def triangles(res):
+
+
     cw = 10
     # Make even dimensions
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
-    mat = np.ones((M, N), dtype=np.float32)
+    mat = np.zeros((M, N), dtype=np.float32)
     M_2 = math.ceil(M / 2)
 
     # Amount of 'tiles'
@@ -144,13 +149,14 @@ def triangles(res):
             mat[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0,4))
 
     # Walls
-    mat[:, 0] = 1.
-    mat[:, -1] = 1.
+    mat[0, 0] = 1.
+    #mat[:, 0] = 1.
+    #mat[:, -1] = 1.
 
     # Multiply to full image resolution
     mat *= 255
 
-    return mat, {"height" : 0.5}
+    return mat, {"height" : 0.5, "friction":0.2}
 
 
 def domes(res):
@@ -275,7 +281,7 @@ def pipe(res, radius=8):
 def slant(res):
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
-    mat = np.ones((M, N), dtype=np.float32)
+    mat = np.zeros((M, N), dtype=np.float32)
     M_2 = math.ceil(M / 2)
     W_2 = 15
 
@@ -313,7 +319,7 @@ def slant(res):
 def perlin(res):
     oSim = OpenSimplex(seed=int(time.time()))
 
-    height = 255
+    height = 200
 
     M = math.ceil(res * 100)
     N = math.ceil(res * 200)
@@ -344,10 +350,11 @@ def perlin(res):
         mat = np.clip(mat, 0, num)
 
     # Walls
-    mat[0, :] = 255.
-    mat[-1, :] = 255.
-    mat[:, 0] = 255.
-    mat[:, -1] = 255.
+    mat[0, 0] = 255.
+    # mat[0, :] = 255.
+    # mat[-1, :] = 255.
+    # mat[:, 0] = 255.
+    # mat[:, -1] = 255.
 
     return mat, {"height" : 1.2}
 

@@ -41,10 +41,11 @@ class Hexapod(gym.Env):
         self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.cam.trackbodyid = -1
         self.viewer.cam.distance = self.model.stat.extent * .3
-        self.viewer.cam.lookat[0] = -0.1
-        self.viewer.cam.lookat[1] = -1
-        self.viewer.cam.lookat[2] = 0.5
+        self.viewer.cam.lookat[0] = 0
+        self.viewer.cam.lookat[1] = 0.3
+        self.viewer.cam.lookat[2] = 0.9
         self.viewer.cam.elevation = -30
+        self.viewer.cam.azimuth = -10
 
 
     def get_state(self):
@@ -215,5 +216,6 @@ class Hexapod(gym.Env):
 
 
 if __name__ == "__main__":
-    hex = Hexapod([hf_gen.flat], 1)
+    # Corridor holes, triangles, pipe_variable_rad, slant, stairs
+    hex = Hexapod([hf_gen.perlin], 1)
     hex.demo()

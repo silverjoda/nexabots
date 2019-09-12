@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.pipeline import make_pipeline
 import torch
-import robust_loss_pytorch.general
+import robust_loss_pytorch.general#
 
 class RegressionModel(torch.nn.Module):
     # A simple linear regression module.

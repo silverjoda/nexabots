@@ -115,6 +115,8 @@ class CartPoleBulletEnv():
         
         done = self.step_ctr > self.max_steps
 
+        #time.sleep(0.01)
+
         # Change target
         if np.random.rand() < self.target_change_prob:
             self.target = np.clip(np.random.rand() * 2 * self.target_var - self.target_var, -1, 1)

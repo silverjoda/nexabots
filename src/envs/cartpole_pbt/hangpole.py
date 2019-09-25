@@ -46,7 +46,7 @@ class HangPoleBulletEnv():
         self.target_var = 2.0
         self.target_change_prob = 0.003
         self.dist_var = 2
-        self.mass_var = 0.0
+        self.mass_var = 10.0
         self.mass_min = 1.0
 
         self.cartpole = p.loadURDF(os.path.join(os.path.dirname(os.path.realpath(__file__)), "hangpole.urdf"))

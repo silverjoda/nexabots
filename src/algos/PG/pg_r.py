@@ -79,10 +79,10 @@ def train(env, policy, params):
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
-            if params["ppo"]:
-                update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            else:
-                update_policy(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            # if params["ppo"]:
+            #     update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+            # else:
+            update_proper(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
                   format(i, params["iters"], None, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
@@ -117,7 +117,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss.backward()
 
         # Step policy update
-        policy.soft_clip_grads(0.5)
+        policy.soft_clip_grads(3.)
         policy_optim.step()
 
 
@@ -135,7 +135,44 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 
     # Step policy update
     #policy.print_info()
-    policy.soft_clip_grads(1)
+    policy.soft_clip_grads(3.)
+    policy_optim.step()
+
+    return loss.data
+
+
+def update_proper(policy, policy_optim, batch_states, batch_actions, batch_advantages):
+
+    # params:
+    h_learn = 70
+    rollout_step = 10
+    h_trunc = 50
+    horizon = batch_states.shape[1]
+
+    batch_advantages = batch_advantages.view((batch_states.shape[0], batch_states.shape[1], 1))
+
+    # Do initial rollout to get hidden states
+    with T.no_grad():
+        hiddens = policy.forward_hidden((batch_states, None))
+
+    # Zero out gradient before starting updates
+    policy_optim.zero_grad()
+
+    for i in range(0, horizon):
+        start_index = np.maximum(0, i - h_learn)
+        h = hiddens[start_index]
+
+        # Get action log probabilities
+        log_probs = policy.log_probs_wh(h, batch_states[:, start_index:i+1], batch_actions[:, start_index:i+1])
+
+        # Calculate loss function
+        loss = -T.mean(log_probs.view((-1, 1)) * batch_advantages[:, start_index:i+1].reshape((-1, 1)))
+
+        # Backward pass on policy
+        loss.backward()
+
+    # Step policy update
+    policy.soft_clip_grads(3.)
     policy_optim.step()
 
     return loss.data
@@ -167,8 +204,8 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 1000000, "batchsize": 50, "gamma": 0.995, "lr": 0.0007, "decay" : 0.00003, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
+    params = {"iters": 1000000, "batchsize": 10, "gamma": 0.995, "lr": 0.0007, "decay" : 0.00003, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
               "comments" : "Ant feelers goal mjc", "Env_list" : env_list,
               "ID": ID}
 
@@ -176,15 +213,18 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
-    env = AntFeelersMjc()
+    # from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
+    # env = AntFeelersMjc()
+
+    from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
+    env = env(animate=params["animate"])
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, hid_dim=80, memory_dim=80, n_temp=2, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_PG(env, hid_dim=24, memory_dim=24, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

@@ -1669,6 +1669,33 @@ class RNN_PG(nn.Module):
         return f, h
 
 
+    def forward_hidden(self, input):
+        x, h = input
+        rnn_features = F.leaky_relu(self.m1(self.fc1(x)))
+
+        N = x.shape[1]
+        hiddens = [h]
+        for i in range(N):
+            _, h = self.rnn(rnn_features[:, i:i+1, :], h)
+            hiddens.append(h)
+        return hiddens[:-1]
+
+
+    def forward_trunc(self, input, horizon, trunc):
+        x, h = input
+        rnn_features = F.leaky_relu(self.m1(self.fc1(x)))
+
+
+        for i in range(horizon):
+            output, h = self.rnn(rnn_features, h)
+
+        if self.tanh:
+            f = T.tanh(self.fc3(output))
+        else:
+            f = self.fc2(output)
+        return f, h
+
+
     def sample_action(self, s):
         x, h = self.forward(s)
         return T.normal(x[0], T.exp(self.log_std_cpu)), h
@@ -1677,6 +1704,23 @@ class RNN_PG(nn.Module):
     def log_probs(self, batch_states, batch_actions):
         # Get action means from policy
         action_means, _ = self.forward((batch_states, None))
+
+        # Calculate probabilities
+        if self.to_gpu:
+            log_std_batch = self.log_std_gpu.expand_as(action_means)
+        else:
+            log_std_batch = self.log_std_cpu.expand_as(action_means)
+
+        std = T.exp(log_std_batch)
+        var = std.pow(2)
+        log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
+
+        return log_density.sum(2, keepdim=True)
+
+
+    def log_probs_wh(self, h, batch_states, batch_actions):
+        # Get action means from policy
+        action_means, _ = self.forward((batch_states, h))
 
         # Calculate probabilities
         if self.to_gpu:

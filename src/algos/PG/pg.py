@@ -125,7 +125,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         loss = -T.mean(T.min(r * batch_advantages, r.clamp(1 - c_eps, 1 + c_eps) * batch_advantages))
         policy_optim.zero_grad()
         loss.backward()
-        policy.soft_clip_grads(1.)
+        policy.soft_clip_grads(3.)
         policy_optim.step()
 
     if False:
@@ -287,14 +287,14 @@ if __name__=="__main__":
     #from src.envs.locom_benchmarks.quad_locomotion.quad_blind import Quad as env
     #from src.envs.locom_benchmarks.snake_locomotion.snake_blind import Snake as env
 
-    from src.envs.cartpole_pbt.cartpole_variable import CartPoleBulletEnv as env
+    from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
     env = env(animate=params["animate"])
 
     # Test
     if params["train"]:
         print("Training")
         #policy = policies.ConvPolicy8_PG(env, 64, tanh=False, std_fixed=True)
-        policy = policies.NN_PG(env, 80)
+        policy = policies.NN_PG(env, 24)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)
     else:

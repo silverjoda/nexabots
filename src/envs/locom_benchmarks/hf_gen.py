@@ -19,7 +19,7 @@ def flat(res):
     mat[:, 0] = 1.
     mat[:, -1] = 1.
 
-    return mat, {"height" : 0.3}
+    return mat, {"height" : 0.8}
 
 
 def corridor(res, cw=8):

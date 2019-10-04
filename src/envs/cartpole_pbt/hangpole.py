@@ -141,8 +141,7 @@ class HangPoleBulletEnv():
         self.target = np.random.rand() * 2 * self.target_var - self.target_var
         p.resetBasePositionAndOrientation(self.target_vis, [self.target, 0, -1], [0, 0, 0, 1])
 
-        self.dist = 0.5 + np.random.rand() * self.dist_var
-        self.mass = 1#random.sample([1,5,15], 1)[0] # self.mass_min + np.random.rand() * self.mass_var
+        self.mass = random.sample([1,5,15], 1)[0] # self.mass_min + np.random.rand() * self.mass_var
 
         p.resetJointState(self.cartpole, 0, targetValue=0, targetVelocity=0)
         p.resetJointState(self.cartpole, 1, targetValue=0, targetVelocity=0)

@@ -1681,21 +1681,6 @@ class RNN_PG(nn.Module):
         return hiddens[:-1]
 
 
-    def forward_trunc(self, input, horizon, trunc):
-        x, h = input
-        rnn_features = F.leaky_relu(self.m1(self.fc1(x)))
-
-
-        for i in range(horizon):
-            output, h = self.rnn(rnn_features, h)
-
-        if self.tanh:
-            f = T.tanh(self.fc3(output))
-        else:
-            f = self.fc2(output)
-        return f, h
-
-
     def sample_action(self, s):
         x, h = self.forward(s)
         return T.normal(x[0], T.exp(self.log_std_cpu)), h

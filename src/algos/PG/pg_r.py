@@ -43,7 +43,7 @@ def train(env, policy, params):
 
             # Step action
             s_1, r, done, _ = env.step(action.squeeze(0).numpy())
-            r = np.clip(r, -3, 3)
+            r = np.clip(r, -5, 5)
 
             step_ctr += 1
             episode_rew += r
@@ -141,15 +141,16 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
     return loss.data
 
 
-def update_proper(policy, policy_optim, batch_states, batch_actions, batch_advantages):
+def update_proper(policy, policy_optim, batch_states, batch_actions, batch_advantages_flat):
 
     # params:
-    h_learn = 70
+    h_learn = 100
     rollout_step = 10
     h_trunc = 50
     horizon = batch_states.shape[1]
+    batchsize = batch_states.shape[0]
 
-    batch_advantages = batch_advantages.view((batch_states.shape[0], batch_states.shape[1], 1))
+    batch_advantages_shaped = batch_advantages_flat.view((batch_states.shape[0], batch_states.shape[1], 1))
 
     # Do initial rollout to get hidden states
     with T.no_grad():
@@ -163,16 +164,31 @@ def update_proper(policy, policy_optim, batch_states, batch_actions, batch_advan
         h = hiddens[start_index]
 
         # Get action log probabilities
-        log_probs = policy.log_probs_wh(h, batch_states[:, start_index:i+1], batch_actions[:, start_index:i+1])
+        log_probs = policy.log_probs_wh(h, batch_states[:, start_index:i+1], batch_actions[:, start_index:i+1])[:,-1:, :]
 
         # Calculate loss function
-        loss = -T.mean(log_probs.view((-1, 1)) * batch_advantages[:, start_index:i+1].reshape((-1, 1)))
+        loss = -T.mean(log_probs.view((-1, 1)) * batch_advantages_shaped[:, i:i+1, :].reshape((-1, 1)))
 
         # Backward pass on policy
         loss.backward()
 
+    for p in policy.parameters():
+        assert p.grad is not None
+        p.grad = p.grad / batchsize
+
+    if False:
+        # Get action log probabilities
+        log_probs = policy.log_probs(batch_states, batch_actions)
+
+        # Calculate loss function
+        loss = -T.mean(log_probs.view((-1, 1)) * batch_advantages_flat)
+
+        # Backward pass on policy
+        policy_optim.zero_grad()
+        loss.backward()
+
     # Step policy update
-    policy.soft_clip_grads(3.)
+    policy.soft_clip_grads(5.)
     policy_optim.step()
 
     return loss.data
@@ -204,9 +220,9 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 1000000, "batchsize": 10, "gamma": 0.995, "lr": 0.0007, "decay" : 0.00003, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": False, "train" : True,
-              "comments" : "Ant feelers goal mjc", "Env_list" : env_list,
+    params = {"iters": 1000000, "batchsize": 40, "gamma": 0.99, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "comments" : "Test", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -217,7 +233,7 @@ if __name__=="__main__":
     # env = AntFeelersMjc()
 
     from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
-    env = env(animate=params["animate"])
+    env = env(animate=params["animate"], action_input=True)
 
     print(params, env.__class__.__name__)
 
@@ -229,7 +245,7 @@ if __name__=="__main__":
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/AntFeelersMjc_RNN_PG_979_pg.p' # 1HL
+        policy_path = 'agents/{}_RNN_PG_YGD_pg.p'.format(env.__class__.__name__)
         policy = T.load(policy_path)
         env.test_recurrent(policy)
         print(policy_path)

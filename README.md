@@ -1,4 +1,4 @@
-# nexabots
+# Nexabots
 To run an example environment with given terrain type:
 
 ### Add src and project directory to pythonpath
@@ -21,3 +21,5 @@ python hex_blind.py --terrain perlin
 ```
 python quad_blind.py --help
 ```
+
+## Demo with Reinforcement learning will be added soon

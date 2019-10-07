@@ -10,6 +10,7 @@ from gym import spaces
 from math import acos
 
 
+
 class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "hex.xml")
@@ -40,12 +41,13 @@ class Hexapod(gym.Env):
     def setupcam(self):
         self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.cam.trackbodyid = -1
+        return
         self.viewer.cam.distance = self.model.stat.extent * .3
         self.viewer.cam.lookat[0] = 2.
-        self.viewer.cam.lookat[1] = -3. #0.3
-        self.viewer.cam.lookat[2] = 2. #0.9
-        self.viewer.cam.elevation = -30 #-30
-        self.viewer.cam.azimuth = 120#-10
+        self.viewer.cam.lookat[1] = 0.3
+        self.viewer.cam.lookat[2] = 0.9
+        self.viewer.cam.elevation = -30
+        self.viewer.cam.azimuth = -10
 
 
     def get_state(self):
@@ -216,6 +218,34 @@ class Hexapod(gym.Env):
 
 
 if __name__ == "__main__":
-    # Corridor holes, triangles, pipe_variable_rad, slant, stairs
-    hex = Hexapod([hf_gen.flat], 1)
+    import argparse
+    parser = argparse.ArgumentParser(description='Enter input arguments')
+    parser.add_argument("--terrain", type=str,
+                        help="Terrain type, choose out of: perlin,"
+                             " flat, corridor, corridor_holes, tiles,"
+                             " triangles, domes, stairs, pipe, slant, corridor_various_width, "
+                             "pipe_variable_rad, corridor_turns, pillars_random, pillars_pseudorandom")
+    args = parser.parse_args()
+
+    print("CHOSEN : {}".format(args.terrain))
+
+    terrains = {'perlin' : [hf_gen.perlin],
+                'flat' : [hf_gen.flat],
+                'corridor' : [hf_gen.corridor],
+                'corridor_holes' : [hf_gen.corridor_holes],
+                'tiles' : [hf_gen.tiles],
+                'triangles' : [hf_gen.triangles],
+                'domes' : [hf_gen.domes],
+                'stairs' : [hf_gen.stairs],
+                'pipe' : [hf_gen.pipe],
+                'slant' : [hf_gen.slant],
+                'corridor_various_width' : [hf_gen.corridor_various_width],
+                'pipe_variable_rad' : [hf_gen.pipe_variable_rad],
+                'corridor_turns' : [hf_gen.corridor_turns],
+                'pillars_random' : [hf_gen.pillars_random],
+                'pillars_pseudorandom' : [hf_gen.pillars_pseudorandom]}
+
+    t = terrains[args.terrain]
+
+    hex = Hexapod(t, 1)
     hex.demo()

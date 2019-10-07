@@ -1,14 +1,18 @@
 import numpy as np
 import mujoco_py
-import src.my_utils as my_utils
+
 import time
 import os
 import cv2
+
+
 from src.envs.locom_benchmarks import hf_gen
+import src.my_utils as my_utils
+
+# Gym imports
 import gym
 from gym import spaces
 from math import acos
-
 
 class Snake(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
@@ -155,7 +159,7 @@ class Snake(gym.Env):
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = 0.0
         init_q[1] = 0.0
-        #init_q[2] = max_height + 0.05
+        init_q[2] = max_height + 0.05
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         # Set environment state
@@ -200,5 +204,34 @@ class Snake(gym.Env):
 
 
 if __name__ == "__main__":
-    hex = Snake([hf_gen.flat], 1)
-    hex.demo()
+    import argparse
+    parser = argparse.ArgumentParser(description='Enter input arguments')
+    parser.add_argument("--terrain", type=str,
+                        help="Terrain type, choose out of: perlin,"
+                             " flat, corridor, corridor_holes, tiles,"
+                             " triangles, domes, stairs, pipe, slant, corridor_various_width, "
+                             "pipe_variable_rad, corridor_turns, pillars_random, pillars_pseudorandom")
+    args = parser.parse_args()
+
+    print("CHOSEN : {}".format(args.terrain))
+
+    terrains = {'perlin' : [hf_gen.perlin],
+                'flat' : [hf_gen.flat],
+                'corridor' : [hf_gen.corridor],
+                'corridor_holes' : [hf_gen.corridor_holes],
+                'tiles' : [hf_gen.tiles],
+                'triangles' : [hf_gen.triangles],
+                'domes' : [hf_gen.domes],
+                'stairs' : [hf_gen.stairs],
+                'pipe' : [hf_gen.pipe],
+                'slant' : [hf_gen.slant],
+                'corridor_various_width' : [hf_gen.corridor_various_width],
+                'pipe_variable_rad' : [hf_gen.pipe_variable_rad],
+                'corridor_turns' : [hf_gen.corridor_turns],
+                'pillars_random' : [hf_gen.pillars_random],
+                'pillars_pseudorandom' : [hf_gen.pillars_pseudorandom]}
+
+    t = terrains[args.terrain]
+
+    snek = Snake(t, 1)
+    snek.demo()

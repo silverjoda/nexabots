@@ -217,5 +217,35 @@ class Quad(gym.Env):
 
 
 if __name__ == "__main__":
-    quad = Quad([hf_gen.flat], 1)
+    import argparse
+
+    parser = argparse.ArgumentParser(description='Enter input arguments')
+    parser.add_argument("--terrain", type=str,
+                        help="Terrain type, choose out of: perlin,"
+                             " flat, corridor, corridor_holes, tiles,"
+                             " triangles, domes, stairs, pipe, slant, corridor_various_width, "
+                             "pipe_variable_rad, corridor_turns, pillars_random, pillars_pseudorandom")
+    args = parser.parse_args()
+
+    print("CHOSEN : {}".format(args.terrain))
+
+    terrains = {'perlin': [hf_gen.perlin],
+                'flat': [hf_gen.flat],
+                'corridor': [hf_gen.corridor],
+                'corridor_holes': [hf_gen.corridor_holes],
+                'tiles': [hf_gen.tiles],
+                'triangles': [hf_gen.triangles],
+                'domes': [hf_gen.domes],
+                'stairs': [hf_gen.stairs],
+                'pipe': [hf_gen.pipe],
+                'slant': [hf_gen.slant],
+                'corridor_various_width': [hf_gen.corridor_various_width],
+                'pipe_variable_rad': [hf_gen.pipe_variable_rad],
+                'corridor_turns': [hf_gen.corridor_turns],
+                'pillars_random': [hf_gen.pillars_random],
+                'pillars_pseudorandom': [hf_gen.pillars_pseudorandom]}
+
+    t = terrains[args.terrain]
+
+    quad = Quad(t, 1)
     quad.demo()

@@ -4,7 +4,6 @@ import os
 import math
 from math import exp
 import noise
-from scipy.misc import toimage
 import time
 from opensimplex import OpenSimplex
 

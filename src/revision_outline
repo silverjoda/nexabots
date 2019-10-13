@@ -1,5 +1,96 @@
 # Commentary points
-- GE: "The majority control tasks", Introduction
--
+
+Reviewer 2:
+- "But sampling from such distributions in itself is a challenging task".
++ Solution: Show a scenario which can be decomposed
+  into several discrete terrains. Maybe from darpa or similar?
+
+- "Experimental results stating the boundary or envelope of approximation"
++ Solution: ?
+
+- Page 6, last para, what are unique gates considered for the simulation and for training
+the network?
++ Solution: Read paper and explain in more detail
+
+- Provide full acronym of LSTM
++ Solution: Cehck paper and provide acronym
+
+- Page 8, not clear why subscript 1 is used.....
++ Solution: Revise comment after the whole section is revised.
+
+- Page 8m, what is the interaction between step 1 and step 2, i.e  how the step 1 information is used for step
+2 and ivce versa......
++ Solution: provide explanation after revising whole section
+
+- Page 8, how to ensure that the generated terrains have enough complexity and at the same time not be trivial;
++ Solution: Look at each terrain separately and think of an answer. Perhaps show perlin terrains and show rejection methods
+and also rules stating if height difference is too hard then reject.
+
+- The authors are encouraged to provide the dataset ....
++ Provide a link to the dataset
+
+- Biggest concern is that the paper lacks in validating the proposed approach, for example, comparing the N terrain
+distributions approach with other possibilities.
++ Solution: Make proper evaluation of the multiplexed expert policies and show how a generally trained solution works on a test terrain.
+Also comment on how many times each policy reaches destination, fails, etc.
+
+- Is N terrains assumption feasible in practice?
++ Solution: Refer to  the depicted realistic N terrains scenario
+
+Reviewer 3:
+- There are some typos, etc....
++ Revise carefully and correct mistakes
+
+- More details on optimization of the objective function needs to be justified and discussed:
++ Read paper, identify which objective function he is talking about and explain. Perhaps he wants to hear about reward shaping
+and is asking why the different parts are used.
+
+- How to determine the parameters in the RNN?
++ Refer to the RNN training process, perhaps explain it more.
+
+- Please provide discusssions of the applicability of the proposed model.
++ Refer to practical use scenario or if we forgot to write it, then add it somewhere.
+
+Reviewer 4:
+- It has some minor typos, as when specifying velocities
++ Revise and correct
+
+- The way of constructing the testing scenario out of n discrete samples
++ Describe in detail the construction process.
+
+- More details on the general recurrent policy: Not clear on the benefit of training an RNN by parts
+in comparison to training it end to end
++ Explain that end to end training doesn't do what we want it to and also its more difficult to train it
+using RL, especially if N is large. Also, in a practical scenario if we would like to add an environment then we can only train a new
+expert and then the RNN using supervised learning instead of RL on the whole thing.
+
+- Experiments on different surface configurations......
++ Problem is that when a policy fits to one type of terrain then it's difficult to unlearn and learn another.
+Also catastrophic forgetting is an issue. You can't learn a reactive policy that will work on all types of pipe diameters, that
+is the whole point of this work.
+
+- Apart form that, one of the main benefits..........poor performance on tiles
++ Evaluation and comparison needs serious revision, also more environments instead of just 3.
+
+Reviewer 5:
+- Section 3 - Related work discusses similar approaches, but without conclusions...
++ Read paper and add suggestion
+
+- We assume that the target environment...not random
++ Explain and correct in paper
+
+- Pomdp is undeefined:
++ define
+
+- Experiments are not conclusive:
++ Look at this issue after we add more experiments
+
++ More information about the virtual environment is required:
+- Add information, also show experiments where various parameters are varied (ie, test on smaller friction env,etc).
+
+- Comparison between expert policies is weak....
++ This will be looked at later after revising experiments.
+
+
 
 # Proposed experiments

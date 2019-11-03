@@ -270,7 +270,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
-              "note" : "Tiles, arm=2, dmp=0.3", "ID" : ID}
+              "note" : "Flat, all variability", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False

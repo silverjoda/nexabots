@@ -44,19 +44,17 @@ class Hexapod():
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # Parameters to be varied
-        self.variable_param_dict = {'friction' : False,
-                                    'torso_mass' : False,
-                                    'k_p': False,
-                                    'armature': False,
-                                    'tibia_lengths' : False}
+        self.variable_param_dict = {'friction' : True,
+                                    'torso_mass' : True,
+                                    'k_p': True,
+                                    'armature': True,
+                                    'tibia_lengths' : True}
 
-        self.friction_range = [0.1, 2]
-        self.torso_mass_range = [0.01, 10]
-        self.k_p_range = [10, 100]
-        self.armature_range = [0.5, 3]
-        self.sim_step_range = [0.01, 0.03]
-        self.tibia_lengths_range = [0.08, 0.14]
-
+        self.friction_range = [0.3, 2]
+        self.torso_mass_range = [0.1, 5]
+        self.k_p_range = [30, 80]
+        self.armature_range = [0.5, 2]
+        self.tibia_lengths_range = [0.04, 0.12]
 
         self.use_HF = False
         self.HF_width = 6
@@ -257,7 +255,7 @@ class Hexapod():
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = 0.0 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.10
+        init_q[2] = 0.20
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         if init_pos is not None:
@@ -359,7 +357,7 @@ class Hexapod():
                 elif line.startswith('    <position joint=') and self.variable_param_dict['k_p']:
                     out_file.write(line.replace('kp="40"', 'kp="{}"'.format(self.sample_from_range(self.k_p_range))))
                 elif line.startswith('                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_') and self.variable_param_dict['tibia_lengths']:
-                    out_file.write(line.replace('-0.095', '{}'.format(self.sample_from_range(self.tibia_lengths_range))))
+                    out_file.write(line.replace('0.095', '{}'.format(self.sample_from_range(self.tibia_lengths_range))))
 
                 else:
                     out_file.write(line)
@@ -368,7 +366,7 @@ class Hexapod():
 
 
     def sample_from_range(self, range):
-        return np.random.rand() * (range[1] - range[0]) - range[0]
+        return np.random.rand() * (range[1] - range[0]) + range[0]
 
 
     def generate_heightmap(self, env_name, env_length):

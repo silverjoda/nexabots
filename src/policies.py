@@ -940,7 +940,6 @@ class NN_PG(nn.Module):
             self.act_dim = act_dim
 
         self.tanh = tanh
-        #self.scale = scale
 
         self.fc1 = nn.Linear(self.obs_dim, hid_dim)
         self.m1 = nn.LayerNorm(hid_dim)
@@ -950,7 +949,7 @@ class NN_PG(nn.Module):
 
         T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
         T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
-        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='linear')
 
         if std_fixed:
             self.log_std = T.zeros(1, self.act_dim)
@@ -966,15 +965,6 @@ class NN_PG(nn.Module):
         else:
             x = self.fc3(x)
         return x
-
-
-    def clip_grads(self, bnd=1):
-        self.fc1.weight.grad.clamp_(-bnd, bnd)
-        self.fc1.bias.grad.clamp_(-bnd, bnd)
-        self.fc2.weight.grad.clamp_(-bnd, bnd)
-        self.fc2.bias.grad.clamp_(-bnd, bnd)
-        self.fc3.weight.grad.clamp_(-bnd, bnd)
-        self.fc3.bias.grad.clamp_(-bnd, bnd)
 
 
     def soft_clip_grads(self, bnd=1):
@@ -1009,6 +999,9 @@ class NN_PG(nn.Module):
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
         return log_density.sum(1, keepdim=True)
+
+
+
 
 
 class NN_PG_CONVMEM(nn.Module):

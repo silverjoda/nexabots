@@ -19,7 +19,7 @@ the network?
 + Solution: Revise comment after the whole section is revised.
 
 - Page 8m, what is the interaction between step 1 and step 2, i.e  how the step 1 information is used for step
-2 and ivce versa......
+2 and vice versa......
 + Solution: provide explanation after revising whole section
 
 - Page 8, how to ensure that the generated terrains have enough complexity and at the same time not be trivial;
@@ -94,3 +94,9 @@ Reviewer 5:
 
 
 # Proposed experiments
+
+- Train a proper policy on flat, try various changes to algorithm including batchsize, network etc
+- Train policy on environment X, and then do the robustness test (change in link length, friction, armature, PD params, etc)
+- Choose 5-7 different envs and train experts on them. Envs: {flat, tiles, triangles, pipe, slant, perlin t, perlin p, obstacle (maybe)}
+- Compare experts between each other. Use some metric such as reached/failed goal or something
+- Try again to train RNN policy on env combs

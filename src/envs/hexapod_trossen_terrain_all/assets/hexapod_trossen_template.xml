@@ -5,7 +5,7 @@
 
   <default>
     <joint armature="0.5" damping="3" limited="true"/>
-    <geom conaffinity="0" condim="3" density="5.0" friction="1.0 0.5 0.5" margin="0.001" rgba="0.2 0.2 0.2 0.8"/>
+    <geom conaffinity="0" condim="3" density="5.0" friction="1.0 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>
   </default>
 
   <asset>
@@ -18,7 +18,7 @@
     <material name="MatHex" reflectance="0.0" shininess="1" specular="1" texrepeat=".6 0.6" texture="texhex"/>
     <material name="MatLeg" reflectance="0.0" shininess="1" specular="1" texrepeat="1 1" texture="texleg"/>
     <material name='geom' texture="texgeom" texuniform="true" />
-    <hfield name="hill" file="hybrid.png" size="2 0.6 0.6 0.1"/>
+    <hfield name="hill" file="hybrid.png" size="4 0.6 0.6 0.1"/>
   </asset>
 
   <worldbody>

@@ -29,7 +29,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 200
+        self.s_len = 400
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
@@ -164,10 +164,10 @@ class Hexapod():
                 np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                np.square(ctrl_pen) * 0.1 + \
+                np.square(ctrl_pen) * 0.3 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 #+ (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
+        r_pos = velocity_rew * 6 # + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
         r = r_pos - r_neg
 
         # Reevaluate termination condition

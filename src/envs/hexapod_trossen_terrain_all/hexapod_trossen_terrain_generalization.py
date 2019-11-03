@@ -29,18 +29,34 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 400
+        self.s_len = 300
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
         self.cumulative_environment_reward = None
         self.walls = True
+        self.sim_timestep = 0.02
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
         self.joints_rads_low = np.array([-0.6, -1.4, -0.8] * 6)
         self.joints_rads_high = np.array([0.6, 0.4, 0.8] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        # Parameters to be varied
+        self.variable_param_dict = {'friction' : False,
+                                    'torso_mass' : False,
+                                    'k_p': False,
+                                    'armature': False,
+                                    'tibia_lengths' : False}
+
+        self.friction_range = [0.1, 2]
+        self.torso_mass_range = [0.01, 10]
+        self.k_p_range = [10, 100]
+        self.armature_range = [0.5, 3]
+        self.sim_step_range = [0.01, 0.03]
+        self.tibia_lengths_range = [0.08, 0.14]
+
 
         self.use_HF = False
         self.HF_width = 6
@@ -206,7 +222,7 @@ class Hexapod():
                 pass
 
         self.sim = mujoco_py.MjSim(self.model)
-        self.model.opt.timestep = 0.02
+        self.model.opt.timestep = self.sim_timestep
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -330,10 +346,29 @@ class Hexapod():
                     out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs * (self.s_len / 200.)))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
                     out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(1.0 * n_envs * (self.s_len / 200.) - 0.3))
+
+                elif line.startswith('    <joint armature=') and self.variable_param_dict['armature']:
+                    out_file.write('    <joint armature="{}" damping="3" limited="true"/>'.format(
+                        self.sample_from_range(self.armature_range)))
+                elif line.startswith('      <geom name="torso_geom"') and self.variable_param_dict['torso_mass']:
+                    out_file.write('      <geom name="torso_geom" pos="0 0 0" size="0.12 0.06 0.02" mass="{}" type="ellipsoid" material="MatHex"/>'.format(
+                        self.sample_from_range(self.torso_mass_range)))
+                elif line.startswith('    <geom conaffinity="0" condim="3" ') and self.variable_param_dict['friction']:
+                    out_file.write('    <geom conaffinity="0" condim="3" density="5.0" friction="{} 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>'.format(
+                        self.sample_from_range(self.friction_range)))
+                elif line.startswith('    <position joint=') and self.variable_param_dict['k_p']:
+                    out_file.write(line.replace('kp="40"', 'kp="{}"'.format(self.sample_from_range(self.k_p_range))))
+                elif line.startswith('                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_') and self.variable_param_dict['tibia_lengths']:
+                    out_file.write(line.replace('-0.095', '{}'.format(self.sample_from_range(self.tibia_lengths_range))))
+
                 else:
                     out_file.write(line)
 
         return envs, size_list, scaled_indeces_list
+
+
+    def sample_from_range(self, range):
+        return np.random.rand() * (range[1] - range[0]) - range[0]
 
 
     def generate_heightmap(self, env_name, env_length):

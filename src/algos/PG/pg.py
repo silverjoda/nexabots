@@ -263,26 +263,27 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["holes", "tiles", "pipe"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
+    env_list = ["flat"] # ["flat", "tiles", "holes", "pipe", "inverseholes"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Flat, torques pen", "ID" : ID}
+              "note" : "Expert training", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    # TODO: Decide on 5 expert environments and add them to training
+
     # TODO: Train experts
     # TODO: Do expert comparisons
     # TODO: Try generalization experiment again (maybe we won't do domain rnd)
     # TODO: Find and check rnn training pipeline again
     # TODO: Do RNN training illustration
     # TODO: Test torque penalization
+    # TODO: Monitor NN weights and grads during RL training
 
     #from src.envs.centipede.centipede import Centipede
     #env = Centipede(4)
@@ -299,7 +300,7 @@ if __name__=="__main__":
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod as env
 
     #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
-    env = env(["triangles"], max_n_envs=1)
+    env = env(env_list, max_n_envs=1)
 
     # Test
     if params["train"]:
@@ -310,7 +311,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_path = 'agents/{}_NN_PG_44D_pg.p'.format(env.__class__.__name__)
+        policy_path = 'agents/{}_NN_PG_SKQ_pg.p'.format(env.__class__.__name__)
         #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX
         policy = T.load(policy_path)
 

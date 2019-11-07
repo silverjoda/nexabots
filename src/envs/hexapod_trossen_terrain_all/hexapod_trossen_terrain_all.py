@@ -6,6 +6,8 @@ import os
 import cv2
 import math
 from math import sqrt, acos, fabs, ceil
+from opensimplex import OpenSimplex
+
 
 import random
 import string
@@ -27,12 +29,12 @@ class Hexapod():
             self.env_list = env_list
 
         self.ID = '_'.join(self.env_list)
-        self.specific_env_len = 150
-        self.env_scaling = 2.7
+        self.specific_env_len = 50
+        self.env_scaling = self.specific_env_len / 38.
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 200
+        self.s_len = 300
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
@@ -52,7 +54,7 @@ class Hexapod():
 
         self.vel_sum = 0
 
-        self.generate_hybrid_env(self.n_envs, self.max_steps)
+        self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
         self.reset()
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
@@ -170,7 +172,7 @@ class Hexapod():
                 np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.0003 + \
+                ctrl_pen * 0.000 + \
                 np.square(zd) * 0.7
 
         r_pos = velocity_rew * 6 # + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
@@ -228,26 +230,12 @@ class Hexapod():
         self.step_ctr = 0
         self.episodes = 0
 
-        if self.use_HF:
-            self.hf_data = self.model.hfield_data
-            self.hf_ncol = self.model.hfield_ncol[0]
-            self.hf_nrow = self.model.hfield_nrow[0]
-            self.hf_column_meters = self.model.hfield_size[0][0] * 2
-            self.hf_row_meters = self.model.hfield_size[0][1] * 2
-            self.hf_grid = self.hf_data.reshape((self.hf_nrow, self.hf_ncol))
-            self.hf_grid_aug = np.zeros((self.hf_nrow * 2, self.hf_ncol * 2))
-            self.hf_grid_aug[int(self.hf_nrow / 2):self.hf_nrow + int(self.hf_nrow / 2),
-            int(self.hf_ncol / 2):self.hf_ncol + int(self.hf_ncol / 2)] = self.hf_grid
-            self.pixels_per_column = self.hf_ncol / float(self.hf_column_meters)
-            self.pixels_per_row = self.hf_nrow / float(self.hf_row_meters)
-            self.x_offset = 0.3
-            self.y_offset = 0.6
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = 0.0 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.10
+        init_q[2] = 0.15
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         if init_pos is not None:
@@ -260,10 +248,11 @@ class Hexapod():
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
+
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(40):
+        for i in range(20):
             self.sim.forward()
             self.sim.step()
 
@@ -308,7 +297,7 @@ class Hexapod():
         total_hm = np.concatenate(maplist, 1)
 
         # Smoothen transitions
-        bnd = 15
+        bnd = 4
         if self.n_envs > 1:
             for s in scaled_indeces_list:
                 total_hm_copy = np.array(total_hm)
@@ -333,9 +322,9 @@ class Hexapod():
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, self.env_scaling))
+                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
-                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(1.0 * n_envs * (self.s_len / 200.) - 0.3))
+                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(self.env_scaling * self.n_envs * 0.6))
                 else:
                     out_file.write(line)
 
@@ -349,13 +338,13 @@ class Hexapod():
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 20,
-                                   size=(self.env_width // 3, env_length // int(12)),
+            hm = np.random.randint(0, 30,
+                                   size=(self.env_width // 3, env_length // int(3)),
                                    dtype=np.uint8).repeat(3, axis=0).repeat(int(12), axis=1) + 127
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-12, 12, self.env_width)), 0).T + 127
+            hm = pipe * np.expand_dims(np.square(np.linspace(-13, 13, self.env_width)), 0).T + 127
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
@@ -366,9 +355,8 @@ class Hexapod():
             rnd_w = np.random.randint(0, w - patch_y)
             hm = hm[rnd_w:rnd_w + patch_y, rnd_h:rnd_h + patch_x]
             hm = np.mean(hm, axis=2)
-            hm = hm * 0.7 + 255 * 0.3
+            hm = hm * 1.0 + 255 * 0.3
             hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2.
-
 
         if env_name == "inverseholes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
@@ -398,12 +386,15 @@ class Hexapod():
             hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2. + 127
 
         if env_name == "stairs":
-            stair_height = 20
-            stair_width = 10
+            stair_height = 45
+            stair_width = 4
             current_height = 0
+            initial_offset = 15
 
-            for i in range(6):
-                hm[:, 0 + i * stair_width: 0 + i * stair_width + stair_width] = current_height
+            hm[:, :initial_offset] = 0
+
+            for i in range(20):
+                hm[:, initial_offset  + i * stair_width: initial_offset  + i * stair_width + stair_width] = current_height
                 current_height += stair_height
 
             # for i in range(3):
@@ -438,8 +429,7 @@ class Hexapod():
             # Amount of 'tiles'
             Mt = 2
             Nt = int(env_length / 10.)
-            obstacle_height = 0.20
-
+            obstacle_height = 0.25
             grad_mat = np.linspace(0, 1, cw)[:, np.newaxis].repeat(cw, 1)
             template_1 = np.ones((cw, cw)) * grad_mat * grad_mat.T * obstacle_height
             template_2 = np.ones((cw, cw)) * grad_mat * obstacle_height
@@ -460,6 +450,34 @@ class Hexapod():
 
             # Multiply to full image resolution
             hm *= 255
+
+
+        if env_name == "perlin":
+            oSim = OpenSimplex(seed=int(time.time()))
+
+            height = 120
+
+            M = math.ceil(self.env_width)
+            N = math.ceil(env_length)
+            hm = np.zeros((M, N), dtype=np.float32)
+
+            scale_x = 20
+            scale_y = 20
+            octaves = 4  # np.random.randint(1, 5)
+            persistence = 1
+            lacunarity = 2
+
+            for i in range(M):
+                for j in range(N):
+                    for o in range(octaves):
+                        sx = scale_x * (1 / (lacunarity ** o))
+                        sy = scale_y * (1 / (lacunarity ** o))
+                        amp = persistence ** o
+                        hm[i][j] += oSim.noise2d(i / sx, j / sy) * amp
+
+            wmin, wmax = hm.min(), hm.max()
+            hm = (hm - wmin) / (wmax - wmin) * height
+
 
         return hm
 

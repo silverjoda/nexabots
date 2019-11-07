@@ -4,7 +4,8 @@ import src.my_utils as my_utils
 import time
 import os
 import cv2
-from math import sqrt, acos, fabs
+import math
+from math import sqrt, acos, fabs, ceil
 
 import random
 import string
@@ -26,6 +27,8 @@ class Hexapod():
             self.env_list = env_list
 
         self.ID = '_'.join(self.env_list)
+        self.specific_env_len = 150
+        self.env_scaling = 2.7
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
@@ -35,6 +38,7 @@ class Hexapod():
         self.env_width = 20
         self.cumulative_environment_reward = None
         self.walls = True
+
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -132,7 +136,9 @@ class Hexapod():
 
     def step(self, ctrl):
         ctrl = np.clip(ctrl, -1, 1)
-        ctrl_pen = np.square(ctrl).mean()
+        #ctrl_pen = np.square(ctrl).mean()
+        torques = self.sim.data.actuator_force
+        ctrl_pen = np.square(torques).mean()
         ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
@@ -164,10 +170,10 @@ class Hexapod():
                 np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                np.square(ctrl_pen) * 0.1 + \
+                ctrl_pen * 0.0003 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 #+ (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
+        r_pos = velocity_rew * 6 # + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
         r = r_pos - r_neg
 
         # Reevaluate termination condition
@@ -192,7 +198,7 @@ class Hexapod():
 
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
-            self.generate_hybrid_env(self.n_envs, self.max_steps)
+            self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
             time.sleep(0.3)
 
         self.viewer = None
@@ -327,7 +333,7 @@ class Hexapod():
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs * (self.s_len / 200.)))
+                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, self.env_scaling))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
                     out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(1.0 * n_envs * (self.s_len / 200.) - 0.3))
                 else:
@@ -419,6 +425,41 @@ class Hexapod():
             hm[:, :50] = 0
             hm[hm < 50] = 0
             hm = 75 - hm
+
+
+        if env_name == "triangles":
+            cw = 10
+            # Make even dimensions
+            M = math.ceil(self.env_width)
+            N = math.ceil(env_length)
+            hm = np.zeros((M, N), dtype=np.float32)
+            M_2 = math.ceil(M / 2)
+
+            # Amount of 'tiles'
+            Mt = 2
+            Nt = int(env_length / 10.)
+            obstacle_height = 0.20
+
+            grad_mat = np.linspace(0, 1, cw)[:, np.newaxis].repeat(cw, 1)
+            template_1 = np.ones((cw, cw)) * grad_mat * grad_mat.T * obstacle_height
+            template_2 = np.ones((cw, cw)) * grad_mat * obstacle_height
+
+            for i in range(Nt):
+                if np.random.choice([True, False]):
+                    hm[M_2 - cw: M_2, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0, 4))
+                else:
+                    hm[M_2 - cw: M_2, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0, 4))
+
+                if np.random.choice([True, False]):
+                    hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0, 4))
+                else:
+                    hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0, 4))
+
+            # Walls
+            hm[0, 0] = 1.
+
+            # Multiply to full image resolution
+            hm *= 255
 
         return hm
 

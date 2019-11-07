@@ -29,7 +29,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 300
+        self.s_len = 600
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
@@ -44,11 +44,11 @@ class Hexapod():
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # Parameters to be varied
-        self.variable_param_dict = {'friction' : True,
-                                    'torso_mass' : True,
-                                    'k_p': True,
-                                    'armature': True,
-                                    'tibia_lengths' : True}
+        self.variable_param_dict = {'friction' : False,
+                                    'torso_mass' : False,
+                                    'k_p': False,
+                                    'armature': False,
+                                    'tibia_lengths' : False}
 
         self.friction_range = [0.3, 2]
         self.torso_mass_range = [0.1, 5]
@@ -146,13 +146,20 @@ class Hexapod():
 
     def step(self, ctrl):
         ctrl = np.clip(ctrl, -1, 1)
-        ctrl_pen = np.square(ctrl).mean()
+        #ctrl_pen = np.square(ctrl).mean()
+        torques = self.sim.data.actuator_force
+        ctrl_pen = np.square(torques).mean()
+
         ctrl = self.scale_action(ctrl)
 
         self.sim.data.ctrl[:] = ctrl
         self.sim.forward()
         self.sim.step()
         self.step_ctr += 1
+        #
+        # if np.random.rand() < 0.002:
+        #     self.model.geom_friction[0] = np.array([0.0001, 0.5, 0.5])
+        #     print("Changed friction")
 
         obs = self.get_obs()
 
@@ -178,7 +185,7 @@ class Hexapod():
                 np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                np.square(ctrl_pen) * 0.3 + \
+                ctrl_pen * 0.0005 + \
                 np.square(zd) * 0.7
 
         r_pos = velocity_rew * 6 # + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
@@ -255,7 +262,7 @@ class Hexapod():
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = 0.0 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.20
+        init_q[2] = 0.10
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         if init_pos is not None:

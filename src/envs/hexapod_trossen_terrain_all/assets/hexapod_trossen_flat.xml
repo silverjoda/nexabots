@@ -4,9 +4,11 @@
   <size nconmax="1000" njmax="2000"/>
 
   <default>
-    <joint armature="0.7432902512295594" damping="3" limited="true"/>    <geom conaffinity="0" condim="3" density="5.0" friction="1.8068140204454692 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>  </default>
+    <joint armature="2.0" damping="0.5" limited="true"/>
+    <geom conaffinity="0" condim="3" density="5.0" friction="1.0 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>
+  </default>
 
-  <asset>
+  <asset>w
     <texture type="skybox" builtin="gradient" width="100" height="100" rgb1="1 1 1" rgb2="0 0 0" />
     <texture name="texgeom" type="cube" builtin="flat" mark="cross" width="127" height="1278" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1" random="0.01" />
     <texture name="texplane" type="2d" width="1" height="1" file="white2.png"/>
@@ -16,15 +18,16 @@
     <material name="MatHex" reflectance="0.0" shininess="1" specular="1" texrepeat=".6 0.6" texture="texhex"/>
     <material name="MatLeg" reflectance="0.0" shininess="1" specular="1" texrepeat="1 1" texture="texleg"/>
     <material name='geom' texture="texgeom" texuniform="true" />
-    <hfield name="hill" file="flat.png" size="1.5 0.6 0.6 0.1" /> 
+    <hfield name="hill" file="flat.png" size="1.0 0.6 0.6 0.1" /> 
    </asset>
 
   <worldbody>
     <light cutoff="100" diffuse="0.7 0.7 0.7" dir="0 0 -1.3" directional="true" exponent="1" pos="0 0 0" specular="0.1 0.1 0.1"/>
-    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="1.2 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>    <!--geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="40 40 40" type="plane"/-->
+    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="0.7 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>    <!--geom conaffinity="1" condim="3" material="MatPlane" name="floor" pos="0 0 0" rgba="0.8 0.9 0.8 1" size="40 40 40" type="plane"/-->
     <body name="torso" pos="0 0 0.35">
       <camera name="track" mode="track" pos="0 -2.0 1.0" xyaxes="1 0 0 0. 0.5 1"/>
-      <geom name="torso_geom" pos="0 0 0" size="0.12 0.06 0.02" mass="4.37018884917572" type="ellipsoid" material="MatHex"/>      <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
+      <geom name="torso_geom" pos="0 0 0" size="0.12 0.06 0.02" mass="5" type="ellipsoid" material="MatHex"/>
+      <joint armature="0" damping="0" limited="false" margin="0.01" name="root" pos="0 0 0" type="free"/>
 
       <body name="front_left_leg" pos="0.12 0.06 0">
         <joint axis="0 0 1" name="coxa_fl" pos="0.0 0.0 0.0" range="-0.6 0.6" type="hinge"/>
@@ -34,7 +37,7 @@
             <geom fromto="0.0 0.0 0.0 0.0466 0.0466 0.0" name="femur_fl_geom" size="0.015" type="capsule" material="MatLeg"/>
              <body pos="0.0466 0.0466 0.0">
                 <joint axis="-1 1 0" name="tibia_fl" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
-                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.049229176816569555" name="tibia_fl_geom" size="0.015" type="capsule" rgba="0 1 1 1" material="MatLeg"/>
+                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_fl_geom" size="0.015" type="capsule" rgba="0 1 1 1" material="MatLeg"/>
             </body>
           </body>
       </body>
@@ -48,7 +51,7 @@
             <geom fromto="0.0 0.0 0.0 0.0 0.066 0.0" name="femur_ml_geom" size="0.015" type="capsule" material="MatLeg"/>
              <body pos="0.0 0.066 0">
                 <joint axis="-1 0 0" name="tibia_ml" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
-                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.06432986004815897" name="tibia_ml_geom" size="0.015" type="capsule" material="MatLeg"/>
+                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_ml_geom" size="0.015" type="capsule" material="MatLeg"/>
             </body>
           </body>
       </body>
@@ -62,7 +65,7 @@
             <geom fromto="0.0 0.0 0.0 0.0466 -0.0466 0.0" name="femur_fr_geom" size="0.015" type="capsule"/>
              <body pos="0.0466 -0.0466 0">
                 <joint axis="1 1 0" name="tibia_fr" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
-                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.06827864443328222" name="tibia_fr_geom" size="0.015" type="capsule" rgba="0 1 1 1"/>
+                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_fr_geom" size="0.015" type="capsule" rgba="0 1 1 1"/>
             </body>
           </body>
       </body>
@@ -90,7 +93,7 @@
             <geom fromto="0.0 0.0 0.0 -0.0466 -0.0466 0.0" name="femur_rr_geom" size="0.015" type="capsule"/>
              <body pos="-0.0466 -0.0466 0">
                 <joint axis="1 -1 0" name="tibia_rr" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
-                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.05660002546550446" name="tibia_rr_geom" size="0.015" type="capsule"/>
+                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_rr_geom" size="0.015" type="capsule"/>
             </body>
           </body>
       </body>
@@ -104,7 +107,7 @@
             <geom fromto="0.0 0.0 0.0 -0.0466 0.0466 0.0" name="femur_rl_geom" size="0.015" type="capsule"/>
              <body pos="-0.0466 0.04660 0">
                 <joint axis="-1 -1 0" name="tibia_rl" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
-                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.09285140878836648" name="tibia_rl_geom" size="0.015" type="capsule"/>
+                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_rl_geom" size="0.015" type="capsule"/>
             </body>
           </body>
       </body>
@@ -113,24 +116,24 @@
     </body>
   </worldbody>
   <actuator>
-    <position joint="coxa_fl" kp="72.78490302444166"/>
-    <position joint="femur_fl" kp="75.82809399357885"/>
-    <position joint="tibia_fl" kp="44.81019245796992"/>
-    <position joint="coxa_fr" kp="66.27253710785837"/>
-    <position joint="femur_fr" kp="52.20437499596232"/>
-    <position joint="tibia_fr" kp="64.1754752678396"/>
-    <position joint="coxa_rr" kp="77.20142668419325"/>
-    <position joint="femur_rr" kp="38.61628629766225"/>
-    <position joint="tibia_rr" kp="61.22404645456305"/>
-    <position joint="coxa_rl" kp="42.40806124115586"/>
-    <position joint="femur_rl" kp="33.48247490725709"/>
-    <position joint="tibia_rl" kp="50.61287274621696"/>
-    <position joint="coxa_mr" kp="50.598656526913146"/>
-    <position joint="femur_mr" kp="73.12366880422336"/>
-    <position joint="tibia_mr" kp="48.86995989108506"/>
-    <position joint="coxa_ml" kp="78.09819570786024"/>
-    <position joint="femur_ml" kp="67.26704794437147"/>
-    <position joint="tibia_ml" kp="59.645574050997595"/>
+    <position joint="coxa_fl" kp="40"/>
+    <position joint="femur_fl" kp="40"/>
+    <position joint="tibia_fl" kp="40"/>
+    <position joint="coxa_fr" kp="40"/>
+    <position joint="femur_fr" kp="40"/>
+    <position joint="tibia_fr" kp="40"/>
+    <position joint="coxa_rr" kp="40"/>
+    <position joint="femur_rr" kp="40"/>
+    <position joint="tibia_rr" kp="40"/>
+    <position joint="coxa_rl" kp="40"/>
+    <position joint="femur_rl" kp="40"/>
+    <position joint="tibia_rl" kp="40"/>
+    <position joint="coxa_mr" kp="40"/>
+    <position joint="femur_mr" kp="40"/>
+    <position joint="tibia_mr" kp="40"/>
+    <position joint="coxa_ml" kp="40"/>
+    <position joint="femur_ml" kp="40"/>
+    <position joint="tibia_ml" kp="40"/>
 
 <!--
     <motor joint="coxa_fl" gear="100"/>

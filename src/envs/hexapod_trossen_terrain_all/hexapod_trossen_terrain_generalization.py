@@ -29,7 +29,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 600
+        self.s_len = 300
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
@@ -44,17 +44,17 @@ class Hexapod():
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # Parameters to be varied
-        self.variable_param_dict = {'friction' : False,
-                                    'torso_mass' : False,
-                                    'k_p': False,
-                                    'armature': False,
-                                    'tibia_lengths' : False}
+        self.variable_param_dict = {'friction' : True,
+                                    'torso_mass' : True,
+                                    'k_p': True,
+                                    'armature': True,
+                                    'tibia_lengths' : True}
 
-        self.friction_range = [0.3, 2]
+        self.friction_range = [0.1, 1]
         self.torso_mass_range = [0.1, 5]
-        self.k_p_range = [30, 80]
-        self.armature_range = [0.5, 2]
-        self.tibia_lengths_range = [0.04, 0.12]
+        self.k_p_range = [30, 70]
+        self.armature_range = [0.3, 2]
+        self.tibia_lengths_range = [0.06, 0.10]
 
         self.use_HF = False
         self.HF_width = 6
@@ -146,9 +146,9 @@ class Hexapod():
 
     def step(self, ctrl):
         ctrl = np.clip(ctrl, -1, 1)
-        #ctrl_pen = np.square(ctrl).mean()
-        torques = self.sim.data.actuator_force
-        ctrl_pen = np.square(torques).mean()
+        ctrl_pen = np.square(ctrl).mean()
+        #torques = self.sim.data.actuator_force
+        #ctrl_pen = np.square(torques).mean()
 
         ctrl = self.scale_action(ctrl)
 
@@ -185,7 +185,7 @@ class Hexapod():
                 np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.0005 + \
+                ctrl_pen * 0.01 + \
                 np.square(zd) * 0.7
 
         r_pos = velocity_rew * 6 # + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
@@ -278,7 +278,7 @@ class Hexapod():
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(40):
+        for i in range(30):
             self.sim.forward()
             self.sim.step()
 

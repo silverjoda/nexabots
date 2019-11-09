@@ -172,14 +172,14 @@ class Hexapod():
         y_deviation = y
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(y) * 0.2 + \
-                np.square(q_yaw) * 0.5 + \
+        r_neg = np.square(y) * 0.1 + \
+                np.square(q_yaw) * 0.1 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.0000 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 + (self.prev_deviation - yaw_deviation) * 9 + (self.prev_y_deviation - y_deviation) * 0
+        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
         r = r_pos - r_neg
 
         self.prev_deviation = yaw_deviation

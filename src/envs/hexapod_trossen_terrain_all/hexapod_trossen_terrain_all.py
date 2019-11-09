@@ -169,8 +169,8 @@ class Hexapod():
         q_yaw = 2 * acos(qw)
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(y) * 0.3 + \
-                np.square(q_yaw) * 0.8 + \
+        r_neg = np.square(y) * 0.4 + \
+                np.square(q_yaw) * 0.9 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.0001 + \

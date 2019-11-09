@@ -270,7 +270,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Flat, torques mean 0.0001", "ID" : ID}
+              "note" : "Expert training with additional yaw and y pen", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -300,6 +300,15 @@ if __name__=="__main__":
     #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
     env = env(env_list, max_n_envs=1)
 
+    # Current experts:
+    # Generalization: Novar: QO6, Var: OSM
+    # flat: P92, DFE
+    # tiles: K4F
+    # triangles: LBD
+    # Stairs: HOS
+    # pipe: 9GV
+    # perlin: P92
+
     # Test
     if params["train"]:
         print("Training")
@@ -315,5 +324,8 @@ if __name__=="__main__":
 
         env.test(policy)
         print(policy_path)
+
+
+
 
 

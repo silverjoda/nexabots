@@ -1,111 +1,134 @@
-from matplotlib import pyplot as plt
+#!/usr/bin/env python
+import rospy
+from sensor_msgs.msg import PointCloud2
+import ros_numpy
 import numpy as np
-
-from sklearn.linear_model import (
-    LinearRegression, TheilSenRegressor, RANSACRegressor, HuberRegressor)
-from sklearn.metrics import mean_squared_error
-from sklearn.preprocessing import PolynomialFeatures
-from sklearn.pipeline import make_pipeline
-import torch
-import robust_loss_pytorch.general#
-
-class RegressionModel(torch.nn.Module):
-    # A simple linear regression module.
-    def __init__(self):
-        super(RegressionModel, self).__init__()
-        self.linear = torch.nn.Linear(4, 1)
-    def forward(self, x):
-        return self.linear(x[:,None])[:,0]
+from scipy.spatial import KDTree
+import math
+import time
 
 
-np.random.seed(42)
+class LocalMap:
+    def __init__(self, topic):
+        self.subscriber = rospy.Subscriber(topic, PointCloud2, self.callback)
+        self.publisher_visualize = rospy.Publisher("/elevation/local_stairs", PointCloud2, queue_size=10)
+        self.publisher_stairs = rospy.Publisher("/elevation/stairs", PointCloud2, queue_size=10)
 
-X = np.random.normal(size=400)
-y = np.sin(X)
-# Make sure that it X is 2D
-X = X[:, np.newaxis]
-#xn = PolynomialFeatures(3, in).fit_transform(X)
+    def callback(self, data):
+        cloud_arr = ros_numpy.point_cloud2.pointcloud2_to_array(data)       #read raw data
 
-X_test = np.random.normal(size=200)
-y_test = np.sin(X_test)
-X_test = X_test[:, np.newaxis]
+        new_arr = cloud_arr.copy()  # make new array to be published
 
-y_errors = y.copy()
-y_errors[::3] = 3
+        # get coords data arrays
+        x_cloud = cloud_arr['x'].reshape(len(cloud_arr['x']), 1)
+        y_cloud = cloud_arr['y'].reshape(len(cloud_arr['y']), 1)
+        z_cloud = cloud_arr['z'].reshape(len(cloud_arr['z']), 1)
 
-X_errors = X.copy()
-X_errors[::3] = 3
+        # merge x and y coords
+        xy_2D = np.concatenate((x_cloud, y_cloud), axis=1)
 
-y_errors_large = y.copy()
-y_errors_large[::3] = 10
+        # convert my 2D x/y array to KDTree to find nearest neighbors
+	kdtree_2D = KDTree(xy_2D)
 
-X_errors_large = X.copy()
-X_errors_large[::3] = 10
 
-estimators = [('OLS', LinearRegression()),
-              ('Theil-Sen', TheilSenRegressor(random_state=42)),
-              ('RANSAC', RANSACRegressor(random_state=42)),
-              ('HuberRegressor', HuberRegressor()),
-              ('AdaptiveRegressor', RegressionModel)]
-colors = {'OLS': 'turquoise', 'Theil-Sen': 'gold', 'RANSAC': 'lightgreen', 'HuberRegressor': 'black', 'AdaptiveRegressor' : 'red'}
-linestyle = {'OLS': '-', 'Theil-Sen': '-.', 'RANSAC': '--', 'HuberRegressor': '--', 'AdaptiveRegressor' : '--'}
-lw = 3
+        # init arrays to save detected stairs points
+        stairs_points = []
+        x_stairs = []
+        y_stairs = []
+        stairs_indexes = []
 
-y_pt = torch.tensor(y[:, np.newaxis], dtype=torch.float32)
+        # go trough points
+        for i in range(len(cloud_arr)):
+            # get current points coords
+            xy_point = np.array([cloud_arr[i][0], cloud_arr[i][1]])
 
-x_plot = np.linspace(X.min(), X.max())
-for title, this_X, this_y in [
-        ('Modeling Errors Only', X, y),
-        ('Corrupt X, Small Deviants', X_errors, y),
-        ('Corrupt y, Small Deviants', X, y_errors),
-        ('Corrupt X, Large Deviants', X_errors_large, y),
-        ('Corrupt y, Large Deviants', X, y_errors_large)]:
-    plt.figure(figsize=(5, 4))
-    plt.plot(this_X[:, 0], this_y, 'b+')
+            # find nearest neighbors and check their distances
+            distance, indexes = kdtree_2D.query(xy_point, 25)
 
-    for name, estimator in estimators:
-        if name == 'AdaptiveRegressor':
-            model = estimator()
-            tmp = PolynomialFeatures(3).fit_transform(this_X)
-            this_X_PN = torch.tensor(PolynomialFeatures(3).fit_transform(this_X), dtype=torch.float32)
-            X_test_PN = torch.tensor(PolynomialFeatures(3).fit_transform(X_test), dtype=torch.float32)
-            x_plot_PN = torch.tensor(PolynomialFeatures(3).fit_transform(x_plot[:, np.newaxis]), dtype=torch.float32)
+            distance_check = distance < 0.25
+            indexes = indexes[distance_check]
 
-            adaptive = robust_loss_pytorch.adaptive.AdaptiveLossFunction(
-                num_dims=1, float_dtype=np.float32, device='cpu')
-            params = list(model.parameters()) + list(adaptive.parameters())
-            optimizer = torch.optim.Adam(params, lr=0.01)
+            # if there are any neighbors within range
+            if indexes.size != 0:
+                x = x_cloud[indexes]
+                y = y_cloud[indexes]
+                z = z_cloud[indexes]
+		if True:
+                	# fit plane to points
+                	X = np.concatenate((x, y, np.ones((x.shape[0], 1))), axis=1)
+                	w = np.dot(np.linalg.pinv(X), z)
+	    	else:
+			# Fit using ransac
+			try:
+                		X = np.concatenate((x, y), axis=1)
+                		reg = RANSACRegressor(random_state=0, max_trials=15, min_samples=1).fit(X, z)
+                		w = reg.estimator_.coef_[0]
+			except:
+				continue
 
-            # Do the fitting
-            for epoch in range(2000):
+                # calculate the angle from horizontal plane
+                alpha = np.arccos(1/math.sqrt(w[0]**2 + w[1]**2 + 1))
 
-                y_i = model(this_X_PN)
+                if alpha > 0.15 and alpha < 0.6:
+                    # save info about stairs point
+                    stairs_indexes.append(i)
+                    stairs_points.append(new_arr[i])
+                    x_stairs.append(new_arr[i][0])
+                    y_stairs.append(new_arr[i][1])
 
-                loss = torch.mean(adaptive.lossfun((y_i - y_pt)))
+        # init array for definitive stairs points
+        final_stairs = []
 
-                optimizer.zero_grad()
-                loss.backward()
-                optimizer.step()
-                if np.mod(epoch, 100) == 0:
-                    print('{:<4}: loss={:03f}'.format(epoch, loss.data))
+        # merge x and y coords of stairs points and make KDTree
+        x_stairs = np.array(x_stairs).reshape(len(x_stairs), 1)
+        y_stairs = np.array(y_stairs).reshape(len(y_stairs), 1)
 
-            mse = mean_squared_error(model(X_test_PN).detach().numpy(), y_test)
-            y_plot = model(x_plot_PN).detach().numpy()
-            plt.plot(x_plot, y_plot, color=colors[name], linestyle=linestyle[name],
-                     linewidth=lw, label='%s: error = %.3f' % (name, mse))
+        xy_2D = np.concatenate((x_stairs, y_stairs), axis=1)
+        kdtree_2D = KDTree(xy_2D)
 
-        else:
-            model = make_pipeline(PolynomialFeatures(3), estimator)
-            model.fit(this_X, this_y)
-            mse = mean_squared_error(model.predict(X_test), y_test)
-            y_plot = model.predict(x_plot[:, np.newaxis])
-            plt.plot(x_plot, y_plot, color=colors[name], linestyle=linestyle[name],
-                     linewidth=lw, label='%s: error = %.3f' % (name, mse))
 
-    legend_title = 'Error of Mean\nAbsolute Deviation\nto Non-corrupt Data'
-    legend = plt.legend(loc='upper right', frameon=False, title=legend_title,
-                        prop=dict(size='x-small'))
-    plt.xlim(-4, 10.2)
-    plt.ylim(-2, 10.2)
-    plt.title(title)
-plt.show()
+        # go through stairs points and check whether they really are on stairs
+        for i in range(len(stairs_points)):
+            # get current points coords
+            xy_point = np.array([stairs_points[i][0], stairs_points[i][1]])
+            # check 9 nearest neighbors in 2D
+            distance, indexes = kdtree_2D.query(xy_point, 9)
+
+            distance_check = distance < 0.15
+            indexes = indexes[distance_check]
+
+            # if in the neighborhood are all points also qualified as stairs
+            if len(indexes) >= 9:
+                # prepare stair point to be published
+                new_stair_point = stairs_points[i].copy()
+                new_stair_point[3] = 1
+                final_stairs.append(new_stair_point)
+                # change color for visualization
+                idx = stairs_indexes[i]
+                new_arr[idx][3] = 0b111111110000000001111111
+
+        # convert list to numpy array
+        final_stairs = np.array(final_stairs)
+        # create pointcloud2 messages
+        msg_visualize = ros_numpy.point_cloud2.array_to_pointcloud2(new_arr, stamp=data.header.stamp,
+                                                          frame_id=data.header.frame_id)
+        msg_stairs = ros_numpy.point_cloud2.array_to_pointcloud2(final_stairs, stamp=data.header.stamp,
+                                                          frame_id=data.header.frame_id)
+        # publish messages
+        self.publisher_visualize.publish(msg_visualize)
+        self.publisher_stairs.publish(msg_stairs)
+
+def local_map_evaluation():
+    """
+    Function creating subscriber nodes on ROS server.
+    """
+    # init node and get output_dir param from launch file
+    rospy.init_node('local_map_node', anonymous=True)
+
+
+    local_map_node = LocalMap("/elevation/local")
+
+    rospy.spin()
+
+if __name__ == '__main__':
+    local_map_evaluation()

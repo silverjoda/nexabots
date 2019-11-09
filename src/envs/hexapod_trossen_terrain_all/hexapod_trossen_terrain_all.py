@@ -34,7 +34,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 500
+        self.s_len = 400
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
@@ -169,11 +169,11 @@ class Hexapod():
         q_yaw = 2 * acos(qw)
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(y) * 0.4 + \
-                np.square(q_yaw) * 0.9 + \
+        r_neg = np.square(y) * 0.2 + \
+                np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.0001 + \
+                ctrl_pen * 0.0000 + \
                 np.square(zd) * 0.7
 
         r_pos = velocity_rew * 6 # + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
@@ -200,6 +200,7 @@ class Hexapod():
 
 
     def reset(self, init_pos = None):
+        #np.random.seed(1337)
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
             time.sleep(0.3)
@@ -546,9 +547,8 @@ class Hexapod():
                              "data/{}_acts.npy".format(ID)), np_acts)
 
 
-    def test(self, policy, render=True):
+    def test(self, policy, render=True, N=30):
         self.env_change_prob = 1
-        N = 30
         rew = 0
         for i in range(N):
             obs = self.reset()
@@ -563,6 +563,7 @@ class Hexapod():
                     self.render()
             print("Total episode reward: {}".format(cr))
         print("Total average reward = {}".format(rew / N))
+        return rew / N
 
 
     def test_recurrent(self, policy):

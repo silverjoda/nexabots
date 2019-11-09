@@ -319,10 +319,14 @@ if __name__=="__main__":
 
 	results_dict = {}
 	results_list = []
-	reps = 100
+	results_v_list = []
+	results_d_list = []
+	reps = 30
 
 	for env_name in expert_dict.keys():
 		env_results_list = []
+		env_results_v_list = []
+		env_results_d_list = []
 		env_instance = env([env_name], max_n_envs=1)
 		for policy_name in expert_dict.values():
 
@@ -330,29 +334,83 @@ if __name__=="__main__":
 			policy = T.load(policy_path)
 
 			# Evaluate
-			score = env_instance.test(policy, render=False, N=reps)
+			score, v_score, d_score = env_instance.test(policy, render=False, N=reps, seed=1337)
 			results_dict[env_name, policy_name] = score
 			env_results_list.append(score)
+			env_results_v_list.append(v_score)
+			env_results_d_list.append(d_score)
+
 		results_list.append(env_results_list)
+		results_v_list.append(env_results_v_list)
+		results_d_list.append(env_results_d_list)
 
-	normalized_results_list = [[r / env_results_list[i] for r in env_results_list] for i, env_results_list in enumerate(results_list)]
 
-	print(results_dict)
 	import pandas as pd
+
+	# Gait quality
+	print("Gait quality metric")
 	pd.options.display.float_format = '{:,.2f}'.format
 	dfObj = pd.DataFrame(results_list,
 						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
 						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
 	print(dfObj)
 
-	dfObj = pd.DataFrame(normalized_results_list,
+	# Velocity quality
+	print("velocity quality metric")
+	pd.options.display.float_format = '{:,.2f}'.format
+	dfObj = pd.DataFrame(results_v_list,
+						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
+						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
+	print(dfObj)
+
+	# Velocity quality
+	print("average traveled instance")
+	pd.options.display.float_format = '{:,.2f}'.format
+	dfObj = pd.DataFrame(results_d_list,
 						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
 						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
 	print(dfObj)
 
 
+	# Normalized results
+	print("Normalized results")
+	results_list = list(map(list, zip(*results_list)))
+	results_list = [[r / erl[i] for r in erl] for i, erl in
+							   enumerate(results_list)]
+	results_list = list(map(list, zip(*results_list)))
 
+	results_v_list = list(map(list, zip(*results_v_list)))
+	results_v_list = [[r / erl[i] for r in erl] for i, erl in
+					enumerate(results_v_list)]
+	results_v_list = list(map(list, zip(*results_v_list)))
 
+	results_d_list = list(map(list, zip(*results_d_list)))
+	results_d_list = [[r / erl[i] for r in erl] for i, erl in
+					  enumerate(results_d_list)]
+	results_d_list = list(map(list, zip(*results_d_list)))
 
+	# NORMALIZED
 
+	# Gait quality
+	print("Normalized Gait quality metric")
+	pd.options.display.float_format = '{:,.2f}'.format
+	dfObj = pd.DataFrame(results_list,
+						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
+						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
+	print(dfObj)
 
+	# Velocity quality
+	print("Normalized velocity quality metric")
+	pd.options.display.float_format = '{:,.2f}'.format
+	dfObj = pd.DataFrame(results_v_list,
+						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
+						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
+	print(dfObj)
+
+	# Velocity quality
+	print("Normalized average traveled instance")
+	pd.options.display.float_format = '{:,.2f}'.format
+	dfObj = pd.DataFrame(results_d_list,
+						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
+						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
+	print(dfObj)

@@ -168,6 +168,9 @@ class Hexapod():
 
         q_yaw = 2 * acos(qw)
 
+        yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
+        y_deviation = y
+
         # y 0.2 stable, q_yaw 0.5 stable
         r_neg = np.square(y) * 0.2 + \
                 np.square(q_yaw) * 0.5 + \
@@ -176,8 +179,11 @@ class Hexapod():
                 ctrl_pen * 0.0000 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 # + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
+        r_pos = velocity_rew * 6 + (self.prev_deviation - yaw_deviation) * 9 + (self.prev_y_deviation - y_deviation) * 0
         r = r_pos - r_neg
+
+        self.prev_deviation = yaw_deviation
+        self.prev_y_deviation = y_deviation
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps # or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8
@@ -196,11 +202,11 @@ class Hexapod():
                                   [qw, qx, qy, qz, y],
                                   contacts])
 
-        return obs, r, done, None
+        return obs, r, done, (r_pos, x)
 
 
     def reset(self, init_pos = None):
-        #np.random.seed(1337)
+
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
             time.sleep(0.3)
@@ -246,7 +252,7 @@ class Hexapod():
         self.vel_sum = 0
 
         # Init_quat
-        self.rnd_yaw = 0#np.random.rand() * 2. - 1
+        self.rnd_yaw = np.random.rand() * 2. - 1
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
@@ -259,6 +265,9 @@ class Hexapod():
             self.sim.step()
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
+
+        self.prev_deviation = np.min((abs((self.rnd_yaw % 6.183) - (0 % 6.183)), abs(self.rnd_yaw - 0)))
+        self.prev_y_deviation = 0
 
         return obs
 
@@ -547,23 +556,33 @@ class Hexapod():
                              "data/{}_acts.npy".format(ID)), np_acts)
 
 
-    def test(self, policy, render=True, N=30):
+    def test(self, policy, render=True, N=30, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
         self.env_change_prob = 1
         rew = 0
+        vel_rew = 0
+        dist_rew = 0
         for i in range(N):
             obs = self.reset()
             cr = 0
+            vr = 0
+            dr = 0
             for j in range(int(self.max_steps)):
                 action = policy(my_utils.to_tensor(obs, True)).detach()
-                obs, r, done, od, = self.step(action[0].numpy())
+                obs, r, done, (r_v, r_d) = self.step(action[0].numpy())
                 cr += r
-                rew += r
+                vr += r_v
+                dr = max(dr, r_d)
                 time.sleep(0.000)
                 if render:
                     self.render()
+            rew += cr
+            vel_rew += vr
+            dist_rew += dr
             print("Total episode reward: {}".format(cr))
         print("Total average reward = {}".format(rew / N))
-        return rew / N
+        return rew / N, vel_rew / N, dist_rew / N
 
 
     def test_recurrent(self, policy):

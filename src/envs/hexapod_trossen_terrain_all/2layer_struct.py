@@ -10,7 +10,7 @@ import src.my_utils as my_utils
 import src.policies as policies
 import random
 import string
-import socket #
+import socket
 
 
 
@@ -97,7 +97,7 @@ def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
 def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False):
     env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
     env.s_len = 130
-    env.max_steps = env.n_envs * env.s_len
+    env.max_steps = int(env.n_envs * env.s_len * 0.7)
 
     change_prob = 0.01
     env.env_change_prob = 0.0 # THIS HAS TO BE ZERO!!!
@@ -391,7 +391,6 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs):
         print("Episode reward: {}".format(episode_reward))
 
 
-
 def _test_mux_reactive_policies_debug(policy_dict, env_list, n_envs):
 
     env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
@@ -457,23 +456,30 @@ def _test_mux_reactive_policies_debug(policy_dict, env_list, n_envs):
 if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
 
-    expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_NN_PG_3Z0_pg.p'))
-    expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '../../algos/PG/agents/Hexapod_NN_PG_KE1_pg.p'))
-    expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_NN_PG_WSJ_pg.p'))
+    # Current experts:
+    # Generalization: Novar: QO6, Var: OSM
+    # flat: P92, DFE
+    # tiles: K4F
+    # triangles: LBD
+    # Stairs: HOS
+    # pipe: 9GV
+    # perlin: P92
 
-    env_list = ["holes", "pipe", "tiles"]
-    expert_dict = {"holes" : expert_holes, "pipe" : expert_pipe, "tiles" : expert_tiles}
+    reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                '../../algos/PG/agents/Hexapod_NN_PG_K4F_pg.p'))
+    reactive_expert_stairs = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                                 '../../algos/PG/agents/Hexapod_NN_PG_HOS_pg.p'))
+    reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                               '../../algos/PG/agents/Hexapod_NN_PG_9GV_pg.p'))
 
-    if False:
-        train_classifier_iteratively(env_list, expert_dict, iters=600, n_envs=3, n_classes=3, render=False)
-    if False:
+    env_list = ["tiles", "stairs", "pipe"]
+    expert_dict = {"tiles": reactive_expert_tiles, "stairs": reactive_expert_stairs, "pipe": reactive_expert_pipe}
+
+    if True:
         make_dataset_reactive_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=1500, n_envs=3, render=False)
+                                 N=1500, n_envs=3, render=True)
     if False:
         train_classifier(n_classes=3, iters=15000, env_list=env_list)
-    if True:
+    if False:
         _test_mux_reactive_policies(expert_dict, env_list, n_envs=3)

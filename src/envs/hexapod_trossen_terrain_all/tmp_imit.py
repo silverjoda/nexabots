@@ -282,27 +282,35 @@ def test_classifier_reactive_policies(policy_dict, env_list):
 if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
 
-    reactive_expert_flat = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_NN_PG_I8N_pg.p'))
+    # Current experts:
+    # Generalization: Novar: QO6, Var: OSM
+    # flat: P92, DFE
+    # tiles: K4F
+    # triangles: LBD
+    # Stairs: HOS
+    # pipe: 9GV
+    # perlin: P92
+
+
     reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_NN_PG_32F_pg.p'))
-    reactive_expert_holes = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                       '../../algos/PG/agents/Hexapod_NN_PG_2K4_pg.p'))
+                                               '../../algos/PG/agents/Hexapod_NN_PG_K4F_pg.p'))
+    reactive_expert_stairs = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                       '../../algos/PG/agents/Hexapod_NN_PG_HOS_pg.p'))
     reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                      '../../algos/PG/agents/Hexapod_NN_PG_4IO_pg.p'))
+                                      '../../algos/PG/agents/Hexapod_NN_PG_9GV_pg.p'))
 
-    env_list = ["flat", "tiles", "pipe"]
-    expert_dict = {"flat" : reactive_expert_flat, "tiles" : reactive_expert_tiles, "pipe" : reactive_expert_pipe}
+    env_list = ["tiles", "stairs", "pipe"]
+    expert_dict = {"tiles" : reactive_expert_tiles, "stairs" : reactive_expert_stairs, "pipe" : reactive_expert_pipe}
 
-    if False:
+    if True:
         make_reactive_dataset(env_list=env_list,
                      expert_dict = expert_dict,
-                     ID="REACTIVE", N=1000, n_envs=3, render=False)
-    if False:
+                     ID="REACTIVE", N=1000, n_envs=3, render=True)
+    if True:
         make_classif_dataset(env_list=env_list,
                               expert_dict=expert_dict,
                               ID="A", N=2000, n_envs=3, render=True)
-    if False:
+    if True:
         classify_multiple(n_classes=3, iters=20000, env_list=env_list)
     if True:
         #test(env_list)

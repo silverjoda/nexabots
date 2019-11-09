@@ -263,13 +263,13 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["tiles"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["tiles", "holes", "pipe"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
               "note" : "Retraining experts with orientation rew", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -298,7 +298,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_generalization import Hexapod as env
 
     #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
-    env = env(env_list, max_n_envs=1)
+    env = env(env_list, max_n_envs=3)
 
     # Current experts:
     # Generalization: Novar: QO6, Var: OSM

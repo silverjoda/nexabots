@@ -171,14 +171,14 @@ class Hexapod():
         y_deviation = y
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(y) * 0.1 + \
-                np.square(q_yaw) * 0.1 + \
+        r_neg = np.square(y) * 0.2 + \
+                np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.0000 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
+        r_pos = velocity_rew * 6 #+ (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
         r = r_pos - r_neg
 
         self.prev_deviation = yaw_deviation
@@ -268,7 +268,6 @@ class Hexapod():
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
 
-
         return obs
 
 
@@ -287,7 +286,6 @@ class Hexapod():
 
     def generate_hybrid_env(self, n_envs, steps):
         envs = np.random.choice(self.env_list, n_envs, replace=False)
-        #envs = ["holes", "tiles", "holes"]
 
         if n_envs == 1:
             size_list = [steps]
@@ -350,7 +348,7 @@ class Hexapod():
 
         if env_name == "tiles":
             hm = np.random.randint(0, 30,
-                                   size=(self.env_width // 3, env_length // int(3)),
+                                   size=(self.env_width // int(3), env_length // int(3)),
                                    dtype=np.uint8).repeat(3, axis=0).repeat(int(12), axis=1) + 127
 
         if env_name == "pipe":

@@ -34,13 +34,12 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 400
+        self.s_len = 300
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
         self.cumulative_environment_reward = None
         self.walls = True
-
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -256,6 +255,8 @@ class Hexapod():
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
+        self.prev_deviation = np.min((abs((self.rnd_yaw % 6.183) - (0 % 6.183)), abs(self.rnd_yaw - 0)))
+        self.prev_y_deviation = 0
 
         # Set environment state
         self.set_state(init_q, init_qvel)
@@ -266,8 +267,7 @@ class Hexapod():
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
-        self.prev_deviation = np.min((abs((self.rnd_yaw % 6.183) - (0 % 6.183)), abs(self.rnd_yaw - 0)))
-        self.prev_y_deviation = 0
+
 
         return obs
 

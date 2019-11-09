@@ -344,7 +344,6 @@ if __name__=="__main__":
 		results_v_list.append(env_results_v_list)
 		results_d_list.append(env_results_d_list)
 
-
 	import pandas as pd
 
 	# Gait quality
@@ -374,20 +373,6 @@ if __name__=="__main__":
 
 	# Normalized results
 	print("Normalized results")
-	results_list = list(map(list, zip(*results_list)))
-	results_list = [[r / erl[i] for r in erl] for i, erl in
-							   enumerate(results_list)]
-	results_list = list(map(list, zip(*results_list)))
-
-	results_v_list = list(map(list, zip(*results_v_list)))
-	results_v_list = [[r / erl[i] for r in erl] for i, erl in
-					enumerate(results_v_list)]
-	results_v_list = list(map(list, zip(*results_v_list)))
-
-	results_d_list = list(map(list, zip(*results_d_list)))
-	results_d_list = [[r / erl[i] for r in erl] for i, erl in
-					  enumerate(results_d_list)]
-	results_d_list = list(map(list, zip(*results_d_list)))
 
 	# NORMALIZED
 

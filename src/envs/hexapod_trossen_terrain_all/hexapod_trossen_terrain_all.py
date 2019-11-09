@@ -34,7 +34,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 300
+        self.s_len = 500
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
@@ -168,11 +168,12 @@ class Hexapod():
 
         q_yaw = 2 * acos(qw)
 
-        r_neg = np.square(y) * 0.2 + \
-                np.square(q_yaw) * 0.5 + \
+        # y 0.2 stable, q_yaw 0.5 stable
+        r_neg = np.square(y) * 0.3 + \
+                np.square(q_yaw) * 0.8 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.000 + \
+                ctrl_pen * 0.0001 + \
                 np.square(zd) * 0.7
 
         r_pos = velocity_rew * 6 # + (abs(self.prev_yaw_deviation) - abs(yaw_deviation)) * 3. + (abs(self.prev_y_deviation) - abs(y)) * 3.
@@ -244,7 +245,7 @@ class Hexapod():
         self.vel_sum = 0
 
         # Init_quat
-        self.rnd_yaw = 0 # np.random.rand() * 2. - 1
+        self.rnd_yaw = 0#np.random.rand() * 2. - 1
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
@@ -429,7 +430,7 @@ class Hexapod():
             # Amount of 'tiles'
             Mt = 2
             Nt = int(env_length / 10.)
-            obstacle_height = 0.25
+            obstacle_height = 0.2
             grad_mat = np.linspace(0, 1, cw)[:, np.newaxis].repeat(cw, 1)
             template_1 = np.ones((cw, cw)) * grad_mat * grad_mat.T * obstacle_height
             template_2 = np.ones((cw, cw)) * grad_mat * obstacle_height

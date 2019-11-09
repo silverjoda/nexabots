@@ -4,7 +4,10 @@ import src.my_utils as my_utils
 import time
 import os
 import cv2
-from math import sqrt, acos, fabs
+import math
+from math import sqrt, acos, fabs, ceil
+from opensimplex import OpenSimplex
+
 
 import random
 import string
@@ -26,16 +29,17 @@ class Hexapod():
             self.env_list = env_list
 
         self.ID = '_'.join(self.env_list)
+        self.specific_env_len = 50
+        self.env_scaling = self.specific_env_len / 38.
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 300
+        self.s_len = 500
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
         self.cumulative_environment_reward = None
         self.walls = True
-        self.sim_timestep = 0.02
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -44,17 +48,17 @@ class Hexapod():
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         # Parameters to be varied
-        self.variable_param_dict = {'friction' : True,
-                                    'torso_mass' : True,
-                                    'k_p': True,
-                                    'armature': True,
-                                    'tibia_lengths' : True}
+        self.variable_param_dict = {'friction' : False,
+                                    'torso_mass' : False,
+                                    'k_p': False,
+                                    'armature': False,
+                                    'tibia_lengths' : False}
 
-        self.friction_range = [0.1, 1]
+        self.friction_range = [0.1, 1.0]
         self.torso_mass_range = [0.1, 5]
-        self.k_p_range = [30, 70]
-        self.armature_range = [0.3, 2]
-        self.tibia_lengths_range = [0.06, 0.10]
+        self.k_p_range = [30, 80]
+        self.armature_range = [1.5, 1.6]
+        self.tibia_lengths_range = [0.08, 0.14]
 
         self.use_HF = False
         self.HF_width = 6
@@ -213,7 +217,7 @@ class Hexapod():
 
     def reset(self, init_pos = None):
         if np.random.rand() < self.env_change_prob:
-            self.generate_hybrid_env(self.n_envs, self.max_steps)
+            self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
             time.sleep(0.3)
 
         self.viewer = None
@@ -227,7 +231,6 @@ class Hexapod():
                 pass
 
         self.sim = mujoco_py.MjSim(self.model)
-        self.model.opt.timestep = self.sim_timestep
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -323,7 +326,7 @@ class Hexapod():
         total_hm = np.concatenate(maplist, 1)
 
         # Smoothen transitions
-        bnd = 15
+        bnd = 4
         if self.n_envs > 1:
             for s in scaled_indeces_list:
                 total_hm_copy = np.array(total_hm)
@@ -348,22 +351,24 @@ class Hexapod():
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, 1.0 * n_envs * (self.s_len / 200.)))
+                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
-                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(1.0 * n_envs * (self.s_len / 200.) - 0.3))
-
+                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(self.env_scaling * self.n_envs * 0.6))
                 elif line.startswith('    <joint armature=') and self.variable_param_dict['armature']:
                     out_file.write('    <joint armature="{}" damping="3" limited="true"/>'.format(
                         self.sample_from_range(self.armature_range)))
                 elif line.startswith('      <geom name="torso_geom"') and self.variable_param_dict['torso_mass']:
-                    out_file.write('      <geom name="torso_geom" pos="0 0 0" size="0.12 0.06 0.02" mass="{}" type="ellipsoid" material="MatHex"/>'.format(
-                        self.sample_from_range(self.torso_mass_range)))
+                    out_file.write(
+                        '      <geom name="torso_geom" pos="0 0 0" size="0.12 0.06 0.02" mass="{}" type="ellipsoid" material="MatHex"/>'.format(
+                            self.sample_from_range(self.torso_mass_range)))
                 elif line.startswith('    <geom conaffinity="0" condim="3" ') and self.variable_param_dict['friction']:
-                    out_file.write('    <geom conaffinity="0" condim="3" density="5.0" friction="{} 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>'.format(
-                        self.sample_from_range(self.friction_range)))
+                    out_file.write(
+                        '    <geom conaffinity="0" condim="3" density="5.0" friction="{} 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>'.format(
+                            self.sample_from_range(self.friction_range)))
                 elif line.startswith('    <position joint=') and self.variable_param_dict['k_p']:
                     out_file.write(line.replace('kp="40"', 'kp="{}"'.format(self.sample_from_range(self.k_p_range))))
-                elif line.startswith('                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_') and self.variable_param_dict['tibia_lengths']:
+                elif line.startswith('                <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_') and \
+                        self.variable_param_dict['tibia_lengths']:
                     out_file.write(line.replace('0.095', '{}'.format(self.sample_from_range(self.tibia_lengths_range))))
 
                 else:
@@ -383,13 +388,13 @@ class Hexapod():
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 20,
-                                   size=(self.env_width // 3, env_length // int(12)),
+            hm = np.random.randint(0, 30,
+                                   size=(self.env_width // 3, env_length // int(3)),
                                    dtype=np.uint8).repeat(3, axis=0).repeat(int(12), axis=1) + 127
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-12, 12, self.env_width)), 0).T + 127
+            hm = pipe * np.expand_dims(np.square(np.linspace(-13, 13, self.env_width)), 0).T + 127
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
@@ -400,9 +405,8 @@ class Hexapod():
             rnd_w = np.random.randint(0, w - patch_y)
             hm = hm[rnd_w:rnd_w + patch_y, rnd_h:rnd_h + patch_x]
             hm = np.mean(hm, axis=2)
-            hm = hm * 0.7 + 255 * 0.3
+            hm = hm * 1.0 + 255 * 0.3
             hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2.
-
 
         if env_name == "inverseholes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
@@ -432,12 +436,15 @@ class Hexapod():
             hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2. + 127
 
         if env_name == "stairs":
-            stair_height = 20
-            stair_width = 10
+            stair_height = 45
+            stair_width = 4
             current_height = 0
+            initial_offset = 15
 
-            for i in range(6):
-                hm[:, 0 + i * stair_width: 0 + i * stair_width + stair_width] = current_height
+            hm[:, :initial_offset] = 0
+
+            for i in range(20):
+                hm[:, initial_offset  + i * stair_width: initial_offset  + i * stair_width + stair_width] = current_height
                 current_height += stair_height
 
             # for i in range(3):
@@ -459,6 +466,68 @@ class Hexapod():
             hm[:, :50] = 0
             hm[hm < 50] = 0
             hm = 75 - hm
+
+
+        if env_name == "triangles":
+            cw = 10
+            # Make even dimensions
+            M = math.ceil(self.env_width)
+            N = math.ceil(env_length)
+            hm = np.zeros((M, N), dtype=np.float32)
+            M_2 = math.ceil(M / 2)
+
+            # Amount of 'tiles'
+            Mt = 2
+            Nt = int(env_length / 10.)
+            obstacle_height = 0.25
+            grad_mat = np.linspace(0, 1, cw)[:, np.newaxis].repeat(cw, 1)
+            template_1 = np.ones((cw, cw)) * grad_mat * grad_mat.T * obstacle_height
+            template_2 = np.ones((cw, cw)) * grad_mat * obstacle_height
+
+            for i in range(Nt):
+                if np.random.choice([True, False]):
+                    hm[M_2 - cw: M_2, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0, 4))
+                else:
+                    hm[M_2 - cw: M_2, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0, 4))
+
+                if np.random.choice([True, False]):
+                    hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0, 4))
+                else:
+                    hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0, 4))
+
+            # Walls
+            hm[0, 0] = 1.
+
+            # Multiply to full image resolution
+            hm *= 255
+
+
+        if env_name == "perlin":
+            oSim = OpenSimplex(seed=int(time.time()))
+
+            height = 120
+
+            M = math.ceil(self.env_width)
+            N = math.ceil(env_length)
+            hm = np.zeros((M, N), dtype=np.float32)
+
+            scale_x = 20
+            scale_y = 20
+            octaves = 4  # np.random.randint(1, 5)
+            persistence = 1
+            lacunarity = 2
+
+            for i in range(M):
+                for j in range(N):
+                    for o in range(octaves):
+                        sx = scale_x * (1 / (lacunarity ** o))
+                        sy = scale_y * (1 / (lacunarity ** o))
+                        amp = persistence ** o
+                        hm[i][j] += oSim.noise2d(i / sx, j / sy) * amp
+
+            wmin, wmax = hm.min(), hm.max()
+            hm = (hm - wmin) / (wmax - wmin) * height
+
 
         return hm
 

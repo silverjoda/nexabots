@@ -4,11 +4,11 @@
   <size nconmax="1000" njmax="2000"/>
 
   <default>
-    <joint armature="2.0" damping="0.5" limited="true"/>
+    <joint armature="1.5" damping="0.5" limited="true"/>
     <geom conaffinity="0" condim="3" density="5.0" friction="1.0 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>
   </default>
 
-  <asset>w
+  <asset>
     <texture type="skybox" builtin="gradient" width="100" height="100" rgb1="1 1 1" rgb2="0 0 0" />
     <texture name="texgeom" type="cube" builtin="flat" mark="cross" width="127" height="1278" rgb1="0.8 0.6 0.4" rgb2="0.8 0.6 0.4" markrgb="1 1 1" random="0.01" />
     <texture name="texplane" type="2d" width="1" height="1" file="white2.png"/>

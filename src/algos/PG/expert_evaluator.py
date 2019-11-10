@@ -312,7 +312,7 @@ if __name__=="__main__":
 
 	expert_dict = {"flat" : "DFE",
 				   "tiles" : "K4F",
-				   "triangles" : "LBD",
+				   "triangles" : "IO8",
 				   "stairs" : "HOS",
 				   "pipe" : "9GV",
 				   "perlin" : "P92"}
@@ -327,7 +327,7 @@ if __name__=="__main__":
 		env_results_list = []
 		env_results_v_list = []
 		env_results_d_list = []
-		env_instance = env([env_name], max_n_envs=1)
+		env_instance = env([env_name], max_n_envs=1, specific_env_len=50, s_len=400)
 		for policy_name in expert_dict.values():
 
 			policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env_instance.__class__.__name__, policy_name)

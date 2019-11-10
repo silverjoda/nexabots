@@ -115,9 +115,9 @@ def train(env, policy, params):
 
         if i % 500 == 0 and i > 0:
             print("Wrote score to file")
-            test_score, _, _ = env.test(policy, N=10, seed=1337, render=False)
+            c_score, v_score, d_score = env.test(policy, N=20, seed=1337, render=False)
             with open("eval/{}_RE.txt".format(params["ID"]), "a+") as f:
-                f.write("{}, {} \n".format(batch_rew / params["batchsize"], test_score))
+                f.write("{}, {}, {}, {} \n".format(batch_rew / params["batchsize"], c_score, v_score, d_score))
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -277,7 +277,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Retraining experts with orientation rew", "ID" : ID}
+              "note" : "Training experts with new envs and score logging", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -302,16 +302,25 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_generalization import Hexapod as env
 
     #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
-    env = env(env_list, max_n_envs=3)
+    env = env(env_list, max_n_envs=3, specific_env_len=40, s_len=250)
 
     # Current experts:
     # Generalization: Novar: QO6, Var: OSM
     # flat: P92, DFE
     # tiles: K4F
-    # triangles: LBD
+    # triangles: I08
     # Stairs: HOS
     # pipe: 9GV
     # perlin: P92
+
+    # Current experts w/ orientation rew:
+    # flat: KYH
+    # holes: 2CW
+    # tiles: YI7
+    # triangles: M3X
+    # Stairs: H1Y
+    # pipe: W01
+    # perlin: H03
 
     # Test
     if params["train"]:

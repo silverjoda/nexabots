@@ -20,7 +20,7 @@ class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
-    def __init__(self, env_list=None, max_n_envs=3):
+    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200):
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
@@ -29,12 +29,12 @@ class Hexapod():
             self.env_list = env_list
 
         self.ID = '_'.join(self.env_list)
-        self.specific_env_len = 30
+        self.specific_env_len = specific_env_len
         self.env_scaling = self.specific_env_len / 38.
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 200
+        self.s_len = s_len
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
@@ -251,7 +251,8 @@ class Hexapod():
         self.vel_sum = 0
 
         # Init_quat
-        self.rnd_yaw = np.random.rand() * 2. - 1
+        self.rnd_yaw = np.random.rand() * 1.6 - 0.8
+
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
 
@@ -591,38 +592,39 @@ class Hexapod():
         return rew / N, vel_rew / N, dist_rew / N
 
 
-    def test_recurrent(self, policy):
+    def test_recurrent(self, policy, render=True, N=30, seed=None):
+        if seed is not None:
+            np.random.seed(seed)
         self.env_change_prob = 1
-        self.reset()
-        h_episodes = []
-        N = 20
+
         rew = 0
+        vel_rew = 0
+        dist_rew = 0
         for i in range(N):
-            h_list = []
             obs = self.reset()
             h = None
             cr = 0
+            vr = 0
+            dr = 0
             for j in range(self.max_steps):
                 action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
-                obs, r, done, od, = self.step(action[0].detach().numpy())
+                obs, r, done, (r_v, r_d) = self.step(action[0].detach().numpy())
                 cr += r
-                rew += r
-                time.sleep(0.001)
-                self.render()
-                #h_list.append(h[0][:,0,:].detach().numpy())
-            print("Total episode reward: {}".format(cr))
-            #h_arr = np.stack(h_list)
-            #h_episodes.append(h_arr)
+                vr += r_v
+                dr = max(dr, r_d)
 
-        print("Total average reward = {}".format(rew / N))
-        exit()
+                time.sleep(0.000)
+                if render:
+                    self.render()
 
-        h_episodes_arr = np.stack(h_episodes)
+            rew += cr
+            vel_rew += vr
+            dist_rew += dr
 
-        # Save hidden states
-        filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                "data/{}_states.npy".format(self.env_name))
-        #np.save(filename, h_episodes_arr)
+            if render:
+                print("Total episode reward: {}".format(cr))
+
+        return rew / N, vel_rew / N, dist_rew / N
 
 
     def test_adapt(self, p1, p2, ID):

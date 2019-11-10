@@ -96,11 +96,19 @@ def train(env, policy, params):
             batch_rewards = []
             batch_terminals = []
 
-        if i % 300 == 0 and i > 0:
+
+        if i % 500 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
+
+
+        if i % 500 == 0 and i > 0:
+            print("Wrote score to file")
+            c_score, v_score, d_score = env.test_recurrent(policy, N=100, seed=1337, render=False)
+            with open("eval/{}_RNN.txt".format(params["ID"]), "a+") as f:
+                f.write("{}, {}, {}, {} \n".format(episode_rew / params["batchsize"], c_score, v_score, d_score))
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -220,9 +228,9 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 1000000, "batchsize": 40, "gamma": 0.99, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
+    params = {"iters": 1000000, "batchsize": 200, "gamma": 0.995, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "Test", "Env_list" : env_list,
+              "comments" : "Training on 3 envs RNN basic", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -230,7 +238,7 @@ if __name__=="__main__":
         params["train"] = True
 
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod as env
-    env = env(env_list, max_n_envs=3)
+    env = env(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
 
     print(params, env.__class__.__name__)
 

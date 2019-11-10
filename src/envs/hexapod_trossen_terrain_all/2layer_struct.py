@@ -19,12 +19,9 @@ from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as 
 
 
 def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
-    env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
-    episode_length = n_envs * 200
+    env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
     env.env_change_prob = 0.0  # THIS HAS TO BE ZERO!!!
     change_prob = 0.01
-    env.s_len = 130
-    env.max_steps = env.n_envs * env.s_len
 
     h = None
 
@@ -37,8 +34,8 @@ def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
         print("Iter: {}".format(ctr))
 
         # Generate new environment
-        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, episode_length)
-        scaled_indeces_list.append(episode_length)
+        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env.max_steps)
+        scaled_indeces_list.append(env.max_steps)
 
         cr = 0
         states = []
@@ -95,26 +92,23 @@ def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
 
 
 def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False):
-    env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
-    env.s_len = 130
-    env.max_steps = int(env.n_envs * env.s_len * 0.7)
-
+    env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
+    env.env_change_prob = 0.0  # THIS HAS TO BE ZERO!!!
     change_prob = 0.01
-    env.env_change_prob = 0.0 # THIS HAS TO BE ZERO!!!
+
+    forced_episode_length = 200 * n_envs
 
     episode_states = []
     episode_labels = []
     ctr = 0
     while ctr < N:
 
-        bad_episode = False
-
         # Print info
         print("Iter: {}".format(ctr))
 
         # Generate new environment
-        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env.max_steps)
-        scaled_indeces_list.append(env.max_steps)
+        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env.specific_env_len * n_envs)
+        scaled_indeces_list.append(env.specific_env_len * n_envs)
 
         cr = 0
         states = []
@@ -125,7 +119,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
         policy = expert_dict[current_env]
 
         s = env.reset()
-        for j in range(n_envs * 200):
+        for j in range(forced_episode_length):
             x = env.sim.get_state().qpos.tolist()[0] * 100 + 20
 
             if x > scaled_indeces_list[current_env_idx]:
@@ -149,7 +143,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
             if render:
                 env.render()
 
-        if cr < 0:
+        if cr < 100:
             continue
         ctr += 1
 
@@ -460,7 +454,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     # Generalization: Novar: QO6, Var: OSM
     # flat: P92, DFE
     # tiles: K4F
-    # triangles: LBD
+    # triangles: IO8
     # Stairs: HOS
     # pipe: 9GV
     # perlin: P92

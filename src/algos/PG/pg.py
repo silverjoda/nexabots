@@ -263,8 +263,8 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    #env_list = ["tiles", "holes", "pipe"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
-    env_list = ["pipe"]
+    env_list = ["tiles", "stairs", "pipe"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    #env_list = ["stairs"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
@@ -297,7 +297,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_generalization import Hexapod as env
 
     #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
-    env = env(env_list, max_n_envs=1)
+    env = env(env_list, max_n_envs=3)
 
     # Current experts:
     # Generalization: Novar: QO6, Var: OSM

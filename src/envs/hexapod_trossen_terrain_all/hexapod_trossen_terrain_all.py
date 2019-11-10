@@ -29,7 +29,7 @@ class Hexapod():
             self.env_list = env_list
 
         self.ID = '_'.join(self.env_list)
-        self.specific_env_len = 50
+        self.specific_env_len = 30
         self.env_scaling = self.specific_env_len / 38.
 
         self.modelpath = Hexapod.MODELPATH
@@ -314,7 +314,7 @@ class Hexapod():
         total_hm = np.clip(total_hm, 0, 255).astype(np.uint8)
 
         # Smoothen transitions
-        bnd = 4
+        bnd = 0
         if self.n_envs > 1:
             for s in scaled_indeces_list:
                 total_hm_copy = np.array(total_hm)
@@ -417,6 +417,8 @@ class Hexapod():
             for i in range(n_steps):
                 hm[:, initial_offset + i * stair_width: initial_offset  + i * stair_width + stair_width] = current_height
                 current_height += stair_height
+
+            hm[:, n_steps * stair_width:] = current_height
 
 
         if env_name == "verts":

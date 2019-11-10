@@ -308,6 +308,9 @@ class Hexapod():
             hm, current_height = self.generate_heightmap(m, s, current_height)
             maplist.append(hm)
         total_hm = np.concatenate(maplist, 1)
+        heighest_point = np.max(total_hm)
+        height_SF = heighest_point / 255
+        total_hm /= height_SF
 
         # Smoothen transitions
         bnd = 4
@@ -335,7 +338,7 @@ class Hexapod():
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 0.6 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs))
+                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
                     out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(self.env_scaling * self.n_envs * 0.6))
                 else:
@@ -344,24 +347,23 @@ class Hexapod():
         return envs, size_list, scaled_indeces_list
 
 
-    def generate_heightmap(self, env_name, env_length, incoming_height):
-        hm = np.ones((self.env_width, env_length)) * 127
+    def generate_heightmap(self, env_name, env_length, current_height):
 
         if env_name == "flat":
-            pass
+            hm = np.ones((self.env_width, env_length)) * current_height
 
         if env_name == "tiles":
             sf = 3
             hm = np.random.randint(0, 45,
                                    size=(self.env_width // sf, env_length // sf),
-                                   dtype=np.uint8).repeat(sf, axis=0).repeat(sf, axis=1) + 127
+                                   dtype=np.uint8).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_width, env_length), dtype=np.uint8)
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
-            hm = hm_pad
+            hm = hm_pad + current_height
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-13, 13, self.env_width)), 0).T + 127
+            hm = pipe * np.expand_dims(np.square(np.linspace(-13, 13, self.env_width)), 0).T + current_height
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))
@@ -403,15 +405,16 @@ class Hexapod():
             hm = cv2.resize(hm, dsize=(env_length, self.env_width), interpolation=cv2.INTER_CUBIC) / 2. + 127
 
         if env_name == "stairs":
+            hm = np.ones((self.env_width, env_length)) * current_height
             stair_height = 45
             stair_width = 4
-            current_height = 0
-            initial_offset = 0
 
-            for i in range(np.random.randint(10) + 15):
+            initial_offset = 0
+            n_steps = env_length // stair_width
+
+            for i in range(n_steps):
                 hm[:, initial_offset + i * stair_width: initial_offset  + i * stair_width + stair_width] = current_height
                 current_height += stair_height
-
 
 
         if env_name == "verts":
@@ -484,9 +487,10 @@ class Hexapod():
 
             wmin, wmax = hm.min(), hm.max()
             hm = (hm - wmin) / (wmax - wmin) * height
+            hm += current_height
 
 
-        return hm, incoming_height
+        return hm, current_height
 
 
     def demo(self):

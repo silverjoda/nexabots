@@ -20,7 +20,7 @@ class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
-    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200):
+    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200, walls=True):
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
@@ -39,7 +39,7 @@ class Hexapod():
         self.env_change_prob = 0.2
         self.env_width = 20
         self.cumulative_environment_reward = None
-        self.walls = True
+        self.walls = walls
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -185,7 +185,7 @@ class Hexapod():
         self.prev_y_deviation = y_deviation
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps # or abs(y) > 0.3 or abs(yaw) > 0.6 or abs(roll) > 0.8 or abs(pitch) > 0.8
+        done = self.step_ctr > self.max_steps or abs(y) > 0.3 or abs(roll) > 1.4 or abs(pitch) > 1.4
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
         if self.use_HF:
@@ -285,8 +285,8 @@ class Hexapod():
         return patch_rs
 
 
-    def generate_hybrid_env(self, n_envs, steps):
-        envs = np.random.choice(self.env_list, n_envs, replace=False)
+    def generate_hybrid_env(self, n_envs, steps, replace=False):
+        envs = np.random.choice(self.env_list, n_envs, replace=replace)
 
         if n_envs == 1:
             size_list = [steps]
@@ -459,12 +459,6 @@ class Hexapod():
                     hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0, 4))
                 else:
                     hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0, 4))
-
-            # Walls
-            hm[0, 0] = 1.
-
-            # Multiply to full image resolution
-            hm *= 255
 
 
         if env_name == "perlin":

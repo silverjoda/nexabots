@@ -264,7 +264,7 @@ if __name__=="__main__":
     T.set_num_threads(1)
 
     #env_list = ["tiles", "holes", "pipe"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
-    env_list = ["stairs"]
+    env_list = ["pipe"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 

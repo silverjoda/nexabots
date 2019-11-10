@@ -309,8 +309,9 @@ class Hexapod():
             maplist.append(hm)
         total_hm = np.concatenate(maplist, 1)
         heighest_point = np.max(total_hm)
-        height_SF = heighest_point / 255
+        height_SF = max(heighest_point / 255., 1)
         total_hm /= height_SF
+        total_hm = np.clip(total_hm, 0, 255).astype(np.uint8)
 
         # Smoothen transitions
         bnd = 4
@@ -355,15 +356,16 @@ class Hexapod():
         if env_name == "tiles":
             sf = 3
             hm = np.random.randint(0, 45,
-                                   size=(self.env_width // sf, env_length // sf),
-                                   dtype=np.uint8).repeat(sf, axis=0).repeat(sf, axis=1)
-            hm_pad = np.zeros((self.env_width, env_length), dtype=np.uint8)
+                                   size=(self.env_width // sf, env_length // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
+            hm_pad = np.zeros((self.env_width, env_length))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
             hm = hm_pad + current_height
 
         if env_name == "pipe":
-            pipe = np.ones((self.env_width, env_length))
-            hm = pipe * np.expand_dims(np.square(np.linspace(-13, 13, self.env_width)), 0).T + current_height
+            pipe_form = np.square(np.linspace(-1.2, 1.2, self.env_width))
+            pipe_form = np.clip(pipe_form, 0, 1)
+            hm = 255 * np.ones((self.env_width, env_length)) * pipe_form[np.newaxis, :].T
+            hm += current_height
 
         if env_name == "holes":
             hm = cv2.imread(os.path.join(os.path.dirname(os.path.realpath(__file__)), "assets/holes1.png"))

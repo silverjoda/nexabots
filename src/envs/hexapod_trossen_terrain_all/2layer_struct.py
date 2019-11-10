@@ -498,4 +498,5 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         train_classifier(n_classes=3, iters=100, env_list=env_list, ID="OLD_EXPERTS")
     if True:
+        # TODO: ADD RNN COMPARISON RIGHT INTO THIS FUNCTN
         _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="OLD_EXPERTS")

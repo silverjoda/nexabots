@@ -263,7 +263,8 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["tiles", "holes", "pipe"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    #env_list = ["tiles", "holes", "pipe"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["stairs"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
@@ -276,11 +277,9 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    # TODO: Train experts (WITH ROBUST ORIENTATION RECOVERY!!!!!!!, try the yaw deviation rew)
-    # TODO: Do expert comparisons
+
     # TODO: (THIS NOW) Find and check rnn training pipeline
     # TODO: (THIS NOW) Test torque penalization with lower pen coeff on non-flat env
-    # TODO: (THIS NOW) Make expert comparison script
     # TODO: Monitor NN weights and grads during RL training
 
     #from src.envs.centipede.centipede import Centipede
@@ -298,7 +297,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_generalization import Hexapod as env
 
     #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
-    env = env(env_list, max_n_envs=3)
+    env = env(env_list, max_n_envs=1)
 
     # Current experts:
     # Generalization: Novar: QO6, Var: OSM
@@ -318,7 +317,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "LBD"
+        policy_name = "H03"
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX
         policy = T.load(policy_path)

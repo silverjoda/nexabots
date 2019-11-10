@@ -171,14 +171,14 @@ class Hexapod():
         y_deviation = y
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(y) * 0.2 + \
-                np.square(q_yaw) * 0.5 + \
+        r_neg = np.square(y) * 0.1 + \
+                np.square(q_yaw) * 0.1 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.0000 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 #+ (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
+        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
         r = r_pos - r_neg
 
         self.prev_deviation = yaw_deviation
@@ -296,13 +296,17 @@ class Hexapod():
             current_idx = 0
             scaled_indeces_list = []
             for idx in raw_indeces:
-                idx_scaled = int(steps * idx) + np.random.randint(0, 70) - 40
+                idx_scaled = int(steps * idx) + np.random.randint(0, int(steps/6)) - int(steps/12)
                 scaled_indeces_list.append(idx_scaled)
                 size_list.append(idx_scaled - current_idx)
                 current_idx = idx_scaled
-            size_list.append(steps - int(steps * raw_indeces[-1]) + np.random.randint(0, 70) - 40)
+            size_list.append(steps - sum(size_list))
 
-        maplist = [self.generate_heightmap(m, s) for m, s in zip(envs, size_list)]
+        maplist = []
+        current_height = 0
+        for m, s in zip(envs, size_list):
+            hm, current_height = self.generate_heightmap(m, s, current_height)
+            maplist.append(hm)
         total_hm = np.concatenate(maplist, 1)
 
         # Smoothen transitions
@@ -340,16 +344,20 @@ class Hexapod():
         return envs, size_list, scaled_indeces_list
 
 
-    def generate_heightmap(self, env_name, env_length):
+    def generate_heightmap(self, env_name, env_length, incoming_height):
         hm = np.ones((self.env_width, env_length)) * 127
 
         if env_name == "flat":
             pass
 
         if env_name == "tiles":
-            hm = np.random.randint(0, 30,
-                                   size=(self.env_width // int(3), env_length // int(3)),
-                                   dtype=np.uint8).repeat(3, axis=0).repeat(int(12), axis=1) + 127
+            sf = 3
+            hm = np.random.randint(0, 45,
+                                   size=(self.env_width // sf, env_length // sf),
+                                   dtype=np.uint8).repeat(sf, axis=0).repeat(sf, axis=1) + 127
+            hm_pad = np.zeros((self.env_width, env_length), dtype=np.uint8)
+            hm_pad[:hm.shape[0], :hm.shape[1]] = hm
+            hm = hm_pad
 
         if env_name == "pipe":
             pipe = np.ones((self.env_width, env_length))
@@ -398,22 +406,12 @@ class Hexapod():
             stair_height = 45
             stair_width = 4
             current_height = 0
-            initial_offset = 15
+            initial_offset = 0
 
-            hm[:, :initial_offset] = 0
-
-            for i in range(20):
-                hm[:, initial_offset  + i * stair_width: initial_offset  + i * stair_width + stair_width] = current_height
+            for i in range(np.random.randint(10) + 15):
+                hm[:, initial_offset + i * stair_width: initial_offset  + i * stair_width + stair_width] = current_height
                 current_height += stair_height
 
-            # for i in range(3):
-            #     hm[:, 80 + i * stair_width:  80 + i * stair_width + stair_width] = current_height
-            #
-            # for i in range(4):
-            #     hm[:, 60 + i * stair_width: 60 + i * stair_width + stair_width] = current_height
-            #     current_height -= stair_height
-            #
-            #
 
 
         if env_name == "verts":
@@ -488,7 +486,7 @@ class Hexapod():
             hm = (hm - wmin) / (wmax - wmin) * height
 
 
-        return hm
+        return hm, incoming_height
 
 
     def demo(self):

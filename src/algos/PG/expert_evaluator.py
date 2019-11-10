@@ -373,13 +373,20 @@ if __name__=="__main__":
 
 	# Normalized results
 	print("Normalized results")
+	normalized_results_list = [[r / erl[i] for r in erl] for i, erl in
+							   enumerate(results_list)]
 
+	normalized_results_v_list = [[r / erl[i] for r in erl] for i, erl in
+							   enumerate(results_v_list)]
+
+	normalized_results_d_list = [[r / erl[i] for r in erl] for i, erl in
+							   enumerate(results_d_list)]
 	# NORMALIZED
 
 	# Gait quality
 	print("Normalized Gait quality metric")
 	pd.options.display.float_format = '{:,.2f}'.format
-	dfObj = pd.DataFrame(results_list,
+	dfObj = pd.DataFrame(normalized_results_list,
 						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
 						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
 	print(dfObj)
@@ -387,7 +394,7 @@ if __name__=="__main__":
 	# Velocity quality
 	print("Normalized velocity quality metric")
 	pd.options.display.float_format = '{:,.2f}'.format
-	dfObj = pd.DataFrame(results_v_list,
+	dfObj = pd.DataFrame(normalized_results_v_list,
 						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
 						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
 	print(dfObj)
@@ -395,7 +402,7 @@ if __name__=="__main__":
 	# Velocity quality
 	print("Normalized average traveled instance")
 	pd.options.display.float_format = '{:,.2f}'.format
-	dfObj = pd.DataFrame(results_d_list,
+	dfObj = pd.DataFrame(normalized_results_d_list,
 						 index=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'],
 						 columns=['flat', 'tiles', 'triangles', 'stairs', 'pipe', 'perlin'])
 	print(dfObj)

@@ -107,11 +107,17 @@ def train(env, policy, params):
             batch_new_states = []
             batch_terminals = []
 
-        if i % 300 == 0 and i > 0:
+        if i % 500 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
+
+        if i % 500 == 0 and i > 0:
+            print("Wrote score to file")
+            test_score, _, _ = env.test(policy, N=10, seed=1337, render=False)
+            with open("eval/{}_RE.txt".format(params["ID"]), "a+") as f:
+                f.write("{}, {} \n".format(batch_rew / params["batchsize"], test_score))
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -263,20 +269,19 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["tiles", "stairs", "pipe"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["tiles"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
     #env_list = ["stairs"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "Retraining experts with orientation rew", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
-
 
     # TODO: (THIS NOW) Find and check rnn training pipeline
     # TODO: (THIS NOW) Test torque penalization with lower pen coeff on non-flat env

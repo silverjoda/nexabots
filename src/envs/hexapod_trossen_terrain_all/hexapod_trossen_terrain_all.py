@@ -34,7 +34,7 @@ class Hexapod():
 
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
-        self.s_len = 300
+        self.s_len = 200
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
         self.env_width = 20
@@ -314,7 +314,7 @@ class Hexapod():
         total_hm = np.clip(total_hm, 0, 255).astype(np.uint8)
 
         # Smoothen transitions
-        bnd = 0
+        bnd = 2
         if self.n_envs > 1:
             for s in scaled_indeces_list:
                 total_hm_copy = np.array(total_hm)
@@ -355,7 +355,7 @@ class Hexapod():
 
         if env_name == "tiles":
             sf = 3
-            hm = np.random.randint(0, 45,
+            hm = np.random.randint(0, 55,
                                    size=(self.env_width // sf, env_length // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_width, env_length))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
@@ -584,8 +584,10 @@ class Hexapod():
             rew += cr
             vel_rew += vr
             dist_rew += dr
-            print("Total episode reward: {}".format(cr))
-        print("Total average reward = {}".format(rew / N))
+            if render:
+                print("Total episode reward: {}".format(cr))
+        if render:
+            print("Total average reward = {}".format(rew / N))
         return rew / N, vel_rew / N, dist_rew / N
 
 

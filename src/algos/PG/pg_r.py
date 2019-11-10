@@ -79,10 +79,10 @@ def train(env, policy, params):
             # Calculate episode advantages
             batch_advantages = calc_advantages_MC(params["gamma"], batch_rewards, batch_terminals)
 
-            # if params["ppo"]:
-            #     update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
-            # else:
-            update_proper(policy, policy_optim, batch_states, batch_actions, batch_advantages)
+            if params["ppo"]:
+                update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, params["ppo_update_iters"])
+            else:
+                update_proper(policy, policy_optim, batch_states, batch_actions, batch_advantages)
 
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}, std: {}".
                   format(i, params["iters"], None, None, episode_rew / params["batchsize"], 1)) # T.exp(policy.log_std).detach().numpy())
@@ -214,14 +214,14 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["pipe", "holes", "tiles"] # 177, 102, 72, -20
+    env_list = ["tiles", "stairs", "pipe"] # 177, 102, 72, -20
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 1000000, "batchsize": 40, "gamma": 0.99, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
               "comments" : "Test", "Env_list" : env_list,
               "ID": ID}
 
@@ -229,18 +229,15 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    # from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
-    # env = AntFeelersMjc()
-
-    from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
-    env = env(animate=params["animate"], action_input=True)
+    from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod as env
+    env = env(env_list, max_n_envs=3)
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, hid_dim=24, memory_dim=24, n_temp=2, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_PG(env, hid_dim=96, memory_dim=64, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)

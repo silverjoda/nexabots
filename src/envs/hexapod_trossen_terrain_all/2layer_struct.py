@@ -16,80 +16,6 @@ import socket
 from src.envs.hexapod_trossen_terrain_all import hexapod_trossen_terrain_all as hex_env
 
 
-
-def make_dataset_rnn_experts(env_list, expert_dict, N, n_envs, render=False):
-    env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
-    env.env_change_prob = 0.0  # THIS HAS TO BE ZERO!!!
-    change_prob = 0.01
-
-    h = None
-
-    episode_states = []
-    episode_labels = []
-    ctr = 0
-    while ctr < N:
-
-        # Print info
-        print("Iter: {}".format(ctr))
-
-        # Generate new environment
-        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env.max_steps)
-        scaled_indeces_list.append(env.max_steps)
-
-        cr = 0
-        states = []
-        labels = []
-
-        current_env_idx = 0
-        current_env = envs[current_env_idx]
-        policy = expert_dict[current_env]
-
-        print(envs, scaled_indeces_list, current_env)
-
-        s = env.reset()
-        for j in range(int(env.max_steps * 1.5)):
-            x = env.sim.get_state().qpos.tolist()[0] * 100 + 20
-
-            if x > scaled_indeces_list[current_env_idx]:
-                current_env_idx += 1
-                current_env = envs[current_env_idx]
-                h = None
-                print("Env switched to {} ".format(envs[current_env_idx]))
-
-            if np.random.rand() < change_prob:
-                policy_choice = np.random.choice(env_list, 1)[0]
-                policy = expert_dict[policy_choice]
-                print("Policy switched to {} policy".format(policy_choice))
-
-            states.append(s)
-            labels.append(env_list.index(current_env))
-
-            action, h = policy((my_utils.to_tensor(s, True).unsqueeze(0), h))
-            action = action[0][0].detach().numpy()
-            s, r, done, od, = env.step(action)
-            cr += r
-
-            if render:
-                env.render()
-
-        if cr < 0:
-            continue
-        ctr += 1
-
-        episode_states.append(np.stack(states))
-        episode_labels.append(np.stack(labels))
-
-        print("Total episode reward: {}".format(cr))
-
-    np_states = np.stack(episode_states)
-    np_labels = np.stack(episode_labels)
-
-    np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                         "data/states.npy"), np_states)
-    np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                         "data/labels.npy"), np_labels)
-
-
 def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False, ID="def"):
     env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
     env.env_change_prob = 0.0  # THIS HAS TO BE ZERO!!!
@@ -170,91 +96,6 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
                          "data/labels_{}.npy".format(ID)), np_labels)
 
 
-def train_classifier_iteratively(env_list, expert_dict, iters, n_envs, n_classes, render=False):
-    env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
-    episode_length = n_envs * 200
-    env.env_change_prob = 0.0 # THIS HAS TO BE ZERO!!!
-    env.s_len = 130
-    env.max_steps = env.n_envs * env.s_len
-    batchsize = 24
-
-    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=24, memory_dim=24, n_temp=2, n_classes=n_classes,
-                                          to_gpu=True).cuda()
-    optimizer_classifier = T.optim.Adam(classifier.parameters(), lr=2e-4, weight_decay=0.001)
-    lossfun_classifier = T.nn.CrossEntropyLoss()
-
-    for i in range(iters):
-        states_batch = []
-        labels_batch = []
-        for b in range(batchsize):
-
-            # Generate new environment
-            envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env.max_steps)
-            scaled_indeces_list.append(env.max_steps)
-
-            cr = 0
-            states = []
-            labels = []
-
-            current_env_idx = 0
-            current_env = envs[current_env_idx]
-            #print(envs, scaled_indeces_list, current_env)
-
-            s = env.reset()
-            h_c = None
-            with T.no_grad():
-                for e in range(episode_length):
-                    x = env.sim.get_state().qpos.tolist()[0] * 100 + 20
-
-                    if x > scaled_indeces_list[current_env_idx]:
-                        current_env_idx += 1
-                        current_env = envs[current_env_idx]
-                        #print("Env switched to {} ".format(envs[current_env_idx]))
-
-                    env_idx, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0).cuda(), h_c))
-                    env_idx = T.argmax(env_idx[0][0]).cpu().numpy()
-
-                    policy = expert_dict[envs[env_idx]]
-
-                    states.append(s)
-                    labels.append(env_list.index(current_env))
-                    action = policy((my_utils.to_tensor(s, True)))
-                    action = action[0].cpu().numpy()
-                    s, r, done, od, = env.step(action)
-                    cr += r
-
-                    if render:
-                        env.render()
-
-            states_batch.append(np.stack(states))
-            labels_batch.append(np.stack(labels))
-
-        np_states = np.stack(states_batch)
-        np_labels = np.stack(labels_batch)
-
-        batch_states_T = T.from_numpy(np_states).float().cuda()
-        expert_labels_T = T.from_numpy(np_labels).long().cuda()
-
-        # Perform batch forward pass on episodes
-        labels_T, _ = classifier.forward((batch_states_T, None))
-
-        # Update RNN
-        trn_loss_clasifier = lossfun_classifier(labels_T[:, :].contiguous().view(-1, n_classes),
-                                                expert_labels_T[:, :].contiguous().view(-1))
-        trn_loss_clasifier.backward()
-        classifier.soft_clip_grads()
-        optimizer_classifier.step()
-
-        if i % 5 == 0:
-            pred = T.argmax(labels_T.contiguous().view(-1, n_classes), dim=1)
-            labs = expert_labels_T.contiguous().view(-1)
-            trn_accuracy = (pred == labs).sum().cpu().detach().numpy() / (pred.shape[0] / 1.0)
-            print("Iter: {}/{}, trn_loss: {}, trn_accuracy: {}".format(i, iters, trn_loss_clasifier, trn_accuracy))
-
-
-    classifier = classifier.cpu()
-    T.save(classifier, os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier_iter.p"))
-    print("Done")
 
 
 def train_classifier(n_classes, iters, env_list, ID="def"):
@@ -405,6 +246,155 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
         print("Episode reward: {}".format(episode_reward))
 
 
+def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def'):
+    env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200, walls=False)
+    env.env_change_prob = 0
+    classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier_{}.p".format(ID)), map_location='cpu')
+
+    # TODO: Run all methods (oracle, mux + experts, rnn) and evaluate scores (gait quality + distance reached)
+    N = 3
+
+    forced_episode_length = 500
+    env_length = env.specific_env_len * n_envs
+    physical_env_len = env.env_scaling * n_envs * 2
+    physical_env_offset = physical_env_len * 0.2
+
+
+    print("Testing Oracle expert selection")
+    env.setseed(1337)
+    cr = 0
+    cdr = 0
+    for _ in range(N):
+        # Generate new environment
+        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
+        scaled_indeces_list.append(env.specific_env_len * n_envs)
+        raw_indeces_list = [s / float(env_length) for s in scaled_indeces_list]
+
+        dr = 0
+
+        current_env_idx = 0
+        current_env = envs[current_env_idx]
+        policy = expert_dict[current_env]
+
+        s = env.reset()
+        for j in range(forced_episode_length):
+            x = env.sim.get_state().qpos.tolist()[0]
+
+            if x > raw_indeces_list[current_env_idx] * physical_env_len + 0.05 - physical_env_offset:
+                current_env_idx += 1
+                current_env = envs[current_env_idx]
+                policy = expert_dict[envs[current_env_idx]]
+                print("Env switched to {} ".format(envs[current_env_idx]))
+
+            # print(current_env)
+            action = policy((my_utils.to_tensor(s, True)))
+            action = action[0].detach().numpy()
+            s, r, done, (_, d_r) = env.step(action)
+            cr += r
+            dr = max(dr, d_r)
+
+            if render:
+                env.render()
+
+        cdr += dr
+
+    cum_gait_quality_oracle = cr / N
+    cum_dist_quality_oracle = cdr / N
+
+    # ===================================================================================
+    # ===================================================================================
+    print("Testing MUX expert selection")
+    env.setseed(1337)
+    cr = 0
+    cdr = 0
+    for _ in range(N):
+        # Generate new environment
+        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
+        scaled_indeces_list.append(env.specific_env_len * n_envs)
+        raw_indeces_list = [s / float(env_length) for s in scaled_indeces_list]
+
+        dr = 0
+
+        current_env_idx = 0
+        current_env = envs[current_env_idx]
+        policy = expert_dict[current_env]
+
+        s = env.reset()
+        h_c = None
+        current_predicted_env = 0
+        for j in range(forced_episode_length):
+            x = env.sim.get_state().qpos.tolist()[0]
+
+            if x > raw_indeces_list[current_env_idx] * physical_env_len + 0.05 - physical_env_offset:
+                current_env_idx += 1
+                current_env = envs[current_env_idx]
+
+
+            env_dist, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
+            env_softmax = T.softmax(env_dist, 2)[0][0]
+            env_idx = T.argmax(env_softmax).numpy()
+
+            if env_idx != current_predicted_env:
+                current_predicted_env = env_idx
+                policy = expert_dict[envs[current_predicted_env]]
+                print("Predicted env switched to {} ".format(envs[current_predicted_env]))
+
+            # print(current_env)
+            action = policy((my_utils.to_tensor(s, True)))
+            action = action[0].detach().numpy()
+            s, r, done, (_, d_r) = env.step(action)
+            cr += r
+            dr = max(dr, d_r)
+
+            if render:
+                env.render()
+
+        cdr += dr
+
+    cum_gait_quality_MUX = cr / N
+    cum_dist_quality_MUX = cdr / N
+
+
+    # ===================================================================================
+    # ===================================================================================
+    print("Testing RNN")
+    env.setseed(1337)
+    cr = 0
+    cdr = 0
+    for _ in range(N):
+        # Generate new environment
+        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
+
+        dr = 0
+
+        policy = expert_dict["rnn"]
+
+        s = env.reset()
+        h = None
+        for j in range(forced_episode_length):
+            action, h = policy((my_utils.to_tensor(s, True).unsqueeze(0), h))
+            action = action[0].detach().numpy()
+            s, r, done, (_, d_r) = env.step(action)
+            cr += r
+            dr = max(dr, d_r)
+
+            if render:
+                env.render()
+
+        cdr += dr
+
+    cum_gait_quality_RNN = cr / N
+    cum_dist_quality_RNN = cdr / N
+
+    print("RESULTS: ")
+    print("Oracle MUX -> Average gait quality: {}, Average maximum reached distance: {}".format(cum_gait_quality_oracle,
+                                                                                            cum_dist_quality_oracle))
+    print("classifier MUX -> Average gait quality: {}, Average maximum reached distance: {}".format(cum_gait_quality_MUX,
+                                                                                            cum_dist_quality_MUX))
+    print("RNN -> Average gait quality: {}, Average maximum reached distance: {}".format(cum_gait_quality_RNN,
+                                                                                            cum_dist_quality_RNN))
+
+
 def _test_mux_reactive_policies_debug(policy_dict, env_list, n_envs):
 
     env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
@@ -480,23 +470,35 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     # Stairs: H1Y
     # pipe: W01
 
+    # reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                                             '../../algos/PG/agents/Hexapod_NN_PG_K4F_pg.p'))
+    # reactive_expert_stairs = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                                              '../../algos/PG/agents/Hexapod_NN_PG_HOS_pg.p'))
+    # reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                                            '../../algos/PG/agents/Hexapod_NN_PG_9GV_pg.p'))
 
     reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                '../../algos/PG/agents/Hexapod_NN_PG_K4F_pg.p'))
+                                                '../../algos/PG/agents/Hexapod_NN_PG_YI7_pg.p'))
     reactive_expert_stairs = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                 '../../algos/PG/agents/Hexapod_NN_PG_HOS_pg.p'))
+                                                 '../../algos/PG/agents/Hexapod_NN_PG_H1Y_pg.p'))
     reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_NN_PG_9GV_pg.p'))
+                                               '../../algos/PG/agents/Hexapod_NN_PG_W01_pg.p'))
+
+    rnn_expert = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                               '../../algos/PG/agents/Hexapod_RNN_PG_TDX_pg.p'))
 
     env_list = ["tiles", "stairs", "pipe"]
-    expert_dict = {"tiles": reactive_expert_tiles, "stairs": reactive_expert_stairs, "pipe": reactive_expert_pipe}
+    expert_dict = {"tiles": reactive_expert_tiles, "stairs": reactive_expert_stairs, "pipe": reactive_expert_pipe, "rnn": rnn_expert}
 
     if False:
         make_dataset_reactive_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=100, n_envs=3, render=False, ID="OLD_EXPERTS")
+                                 N=2000, n_envs=3, render=False, ID="NEW_EXPERTS")
     if False:
-        train_classifier(n_classes=3, iters=100, env_list=env_list, ID="OLD_EXPERTS")
-    if True:
-        # TODO: ADD RNN COMPARISON RIGHT INTO THIS FUNCTN
+        train_classifier(n_classes=3, iters=2000, env_list=env_list, ID="NEW_EXPERTS")
+    if False:
         _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="OLD_EXPERTS")
+    if True:
+        # TODO: ADD RNN COMPARISON RIGHT INTO THIS FUNCTN (NOW)
+        _test_full_comparison(expert_dict, env_list, n_envs=3, render=True, ID="OLD_EXPERTS")
+

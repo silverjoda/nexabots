@@ -555,9 +555,13 @@ class Hexapod():
                              "data/{}_acts.npy".format(ID)), np_acts)
 
 
+    def setseed(self, seed):
+        np.random.seed(seed)
+
+
     def test(self, policy, render=True, N=30, seed=None):
         if seed is not None:
-            np.random.seed(seed)
+            self.setseed(seed)
         self.env_change_prob = 1
         rew = 0
         vel_rew = 0

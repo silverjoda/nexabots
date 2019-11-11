@@ -211,11 +211,11 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
     def printval(values):
         img = np.zeros((90, 200, 3), dtype=np.uint8)
         a_idx = np.argmax(values)
-        cv2.putText(img, 'p_holes = {0:.2f}'.format(values[0]), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 0), 255, 0),
+        cv2.putText(img, 'p_tiles = {0:.2f}'.format(values[0]), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 0), 255, 0),
                     1, cv2.LINE_AA)
-        cv2.putText(img, 'p_pipe = {0:.2f}'.format(values[1]), (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 1), 255, 0),
+        cv2.putText(img, 'p_stairs = {0:.2f}'.format(values[1]), (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 1), 255, 0),
                     1, cv2.LINE_AA)
-        cv2.putText(img, 'p_tiles = {0:.2f}'.format(values[2]), (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 2), 255, 0),
+        cv2.putText(img, 'p_pipe = {0:.2f}'.format(values[2]), (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 2), 255, 0),
                     1, cv2.LINE_AA)
         cv2.imshow('classification', img)
         cv2.waitKey(10)
@@ -231,7 +231,6 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
         episode_reward = 0
         with T.no_grad():
             for i in range(env.max_steps + 200):
-
                 env_dist, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
                 env_softmax = T.softmax(env_dist, 2)[0][0].numpy()
                 env_idx = T.argmax(env_dist[0][0]).numpy()
@@ -252,7 +251,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier_{}.p".format(ID)), map_location='cpu')
 
     # TODO: Run all methods (oracle, mux + experts, rnn) and evaluate scores (gait quality + distance reached)
-    N = 3
+    N = 5
 
     forced_episode_length = 500
     env_length = env.specific_env_len * n_envs
@@ -265,7 +264,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
     env.setseed(1337)
     cr = 0
     cdr = 0
-    for _ in range(N):
+    for _ in range(0):
         # Generate new environment
         envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
         scaled_indeces_list.append(env.specific_env_len * n_envs)
@@ -321,46 +320,32 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
         # Generate new environment
         envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
         scaled_indeces_list.append(env.specific_env_len * n_envs)
-        raw_indeces_list = [s / float(env_length) for s in scaled_indeces_list]
 
         dr = 0
 
         current_env_idx = 0
         current_env = envs[current_env_idx]
-        policy = expert_dict[current_env]
 
         s = env.reset()
         h_c = None
         current_predicted_env = 0
         bad_episode = False
-        for j in range(forced_episode_length):
-            x = env.sim.get_state().qpos.tolist()[0]
+        with T.no_grad():
+            for j in range(forced_episode_length):
+                env_dist, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
+                env_idx = T.argmax(env_dist[0][0]).numpy()
 
-            if x > raw_indeces_list[current_env_idx] * physical_env_len + 0.05 - physical_env_offset:
-                current_env_idx += 1
-                current_env = envs[current_env_idx]
+                # print(current_env)
+                act = expert_dict[env_list[env_idx]](my_utils.to_tensor(s, True))
+                s, r, done, (_, d_r) = env.step(act[0].numpy())
+                cr += r
+                dr = max(dr, d_r)
 
-            env_dist, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
-            env_softmax = T.softmax(env_dist, 2)[0][0]
-            env_idx = T.argmax(env_softmax).numpy()
+                if render:
+                    env.render()
 
-            if env_idx != current_predicted_env:
-                current_predicted_env = env_idx
-                policy = expert_dict[envs[current_predicted_env]]
-                print("Predicted env switched to {} ".format(envs[current_predicted_env]))
-
-            # print(current_env)
-            action = policy((my_utils.to_tensor(s, True)))
-            action = action[0].detach().numpy()
-            s, r, done, (_, d_r) = env.step(action)
-            cr += r
-            dr = max(dr, d_r)
-
-            if render:
-                env.render()
-
-            if done and j < env.max_steps - 1:
-                bad_episode = True
+                if done and j < env.max_steps - 1:
+                    bad_episode = True
 
         if not bad_episode:
             success_ctr += 1
@@ -379,7 +364,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
     cr = 0
     cdr = 0
     success_ctr = 0
-    for _ in range(N):
+    for _ in range(0):
         # Generate new environment
         _ = env.generate_hybrid_env(n_envs, env_length)
 
@@ -524,7 +509,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         train_classifier(n_classes=3, iters=2000, env_list=env_list, ID="NEW_EXPERTS")
     if False:
-        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="OLD_EXPERTS")
+        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="NEW_EXPERTS")
     if True:
-        _test_full_comparison(expert_dict, env_list, n_envs=3, render=True, ID="OLD_EXPERTS")
+        _test_full_comparison(expert_dict, env_list, n_envs=3, render=True, ID="NEW_EXPERTS")
 

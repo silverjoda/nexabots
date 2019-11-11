@@ -150,6 +150,7 @@ def update_policy(policy, policy_optim, batch_states, batch_actions, batch_advan
 
 
 def update_proper(policy, policy_optim, batch_states, batch_actions, batch_advantages_flat):
+    exit()
 
     # params:
     h_learn = 100
@@ -228,9 +229,9 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"iters": 1000000, "batchsize": 200, "gamma": 0.995, "lr": 0.0003, "decay" : 0.0001, "ppo": True,
-              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : True,
-              "comments" : "Training on 3 envs RNN basic", "Env_list" : env_list,
+    params = {"iters": 1000000, "batchsize": 40, "gamma": 0.995, "lr": 0.001, "decay" : 0.0001, "ppo": True,
+              "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
+              "comments" : "Training on 3 envs RNN basic, higher lr", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -238,19 +239,19 @@ if __name__=="__main__":
         params["train"] = True
 
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod as env
-    env = env(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
+    env = env(env_list, max_n_envs=3, specific_env_len=25, s_len=150)
 
     print(params, env.__class__.__name__)
 
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, hid_dim=96, memory_dim=64, n_temp=2, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_PG(env, hid_dim=36, memory_dim=36, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/{}_RNN_PG_YGD_pg.p'.format(env.__class__.__name__)
+        policy_path = 'agents/{}_RNN_PG_Z0C_pg.p'.format(env.__class__.__name__)
         policy = T.load(policy_path)
         env.test_recurrent(policy)
         print(policy_path)

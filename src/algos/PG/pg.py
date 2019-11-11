@@ -302,7 +302,7 @@ if __name__=="__main__":
     #from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_generalization import Hexapod as env
 
     #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
-    env = env(env_list, max_n_envs=3, specific_env_len=40, s_len=250)
+    env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=250)
 
     # Current experts:
     # Generalization: Novar: QO6, Var: OSM

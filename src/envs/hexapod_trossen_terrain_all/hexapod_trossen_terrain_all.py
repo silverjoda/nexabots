@@ -41,6 +41,7 @@ class Hexapod():
         self.cumulative_environment_reward = None
         self.walls = walls
 
+
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
         self.joints_rads_low = np.array([-0.6, -1.4, -0.8] * 6)
@@ -50,6 +51,7 @@ class Hexapod():
         self.use_HF = False
         self.HF_width = 6
         self.HF_length = 20
+
 
         self.vel_sum = 0
 
@@ -178,14 +180,14 @@ class Hexapod():
                 ctrl_pen * 0.0000 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 #+ (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
+        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
         r = r_pos - r_neg
 
         self.prev_deviation = yaw_deviation
         self.prev_y_deviation = y_deviation
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps or abs(y) > 0.3 or abs(roll) > 1.4 or abs(pitch) > 1.4
+        done = self.step_ctr > self.max_steps #or abs(y) > 0.3 or abs(roll) > 1.4 or abs(pitch) > 1.4
         contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
 
         if self.use_HF:
@@ -268,7 +270,6 @@ class Hexapod():
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
-
         return obs
 
 
@@ -285,8 +286,8 @@ class Hexapod():
         return patch_rs
 
 
-    def generate_hybrid_env(self, n_envs, steps, replace=False):
-        envs = np.random.choice(self.env_list, n_envs, replace=replace)
+    def generate_hybrid_env(self, n_envs, steps):
+        envs = np.random.choice(self.env_list, n_envs, replace=True)
 
         if n_envs == 1:
             size_list = [steps]
@@ -315,13 +316,13 @@ class Hexapod():
         total_hm = np.clip(total_hm, 0, 255).astype(np.uint8)
 
         # Smoothen transitions
-        bnd = 2
-        if self.n_envs > 1:
-            for s in scaled_indeces_list:
-                total_hm_copy = np.array(total_hm)
-                for i in range(s - bnd, s + bnd):
-                    total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
-                total_hm = total_hm_copy
+        # bnd = 2
+        # if self.n_envs > 1:
+        #     for s in scaled_indeces_list:
+        #         total_hm_copy = np.array(total_hm)
+        #         for i in range(s - bnd, s + bnd):
+        #             total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
+        #         total_hm = total_hm_copy
 
         if self.walls:
             total_hm[0, :] = 255
@@ -350,7 +351,6 @@ class Hexapod():
 
 
     def generate_heightmap(self, env_name, env_length, current_height):
-
         if env_name == "flat":
             hm = np.ones((self.env_width, env_length)) * current_height
 
@@ -413,7 +413,7 @@ class Hexapod():
             stair_width = 4
 
             initial_offset = 0
-            n_steps = env_length // stair_width
+            n_steps = math.floor(env_length / stair_width) - 1
 
             for i in range(n_steps):
                 hm[:, initial_offset + i * stair_width: initial_offset  + i * stair_width + stair_width] = current_height
@@ -444,7 +444,7 @@ class Hexapod():
             # Amount of 'tiles'
             Mt = 2
             Nt = int(env_length / 10.)
-            obstacle_height = 0.2
+            obstacle_height = 50
             grad_mat = np.linspace(0, 1, cw)[:, np.newaxis].repeat(cw, 1)
             template_1 = np.ones((cw, cw)) * grad_mat * grad_mat.T * obstacle_height
             template_2 = np.ones((cw, cw)) * grad_mat * obstacle_height

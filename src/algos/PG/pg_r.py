@@ -231,7 +231,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 1000000, "batchsize": 40, "gamma": 0.995, "lr": 0.001, "decay" : 0.0001, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
-              "comments" : "Training on 3 envs RNN basic, higher lr", "Env_list" : env_list,
+              "comments" : "Training on 3 envs, difficult, without replacement", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -251,7 +251,7 @@ if __name__=="__main__":
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/{}_RNN_PG_Z0C_pg.p'.format(env.__class__.__name__)
+        policy_path = 'agents/{}_RNN_PG_OJB_pg.p'.format(env.__class__.__name__)
         policy = T.load(policy_path)
         env.test_recurrent(policy)
         print(policy_path)

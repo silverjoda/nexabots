@@ -21,7 +21,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
     env.env_change_prob = 0.0  # THIS HAS TO BE ZERO!!!
     change_prob = 0.01
 
-    forced_episode_length = 180 * n_envs
+    forced_episode_length = 160 * n_envs
     env_length = env.specific_env_len * n_envs
     physical_env_len = env.env_scaling * n_envs * 2
     physical_env_offset = physical_env_len * 0.2
@@ -100,7 +100,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
 
 def train_classifier(n_classes, iters, env_list, ID="def"):
     env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
-    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=48, memory_dim=24, n_temp=2, n_classes=n_classes, to_gpu=True)
+    classifier = policies.RNN_CLASSIF_BASIC(env, hid_dim=48, memory_dim=24, n_temp=2, n_classes=n_classes, to_gpu=True)
 
     if T.cuda.is_available():
         classifier = classifier.cuda()
@@ -471,6 +471,7 @@ def _test_mux_reactive_policies_debug(policy_dict, env_list, n_envs):
 
 if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
+    print("NO REP")
 
     # Current experts:
     # tiles: K4F
@@ -505,11 +506,11 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         make_dataset_reactive_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=2000, n_envs=3, render=False, ID="NEW_EXPERTS")
-    if False:
-        train_classifier(n_classes=3, iters=2000, env_list=env_list, ID="NEW_EXPERTS")
-    if False:
-        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="NEW_EXPERTS")
+                                 N=5000, n_envs=3, render=False, ID="NO_REP")
     if True:
-        _test_full_comparison(expert_dict, env_list, n_envs=3, render=True, ID="NEW_EXPERTS")
+        train_classifier(n_classes=3, iters=4000, env_list=env_list, ID="NO_REP")
+    if False:
+        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="NEW_EXPERTS_B")
+    if False:
+        _test_full_comparison(expert_dict, env_list, n_envs=3, render=True, ID="NEW_EXPERTS_B")
 

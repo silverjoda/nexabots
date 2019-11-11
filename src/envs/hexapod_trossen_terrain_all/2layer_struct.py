@@ -246,7 +246,7 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
         print("Episode reward: {}".format(episode_reward))
 
 
-def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def'):
+def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def'):
     env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200, walls=False)
     env.env_change_prob = 0
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier_{}.p".format(ID)), map_location='cpu')
@@ -257,8 +257,9 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
     forced_episode_length = 500
     env_length = env.specific_env_len * n_envs
     physical_env_len = env.env_scaling * n_envs * 2
-    physical_env_offset = physical_env_len * 0.2
+    physical_env_offset = physical_env_len * 0.15
 
+    success_ctr = 0
 
     print("Testing Oracle expert selection")
     env.setseed(1337)
@@ -277,6 +278,7 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
         policy = expert_dict[current_env]
 
         s = env.reset()
+        bad_episode = False
         for j in range(forced_episode_length):
             x = env.sim.get_state().qpos.tolist()[0]
 
@@ -296,10 +298,17 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
             if render:
                 env.render()
 
+            if done and j < env.max_steps - 1:
+                bad_episode = True
+
+        if not bad_episode:
+            success_ctr += 1
+
         cdr += dr
 
     cum_gait_quality_oracle = cr / N
     cum_dist_quality_oracle = cdr / N
+    success_rate_oracle = success_ctr / N
 
     # ===================================================================================
     # ===================================================================================
@@ -307,6 +316,7 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
     env.setseed(1337)
     cr = 0
     cdr = 0
+    success_ctr = 0
     for _ in range(N):
         # Generate new environment
         envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
@@ -322,13 +332,13 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
         s = env.reset()
         h_c = None
         current_predicted_env = 0
+        bad_episode = False
         for j in range(forced_episode_length):
             x = env.sim.get_state().qpos.tolist()[0]
 
             if x > raw_indeces_list[current_env_idx] * physical_env_len + 0.05 - physical_env_offset:
                 current_env_idx += 1
                 current_env = envs[current_env_idx]
-
 
             env_dist, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
             env_softmax = T.softmax(env_dist, 2)[0][0]
@@ -349,10 +359,17 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
             if render:
                 env.render()
 
+            if done and j < env.max_steps - 1:
+                bad_episode = True
+
+        if not bad_episode:
+            success_ctr += 1
+
         cdr += dr
 
     cum_gait_quality_MUX = cr / N
     cum_dist_quality_MUX = cdr / N
+    success_rate_MUX = success_ctr / N
 
 
     # ===================================================================================
@@ -361,9 +378,10 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
     env.setseed(1337)
     cr = 0
     cdr = 0
+    success_ctr = 0
     for _ in range(N):
         # Generate new environment
-        envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
+        _ = env.generate_hybrid_env(n_envs, env_length)
 
         dr = 0
 
@@ -371,6 +389,7 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
 
         s = env.reset()
         h = None
+        bad_episode = False
         for j in range(forced_episode_length):
             action, h = policy((my_utils.to_tensor(s, True).unsqueeze(0), h))
             action = action[0].detach().numpy()
@@ -381,18 +400,26 @@ def _test_full_comparison(policy_dict, env_list, n_envs, render=False, ID='def')
             if render:
                 env.render()
 
+            if done and j < env.max_steps - 1:
+                bad_episode = True
+
+        if not bad_episode:
+            success_ctr += 1
+
         cdr += dr
 
     cum_gait_quality_RNN = cr / N
     cum_dist_quality_RNN = cdr / N
+    success_rate_RNN = success_ctr / N
 
     print("RESULTS: ")
-    print("Oracle MUX -> Average gait quality: {}, Average maximum reached distance: {}".format(cum_gait_quality_oracle,
-                                                                                            cum_dist_quality_oracle))
-    print("classifier MUX -> Average gait quality: {}, Average maximum reached distance: {}".format(cum_gait_quality_MUX,
-                                                                                            cum_dist_quality_MUX))
-    print("RNN -> Average gait quality: {}, Average maximum reached distance: {}".format(cum_gait_quality_RNN,
-                                                                                            cum_dist_quality_RNN))
+    print("Oracle MUX -> Average gait quality: {}, Average maximum reached distance: {}, success rate: {}".format(cum_gait_quality_oracle,
+                                                                                            cum_dist_quality_oracle, success_rate_oracle))
+    print("classifier MUX -> Average gait quality: {}, Average maximum reached distance: {}, success rate: {}".format(cum_gait_quality_MUX,
+                                                                                            cum_dist_quality_MUX, success_rate_MUX))
+    print("RNN -> Average gait quality: {}, Average maximum reached distance: {}, success rate: {}".format(cum_gait_quality_RNN,
+                                                                                            cum_dist_quality_RNN,
+                                                                                                           success_rate_RNN))
 
 
 def _test_mux_reactive_policies_debug(policy_dict, env_list, n_envs):
@@ -499,6 +526,5 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="OLD_EXPERTS")
     if True:
-        # TODO: ADD RNN COMPARISON RIGHT INTO THIS FUNCTN (NOW)
         _test_full_comparison(expert_dict, env_list, n_envs=3, render=True, ID="OLD_EXPERTS")
 

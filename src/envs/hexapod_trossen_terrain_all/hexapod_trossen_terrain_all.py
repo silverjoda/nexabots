@@ -342,7 +342,7 @@ class Hexapod():
                 if line.startswith('    <hfield name="hill"'):
                     out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
-                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(self.env_scaling * self.n_envs * 0.6))
+                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(self.env_scaling * self.n_envs * 0.7))
                 else:
                     out_file.write(line)
 

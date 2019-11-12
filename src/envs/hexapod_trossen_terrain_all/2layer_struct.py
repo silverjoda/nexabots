@@ -56,7 +56,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
             if x > raw_indeces_list[current_env_idx] * physical_env_len + 0.05 - physical_env_offset:
                 current_env_idx += 1
                 current_env = envs[current_env_idx]
-                #print("Env switched to {} ".format(envs[current_env_idx]))
+                print("Env switched to {} ".format(envs[current_env_idx]))
 
             if np.random.rand() < change_prob:
                 policy_choice = np.random.choice(env_list, 1)[0]
@@ -100,7 +100,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
 
 def train_classifier(n_classes, iters, env_list, ID="def"):
     env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
-    classifier = policies.RNN_CLASSIF_BASIC(env, hid_dim=48, memory_dim=24, n_temp=2, n_classes=n_classes, to_gpu=True)
+    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=48, memory_dim=24, n_temp=2, n_classes=n_classes, to_gpu=True)
 
     if T.cuda.is_available():
         classifier = classifier.cuda()
@@ -211,11 +211,11 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
     def printval(values):
         img = np.zeros((90, 200, 3), dtype=np.uint8)
         a_idx = np.argmax(values)
-        cv2.putText(img, 'p_tiles = {0:.2f}'.format(values[0]), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 0), 255, 0),
+        cv2.putText(img, 'p_{}'.format(env_list[0]) + '{0:.2f}'.format(values[0]), (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 0), 255, 0),
                     1, cv2.LINE_AA)
-        cv2.putText(img, 'p_stairs = {0:.2f}'.format(values[1]), (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 1), 255, 0),
+        cv2.putText(img, 'p_{}'.format(env_list[1])  + '{0:.2f}'.format(values[1]), (10, 45), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 1), 255, 0),
                     1, cv2.LINE_AA)
-        cv2.putText(img, 'p_pipe = {0:.2f}'.format(values[2]), (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 2), 255, 0),
+        cv2.putText(img, 'p_{}'.format(env_list[2])  + '{0:.2f}'.format(values[2]), (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 2), 255, 0),
                     1, cv2.LINE_AA)
         cv2.imshow('classification', img)
         cv2.waitKey(10)
@@ -225,6 +225,7 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier_{}.p".format(ID)), map_location='cpu')
 
     # Test visually
+
     while True:
         s = env.reset()
         h_c = None
@@ -245,13 +246,11 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
         print("Episode reward: {}".format(episode_reward))
 
 
-def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def'):
-    env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200, walls=False)
+def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='def'):
+    env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200, walls=True)
     env.env_change_prob = 0
+    env.rnd_yaw = True
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier_{}.p".format(ID)), map_location='cpu')
-
-    # TODO: Run all methods (oracle, mux + experts, rnn) and evaluate scores (gait quality + distance reached)
-    N = 5
 
     forced_episode_length = 500
     env_length = env.specific_env_len * n_envs
@@ -264,7 +263,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
     env.setseed(1337)
     cr = 0
     cdr = 0
-    for _ in range(0):
+    for _ in range(N):
         # Generate new environment
         envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
         scaled_indeces_list.append(env.specific_env_len * n_envs)
@@ -300,14 +299,18 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
             if done and j < env.max_steps - 1:
                 bad_episode = True
 
+            if done and j >= env.max_steps - 1:
+                break
+
         if not bad_episode:
             success_ctr += 1
 
+
         cdr += dr
 
-    cum_gait_quality_oracle = cr / N
-    cum_dist_quality_oracle = cdr / N
-    success_rate_oracle = success_ctr / N
+    cum_gait_quality_oracle = cr / float(N)
+    cum_dist_quality_oracle = cdr / float(N)
+    success_rate_oracle = success_ctr / float(N)
 
     # ===================================================================================
     # ===================================================================================
@@ -323,12 +326,9 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
 
         dr = 0
 
-        current_env_idx = 0
-        current_env = envs[current_env_idx]
-
         s = env.reset()
         h_c = None
-        current_predicted_env = 0
+
         bad_episode = False
         with T.no_grad():
             for j in range(forced_episode_length):
@@ -337,6 +337,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
 
                 # print(current_env)
                 act = expert_dict[env_list[env_idx]](my_utils.to_tensor(s, True))
+
                 s, r, done, (_, d_r) = env.step(act[0].numpy())
                 cr += r
                 dr = max(dr, d_r)
@@ -347,14 +348,17 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
                 if done and j < env.max_steps - 1:
                     bad_episode = True
 
+                if done and j >= env.max_steps - 1:
+                    break
+
         if not bad_episode:
             success_ctr += 1
 
         cdr += dr
 
-    cum_gait_quality_MUX = cr / N
-    cum_dist_quality_MUX = cdr / N
-    success_rate_MUX = success_ctr / N
+    cum_gait_quality_MUX = cr / float(N)
+    cum_dist_quality_MUX = cdr / float(N)
+    success_rate_MUX = success_ctr / float(N)
 
 
     # ===================================================================================
@@ -364,7 +368,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
     cr = 0
     cdr = 0
     success_ctr = 0
-    for _ in range(0):
+    for _ in range(N):
         # Generate new environment
         _ = env.generate_hybrid_env(n_envs, env_length)
 
@@ -388,90 +392,32 @@ def _test_full_comparison(expert_dict, env_list, n_envs, render=False, ID='def')
             if done and j < env.max_steps - 1:
                 bad_episode = True
 
+            if done and j >= env.max_steps - 1:
+                break
+
         if not bad_episode:
             success_ctr += 1
 
         cdr += dr
 
-    cum_gait_quality_RNN = cr / N
-    cum_dist_quality_RNN = cdr / N
-    success_rate_RNN = success_ctr / N
+    cum_gait_quality_RNN = cr / float(N)
+    cum_dist_quality_RNN = cdr / float(N)
+    success_rate_RNN = success_ctr / float(N)
 
     print("RESULTS: ")
     print("Oracle MUX -> Average gait quality: {}, Average maximum reached distance: {}, success rate: {}".format(cum_gait_quality_oracle,
                                                                                             cum_dist_quality_oracle, success_rate_oracle))
     print("classifier MUX -> Average gait quality: {}, Average maximum reached distance: {}, success rate: {}".format(cum_gait_quality_MUX,
                                                                                             cum_dist_quality_MUX, success_rate_MUX))
-    print("RNN -> Average gait quality: {}, Average maximum reached distance: {}, success rate: {}".format(cum_gait_quality_RNN,
+    print("RNN -> Average gait quality: {}, Average reached distance: {}, success rate: {}".format(cum_gait_quality_RNN,
                                                                                             cum_dist_quality_RNN,
                                                                                                            success_rate_RNN))
 
 
-def _test_mux_reactive_policies_debug(policy_dict, env_list, n_envs):
-
-    env = hex_env.Hexapod(env_list, max_n_envs=n_envs)
-    env.env_change_prob = 1
-    env.max_steps = env.max_steps
-    classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier.p"), map_location='cpu')
-
-    # Remove this later
-    policy_choice = np.random.choice(env_list, 1)[0] #
-    policy = policy_dict[policy_choice] #
-    # N x EP_LEN x OBS_DIM
-    expert_states = np.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/states.npy"))
-
-    # N x EP_LEN x N_CLASSES
-    expert_labels = np.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/labels.npy"))
-
-    batchsize = 32
-
-    N_EPS, EP_LEN, OBS_DIM = expert_states.shape
-
-    states = expert_states[-32:]
-    labels = expert_labels[-32:]
-    batch_states_T = T.from_numpy(states).float()
-    expert_labels_T = T.from_numpy(labels).long()
-    labels_T, _ = classifier.forward((batch_states_T, None))
-    pred = T.argmax(labels_T.contiguous().view(-1, 3), dim=1)
-    labs = expert_labels_T.contiguous().view(-1)
-    tst_accuracy = (pred == labs).sum().cpu().detach().numpy() / (pred.shape[0] / 1.0)
-
-    print("Tst_accuracy: {}".format(tst_accuracy))
-
-    # Test visually
-    while True:
-        s = env.reset()
-        h_c = None
-        episode_reward = 0
-
-        states = []
-        labels = []
-
-        with T.no_grad():
-            for i in range(env.max_steps):
-
-                # Remove this later
-                if np.random.rand() < 0.01:
-                    policy_choice = np.random.choice(env_list, 1)[0]
-                    policy = policy_dict[policy_choice]
-                    print("Policy switched to {} policy".format(policy_choice))
-
-                env_idx, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
-                env_idx = T.argmax(env_idx[0][0]).numpy()
-
-                # Change this later
-                act = policy_dict[env_list[env_idx]](my_utils.to_tensor(s, True))
-
-                s, r, done, _ = env.step(act[0].numpy())
-                episode_reward += r
-                env.render()
-                print("Env classification: {}".format(env_list[env_idx]))
-        print("Episode reward: {}".format(episode_reward))
-
 
 if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
-    print("NO REP")
+    print("W REP")
 
     # Current experts:
     # tiles: K4F
@@ -490,27 +436,44 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     # reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
     #                                            '../../algos/PG/agents/Hexapod_NN_PG_9GV_pg.p'))
 
+    # reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                                             '../../algos/PG/agents/Hexapod_NN_PG_YI7_pg.p'))
+    # reactive_expert_stairs = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                                              '../../algos/PG/agents/Hexapod_NN_PG_H1Y_pg.p'))
+    # reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+    #                                            '../../algos/PG/agents/Hexapod_NN_PG_W01_pg.p'))
+
     reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                '../../algos/PG/agents/Hexapod_NN_PG_YI7_pg.p'))
+                                                '../../algos/PG/agents/Hexapod_NN_PG_UAN_pg.p'))
     reactive_expert_stairs = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                                 '../../algos/PG/agents/Hexapod_NN_PG_H1Y_pg.p'))
+                                                 '../../algos/PG/agents/Hexapod_NN_PG_3LM_pg.p'))
     reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_NN_PG_W01_pg.p'))
+                                               '../../algos/PG/agents/Hexapod_NN_PG_CED_pg.p'))
+
+    reactive_expert_triangles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                               '../../algos/PG/agents/Hexapod_NN_PG_NEZ_pg.p'))
+    reactive_expert_flat = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                                               '../../algos/PG/agents/Hexapod_NN_PG_O4W_pg.p'))
 
     rnn_expert = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_RNN_PG_TDX_pg.p'))
+                                               '../../algos/PG/agents/Hexapod_RNN_PG_R2K_pg.p')) #OJB
 
     env_list = ["tiles", "stairs", "pipe"]
-    expert_dict = {"tiles": reactive_expert_tiles, "stairs": reactive_expert_stairs, "pipe": reactive_expert_pipe, "rnn": rnn_expert}
+    expert_dict = {"tiles": reactive_expert_tiles,
+                   "pipe": reactive_expert_pipe,
+                   "stairs": reactive_expert_stairs,
+                   "triangles": reactive_expert_triangles,
+                   "flat": reactive_expert_flat,
+                   "rnn": rnn_expert}
 
     if False:
         make_dataset_reactive_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=5000, n_envs=3, render=False, ID="NO_REP")
+                                 N=5000, n_envs=3, render=True, ID="EASY")
+    if False:
+        train_classifier(n_classes=3, iters=4000, env_list=env_list, ID="EASY")
+    if False:
+        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="EASY")
     if True:
-        train_classifier(n_classes=3, iters=4000, env_list=env_list, ID="NO_REP")
-    if False:
-        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="NEW_EXPERTS_B")
-    if False:
-        _test_full_comparison(expert_dict, env_list, n_envs=3, render=True, ID="NEW_EXPERTS_B")
+        _test_full_comparison(expert_dict, env_list, N=100, n_envs=3, render=False, ID="W_REP")
 

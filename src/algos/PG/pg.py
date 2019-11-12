@@ -269,7 +269,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["stairs"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["flat"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
     #env_list = ["stairs"]
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
@@ -277,14 +277,13 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Training experts with new envs and score logging", "ID" : ID}
+              "note" : "Scaled joints", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    # TODO: (THIS NOW) Find and check rnn training pipeline
-    # TODO: (THIS NOW) Test torque penalization with lower pen coeff on non-flat env
+    # TODO: Test torque penalization with lower pen coeff on non-flat env
     # TODO: Monitor NN weights and grads during RL training
 
     #from src.envs.centipede.centipede import Centipede
@@ -331,7 +330,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "3LM"
+        policy_name = "O4W"
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX
         policy = T.load(policy_path)

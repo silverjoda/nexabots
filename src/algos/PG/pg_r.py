@@ -223,7 +223,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["tiles", "stairs", "pipe"] # 177, 102, 72, -20
+    env_list = ["tiles", "triangles", "flat"] # 177, 102, 72, -20
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
@@ -231,7 +231,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 1000000, "batchsize": 40, "gamma": 0.995, "lr": 0.001, "decay" : 0.0001, "ppo": True,
               "tanh" : False, "ppo_update_iters": 6, "animate": True, "train" : False,
-              "comments" : "Training on 3 envs, difficult, without replacement", "Env_list" : env_list,
+              "comments" : "Training on 3 envs, /w rep, /w rnd yaw", "Env_list" : env_list,
               "ID": ID}
 
     if socket.gethostname() == "goedel":
@@ -246,12 +246,12 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        policy = policies.RNN_PG(env, hid_dim=36, memory_dim=36, n_temp=2, tanh=params["tanh"], to_gpu=False)
+        policy = policies.RNN_V3_LN_PG(env, hid_dim=48, memory_dim=36, n_temp=2, tanh=params["tanh"], to_gpu=False)
         print("Model parameters: {}".format(sum(p.numel() for p in policy.parameters() if p.requires_grad)))
         #policy = policies.RNN_PG(env, hid_dim=24, tanh=params["tanh"])
         train(env, policy, params)
     else:
-        policy_path = 'agents/{}_RNN_PG_OJB_pg.p'.format(env.__class__.__name__)
+        policy_path = 'agents/{}_RNN_PG_R2K_pg.p'.format(env.__class__.__name__)
         policy = T.load(policy_path)
         env.test_recurrent(policy)
         print(policy_path)

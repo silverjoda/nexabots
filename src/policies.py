@@ -2129,6 +2129,10 @@ class RNN_CLASSIF_ENV(nn.Module):
         self.fc2 = nn.Linear(self.obs_dim + self.memory_dim, self.hid_dim)
         self.fc3 = nn.Linear(self.hid_dim, self.act_dim)
 
+        T.nn.init.kaiming_normal_(self.fc1.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc2.weight, mode='fan_in', nonlinearity='leaky_relu')
+        T.nn.init.kaiming_normal_(self.fc3.weight, mode='fan_in', nonlinearity='leaky_relu')
+
 
     def print_info(self):
         pass

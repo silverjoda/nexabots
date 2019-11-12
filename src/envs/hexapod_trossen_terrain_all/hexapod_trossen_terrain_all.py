@@ -41,6 +41,8 @@ class Hexapod():
         self.cumulative_environment_reward = None
         self.walls = walls
 
+        self.rnd_init_yaw = True
+        self.replace_envs = True
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
@@ -62,20 +64,19 @@ class Hexapod():
         #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
 
-    def setupcam(self):
-        if self.viewer is None:
-            self.viewer = mujoco_py.MjViewer(self.sim)
-        self.viewer.cam.trackbodyid = -1
-        self.viewer.cam.distance = self.model.stat.extent * .3
-        self.viewer.cam.lookat[0] = -0.1
-        self.viewer.cam.lookat[1] = -1
-        self.viewer.cam.lookat[2] = 0.5
-        self.viewer.cam.elevation = -30
 
+    def setupcam(self):
+        self.viewer = mujoco_py.MjViewer(self.sim)
+        self.viewer.cam.distance = self.model.stat.extent * .3
+        self.viewer.cam.lookat[0] = 2.
+        self.viewer.cam.lookat[1] = 0.3
+        self.viewer.cam.lookat[2] = 0.9
+        self.viewer.cam.elevation = -30
+        self.viewer.cam.azimuth = -10
 
     def scale_joints(self, joints):
         return joints
-        #
+
         # sjoints = np.array(joints)
         # sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
         # return sjoints
@@ -253,7 +254,10 @@ class Hexapod():
         self.vel_sum = 0
 
         # Init_quat
-        self.rnd_yaw = np.random.rand() * 1.6 - 0.8
+        if self.rnd_init_yaw:
+            self.rnd_yaw = np.random.rand() * 1.6 - 0.8
+        else:
+            self.rnd_yaw = 0
 
         rnd_quat = my_utils.rpy_to_quat(0,0,self.rnd_yaw)
         init_q[3:7] = rnd_quat
@@ -287,7 +291,7 @@ class Hexapod():
 
 
     def generate_hybrid_env(self, n_envs, steps):
-        envs = np.random.choice(self.env_list, n_envs, replace=True)
+        envs = np.random.choice(self.env_list, n_envs, replace=self.replace_envs)
 
         if n_envs == 1:
             size_list = [steps]
@@ -459,6 +463,8 @@ class Hexapod():
                     hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_1, np.random.randint(0, 4))
                 else:
                     hm[M_2:M_2 + cw:, i * cw: i * cw + cw] = np.rot90(template_2, np.random.randint(0, 4))
+
+            hm += current_height
 
 
         if env_name == "perlin":

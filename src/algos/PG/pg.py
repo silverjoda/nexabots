@@ -269,38 +269,22 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["flat"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
-    #env_list = ["stairs"]
+    env_list = ["flat", "tiles", "triangles"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
               "note" : "Scaled joints", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    # TODO: Test torque penalization with lower pen coeff on non-flat env
-    # TODO: Monitor NN weights and grads during RL training
-
-    #from src.envs.centipede.centipede import Centipede
-    #env = Centipede(4)
-
-    #from src.envs.ant_feelers_mem_mjc.ant_feelers_goal_mem_mjc import AntFeelersMjc
-    #env = AntFeelersMjc()
-
-    #from src.envs.locom_benchmarks import hf_gen
-    #from src.envs.locom_benchmarks.hex_locomotion.hex_blind import Hexapod as env
-    #from src.envs.locom_benchmarks.quad_locomotion.quad_blind import Quad as env
-    #from src.envs.locom_benchmarks.snake_locomotion.snake_blind import Snake as env
-
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod as env
-    #from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_generalization import Hexapod as env
 
-    #from src.envs.cartpole_pbt.hangpole import HangPoleBulletEnv as env
     env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=250)
 
     # Current experts:
@@ -332,7 +316,6 @@ if __name__=="__main__":
         print("Testing")
         policy_name = "O4W"
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
-        #policy_path = 'agents/Centipede_ConvPolicy8_PG_9EX_pg.p' # ETX
         policy = T.load(policy_path)
 
         env.test(policy, N=10)

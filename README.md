@@ -22,4 +22,16 @@ python hex_blind.py --terrain perlin
 python quad_blind.py --help
 ```
 
-## Demo with Reinforcement learning will be added soon
+### To run a reinforcement learning example with any evironment navigate to.
+```
+cd nexabots/src/algos/PG
+```
+
+
+#### Run policy gradient algorithm on environment of your choice (you can set it in the script). Any custom environments should work if they implement the step and reset methods similarly as to OpenAI Gym 
+
+
+```
+python pg.py
+```
+

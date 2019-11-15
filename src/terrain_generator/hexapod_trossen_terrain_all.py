@@ -163,4 +163,4 @@ def generate_heightmap(env_name, env_length, env_width, current_height):
 
 
 if __name__ == "__main__":
-    generate_hybrid_env("test.png", ["stairs", "pipe", "tiles"], 3, 300, 20, replace=False, walls=False, blending_bound=1)
+    generate_hybrid_env("test.png", ["stairs", "pipe", "tiles"], 3, 200, 20, replace=False, walls=False, blending_bound=1)

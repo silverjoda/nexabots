@@ -100,7 +100,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
 
 def train_classifier(n_classes, iters, env_list, ID="def"):
     env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
-    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=48, memory_dim=24, n_temp=2, n_classes=n_classes, to_gpu=True)
+    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=48, memory_dim=48, n_temp=3, n_classes=n_classes, to_gpu=True)
 
     if T.cuda.is_available():
         classifier = classifier.cuda()
@@ -218,20 +218,19 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
         cv2.putText(img, 'p_{}'.format(env_list[2])  + '{0:.2f}'.format(values[2]), (10, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255 * int(a_idx != 2), 255, 0),
                     1, cv2.LINE_AA)
         cv2.imshow('classification', img)
-        cv2.waitKey(10)
+        cv2.waitKey(1)
 
     env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200, walls=False)
     env.env_change_prob = 1
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier_{}.p".format(ID)), map_location='cpu')
 
     # Test visually
-
     while True:
         s = env.reset()
         h_c = None
         episode_reward = 0
         with T.no_grad():
-            for i in range(env.max_steps + 200):
+            for i in range(env.max_steps + 400):
                 env_dist, h_c = classifier((my_utils.to_tensor(s, True).unsqueeze(0), h_c))
                 env_softmax = T.softmax(env_dist, 2)[0][0].numpy()
                 env_idx = T.argmax(env_dist[0][0]).numpy()
@@ -242,17 +241,17 @@ def _test_mux_reactive_policies(policy_dict, env_list, n_envs, ID='def'):
                 s, r, done, _ = env.step(act[0].numpy())
                 episode_reward += r
                 env.render()
-                print("Env classification: {}".format(env_list[env_idx]))
+                #print("Env classification: {}".format(env_list[env_idx]))
         print("Episode reward: {}".format(episode_reward))
 
 
 def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='def'):
-    env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200, walls=True)
+    env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200, walls=False)
     env.env_change_prob = 0
-    env.rnd_yaw = True
+    env.rnd_yaw = False
     classifier = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)), "data/classifier_{}.p".format(ID)), map_location='cpu')
 
-    forced_episode_length = 500
+    forced_episode_length = 700
     env_length = env.specific_env_len * n_envs
     physical_env_len = env.env_scaling * n_envs * 2
     physical_env_offset = physical_env_len * 0.15
@@ -263,7 +262,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='de
     env.setseed(1337)
     cr = 0
     cdr = 0
-    for _ in range(N):
+    for _ in range(0):
         # Generate new environment
         envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
         scaled_indeces_list.append(env.specific_env_len * n_envs)
@@ -299,8 +298,6 @@ def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='de
             if done and j < env.max_steps - 1:
                 bad_episode = True
 
-            if done and j >= env.max_steps - 1:
-                break
 
         if not bad_episode:
             success_ctr += 1
@@ -348,8 +345,6 @@ def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='de
                 if done and j < env.max_steps - 1:
                     bad_episode = True
 
-                if done and j >= env.max_steps - 1:
-                    break
 
         if not bad_episode:
             success_ctr += 1
@@ -392,9 +387,6 @@ def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='de
             if done and j < env.max_steps - 1:
                 bad_episode = True
 
-            if done and j >= env.max_steps - 1:
-                break
-
         if not bad_episode:
             success_ctr += 1
 
@@ -417,31 +409,6 @@ def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='de
 
 if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     T.set_num_threads(1)
-    print("W REP")
-
-    # Current experts:
-    # tiles: K4F
-    # Stairs: HOS
-    # pipe: 9GV
-
-    # Current experts w/ orientation rew:
-    # tiles: YI7
-    # Stairs: H1Y
-    # pipe: W01
-
-    # reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #                                             '../../algos/PG/agents/Hexapod_NN_PG_K4F_pg.p'))
-    # reactive_expert_stairs = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #                                              '../../algos/PG/agents/Hexapod_NN_PG_HOS_pg.p'))
-    # reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #                                            '../../algos/PG/agents/Hexapod_NN_PG_9GV_pg.p'))
-
-    # reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #                                             '../../algos/PG/agents/Hexapod_NN_PG_YI7_pg.p'))
-    # reactive_expert_stairs = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #                                              '../../algos/PG/agents/Hexapod_NN_PG_H1Y_pg.p'))
-    # reactive_expert_pipe = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-    #                                            '../../algos/PG/agents/Hexapod_NN_PG_W01_pg.p'))
 
     reactive_expert_tiles = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                 '../../algos/PG/agents/Hexapod_NN_PG_UAN_pg.p'))
@@ -456,7 +423,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
                                                '../../algos/PG/agents/Hexapod_NN_PG_O4W_pg.p'))
 
     rnn_expert = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                                               '../../algos/PG/agents/Hexapod_RNN_PG_R2K_pg.p')) #OJB
+                                               '../../algos/PG/agents/Hexapod_RNN_PG_OJB_pg.p')) #OJB
 
     env_list = ["tiles", "stairs", "pipe"]
     expert_dict = {"tiles": reactive_expert_tiles,
@@ -469,11 +436,11 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         make_dataset_reactive_experts(env_list=env_list,
                                  expert_dict=expert_dict,
-                                 N=5000, n_envs=3, render=True, ID="EASY")
+                                 N=20000, n_envs=3, render=False, ID="FINAL")
     if False:
-        train_classifier(n_classes=3, iters=4000, env_list=env_list, ID="EASY")
-    if False:
-        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="EASY")
+        train_classifier(n_classes=3, iters=20000, env_list=env_list, ID="FINAL")
     if True:
-        _test_full_comparison(expert_dict, env_list, N=100, n_envs=3, render=False, ID="W_REP")
+        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="NEW")
+    if False:
+        _test_full_comparison(expert_dict, env_list, N=100, n_envs=3, render=True, ID="W_REP")
 

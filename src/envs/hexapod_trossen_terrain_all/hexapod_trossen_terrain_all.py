@@ -319,14 +319,14 @@ class Hexapod():
         total_hm /= height_SF
         total_hm = np.clip(total_hm, 0, 255).astype(np.uint8)
 
-        # Smoothen transitions
-        # bnd = 2
-        # if self.n_envs > 1:
-        #     for s in scaled_indeces_list:
-        #         total_hm_copy = np.array(total_hm)
-        #         for i in range(s - bnd, s + bnd):
-        #             total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
-        #         total_hm = total_hm_copy
+        #Smoothen transitions
+        bnd = 2
+        if self.n_envs > 1:
+            for s in scaled_indeces_list:
+                total_hm_copy = np.array(total_hm)
+                for i in range(s - bnd, s + bnd):
+                    total_hm_copy[:, i] = np.mean(total_hm[:, i - bnd:i + bnd], axis=1)
+                total_hm = total_hm_copy
 
         if self.walls:
             total_hm[0, :] = 255
@@ -470,7 +470,7 @@ class Hexapod():
         if env_name == "perlin":
             oSim = OpenSimplex(seed=int(time.time()))
 
-            height = 120
+            height = 100
 
             M = math.ceil(self.env_width)
             N = math.ceil(env_length)

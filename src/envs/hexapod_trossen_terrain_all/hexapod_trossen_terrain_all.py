@@ -291,6 +291,7 @@ class Hexapod():
 
 
     def generate_hybrid_env(self, n_envs, steps):
+        #self.env_list = ["tiles", "pipe", "pipe"]
         envs = np.random.choice(self.env_list, n_envs, replace=self.replace_envs)
 
         if n_envs == 1:

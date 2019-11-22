@@ -100,7 +100,7 @@ def make_dataset_reactive_experts(env_list, expert_dict, N, n_envs, render=False
 
 def train_classifier(n_classes, iters, env_list, ID="def"):
     env = hex_env.Hexapod(env_list, max_n_envs=3, specific_env_len=25, s_len=200)
-    classifier = policies.RNN_CLASSIF_ENV(env, hid_dim=48, memory_dim=48, n_temp=3, n_classes=n_classes, to_gpu=True)
+    classifier = policies.RNN_CLASSIF_BASIC(env, hid_dim=48, memory_dim=48, n_temp=3, n_classes=n_classes, to_gpu=True)
 
     if T.cuda.is_available():
         classifier = classifier.cuda()
@@ -316,7 +316,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='de
     cr = 0
     cdr = 0
     success_ctr = 0
-    for _ in range(N):
+    for _ in range(0):
         # Generate new environment
         envs, size_list, scaled_indeces_list = env.generate_hybrid_env(n_envs, env_length)
         scaled_indeces_list.append(env.specific_env_len * n_envs)
@@ -359,7 +359,7 @@ def _test_full_comparison(expert_dict, env_list, n_envs, N, render=False, ID='de
     # ===================================================================================
     # ===================================================================================
     print("Testing RNN")
-    env.setseed(1337)
+    env.setseed(int(time.time()))
     cr = 0
     cdr = 0
     success_ctr = 0
@@ -425,7 +425,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     rnn_expert = T.load(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                                '../../algos/PG/agents/Hexapod_RNN_PG_OJB_pg.p')) #OJB
 
-    env_list = ["tiles", "stairs", "pipe"]
+    env_list = ["triangles", "flat", "perlin"]
     expert_dict = {"tiles": reactive_expert_tiles,
                    "pipe": reactive_expert_pipe,
                    "stairs": reactive_expert_stairs,
@@ -440,7 +440,7 @@ if __name__=="__main__": # F57 GIW IPI LT3 MEQ
     if False:
         train_classifier(n_classes=3, iters=20000, env_list=env_list, ID="FINAL")
     if True:
-        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="NEW")
+        _test_mux_reactive_policies(expert_dict, env_list, n_envs=3, ID="FINAL")
     if False:
-        _test_full_comparison(expert_dict, env_list, N=100, n_envs=3, render=True, ID="W_REP")
+        _test_full_comparison(expert_dict, env_list, N=100, n_envs=3, render=True, ID="FINAL")
 

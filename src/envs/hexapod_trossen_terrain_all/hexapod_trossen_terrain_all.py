@@ -178,7 +178,7 @@ class Hexapod():
                 np.square(q_yaw) * 0.1 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.0003 + \
+                ctrl_pen * 0.00003 + \
                 np.square(zd) * 0.7
 
         r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10

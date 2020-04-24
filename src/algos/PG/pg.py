@@ -284,7 +284,7 @@ if __name__=="__main__":
         params["train"] = True
 
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod as env
-    env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=250, walls=True)
+    env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=350, walls=True)
 
     # Current experts:
     # Generalization: Novar: QO6, Var: OSM
@@ -312,7 +312,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "NEF"
+        policy_name = "0D9"
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 

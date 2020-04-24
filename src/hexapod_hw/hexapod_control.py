@@ -6,7 +6,7 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 from driver import Driver
-from ax12 import P_MOVING, P_GOAL_SPEED_L, P_GOAL_POSITION_L, P_GOAL_POSITION_H
+from ax12 import *
 
 class NN_PG(nn.Module):
     def __init__(self, env, hid_dim=64, tanh=False, std_fixed=True, obs_dim=None, act_dim=None):
@@ -78,8 +78,6 @@ class HexapodController:
         :return: Boolean
         '''
 
-        self.MAX_TORQUE_REG = 14
-        self.MAX_SERVO_SPEED = 14
 
         self.driver = Driver(port='/dev/ttyUSB0')
 
@@ -89,14 +87,14 @@ class HexapodController:
         self.servo_goal_positions = [None] * 18
 
         # Set servo parameters
-        self.max_servo_speed = 0.5
-        self.max_servo_torque = 0.6
+        self.max_servo_speed = 700 # [0:1024]
+        self.max_servo_torque = 700 # [0:1024]
 
-        self.driver.setReg(1, MAX_TORQUE_REG, [pos % 256, pos >> 8])
+        self.driver.setReg(1, P_GOAL_SPEED_L, [self.max_servo_speed % 256, self.max_servo_speed >> 8])
+        self.driver.setReg(1, P_MAX_TORQUE_L, [self.max_servo_torque % 256, self.max_servo_torque >> 8])
 
-        # Set the "moving speed" register for servo with ID 1
-        #pos = 256  # A number between 0 and 1023
-        #driver.setReg(1, P_GOAL_POSITION_L, [pos % 256, pos >> 8])
+        self.rob_to_policy_servo_ID = [1,3,5, ]
+        self.policy_to_rob_servo_ID = {}
 
         return True
 

@@ -269,7 +269,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["flat"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["tiles"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
@@ -312,7 +312,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "UAN"
+        policy_name = "NEF"
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 

@@ -5,6 +5,9 @@ import numpy as np
 import logging
 logging.basicConfig(level=logging.INFO)
 
+from driver import Driver
+from ax12 import P_MOVING, P_GOAL_SPEED_L, P_GOAL_POSITION_L, P_GOAL_POSITION_H
+
 class NN_PG(nn.Module):
     def __init__(self, env, hid_dim=64, tanh=False, std_fixed=True, obs_dim=None, act_dim=None):
         super(NN_PG, self).__init__()
@@ -44,9 +47,6 @@ class NN_PG(nn.Module):
         return T.normal(self.forward(s), T.exp(self.log_std))
 
 
-class HardwarePacket:
-    pass
-
 class HexapodController:
     def __init__(self, policy_path=None):
         self.policy_path = policy_path
@@ -55,8 +55,8 @@ class HexapodController:
             logging.info("Loading policy: \"{}\" ".format(self.policy_path))
             self.nn_policy = T.load(self.policy_path)
 
-        logging.info("Checking robot hardware")
-        if not self.check_hardware():
+        logging.info("Initializing robot hardware")
+        if not self.init_hardware():
             logging.error("Robot hardware communication issue, exiting")
             exit()
 
@@ -71,14 +71,34 @@ class HexapodController:
             # Calculate servo commands from policy action and write to servos
             self.hex_write_ctrl(policy_act)
 
-    def check_hardware(self):
+
+    def init_hardware(self):
         '''
-        Check that robot hardware is online
+        Initialize robot hardware and variables
         :return: Boolean
         '''
 
+        self.MAX_TORQUE_REG = 14
+        self.MAX_SERVO_SPEED = 14
 
-        pass
+        self.driver = Driver(port='/dev/ttyUSB0')
+
+        # Initialize variables for servos
+        self.servo_positions = [None] * 18
+        self.servo_torques = [None] * 18
+        self.servo_goal_positions = [None] * 18
+
+        # Set servo parameters
+        self.max_servo_speed = 0.5
+        self.max_servo_torque = 0.6
+
+        self.driver.setReg(1, MAX_TORQUE_REG, [pos % 256, pos >> 8])
+
+        # Set the "moving speed" register for servo with ID 1
+        #pos = 256  # A number between 0 and 1023
+        #driver.setReg(1, P_GOAL_POSITION_L, [pos % 256, pos >> 8])
+
+        return True
 
     def _make_obs_for_nn(self):
         '''
@@ -99,6 +119,8 @@ class HexapodController:
         Read robot hardware and return observation
         :return:
         '''
+
+        is_moving = self.driver.getReg(1, P_MOVING, 1)
         pass
 
     def hex_write_ctrl(self, nn_act):

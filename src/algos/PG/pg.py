@@ -113,11 +113,11 @@ def train(env, policy, params):
             T.save(policy, sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
-        if i % 500 == 0 and i > 0:
-            print("Wrote score to file")
-            c_score, v_score, d_score = env.test(policy, N=20, seed=1337, render=False)
-            with open("eval/{}_RE.txt".format(params["ID"]), "a+") as f:
-                f.write("{}, {}, {}, {} \n".format(batch_rew / params["batchsize"], c_score, v_score, d_score))
+        # if i % 500 == 0 and i > 0:
+        #     print("Wrote score to file")
+        #     c_score, v_score, d_score = env.test(policy, N=20, seed=1337, render=False)
+        #     with open("eval/{}_RE.txt".format(params["ID"]), "a+") as f:
+        #         f.write("{}, {}, {}, {} \n".format(batch_rew / params["batchsize"], c_score, v_score, d_score))
 
 
 def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantages, update_iters):
@@ -269,14 +269,14 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["tiles", "tiles", "tiles"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["flat"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
               "note" : "Scaled joints", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -284,7 +284,7 @@ if __name__=="__main__":
         params["train"] = True
 
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod as env
-    env = env(env_list, max_n_envs=2, specific_env_len=40, s_len=250, walls=False)
+    env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=250, walls=True)
 
     # Current experts:
     # Generalization: Novar: QO6, Var: OSM
@@ -307,7 +307,6 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        #policy = policies.ConvPolicy8_PG(env, 64, tanh=False, std_fixed=True)
         policy = policies.NN_PG(env, 96)
         print(params, env.obs_dim, env.act_dim, env.__class__.__name__, policy.__class__.__name__)
         train(env, policy, params)

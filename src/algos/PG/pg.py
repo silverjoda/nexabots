@@ -269,7 +269,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["tiles"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["flat"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
@@ -283,7 +283,7 @@ if __name__=="__main__":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_terrain_all import Hexapod as env
+    from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env
     env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=350, walls=True)
 
     # Current experts:
@@ -312,7 +312,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "P92"
+        policy_name = "5D1"
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 

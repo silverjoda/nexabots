@@ -4,7 +4,7 @@
   <size nconmax="1000" njmax="2000"/>
 
   <default>
-    <joint armature="1.5" damping="0.5" limited="true"/>
+    <joint armature="1.0" damping="4.0" limited="true"/>
     <geom conaffinity="0" condim="3" density="5.0" friction="1.0 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>
   </default>
 
@@ -39,7 +39,8 @@
              <body pos="0.0466 0.0466 0.0">
                 <joint axis="-1 1 0" name="tibia_fl" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
                 <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_fl_geom" size="0.015" type="capsule" rgba="0 1 1 1" material="MatLeg"/>
-            </body>
+                <site name="l0" pos="0 0 -0.095" size=".017" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
+             </body>
           </body>
       </body>
 
@@ -53,6 +54,7 @@
              <body pos="0.0 0.066 0">
                 <joint axis="-1 0 0" name="tibia_ml" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
                 <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_ml_geom" size="0.015" type="capsule" material="MatLeg"/>
+                <site name="l1" pos="0 0 -0.095" size=".017" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
             </body>
           </body>
       </body>
@@ -67,6 +69,7 @@
              <body pos="0.0466 -0.0466 0">
                 <joint axis="1 1 0" name="tibia_fr" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
                 <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_fr_geom" size="0.015" type="capsule" rgba="0 1 1 1"/>
+                <site name="l2" pos="0 0 -0.095" size=".017" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
             </body>
           </body>
       </body>
@@ -81,6 +84,7 @@
              <body pos="0.0 -0.066 0">
                 <joint axis="1 0 0" name="tibia_mr" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
                 <geom fromto="0.0 0.0 0.0 0.0 0 -0.095" name="tibia_mr_geom" size="0.015" type="capsule"/>
+                <site name="l3" pos="0 0 -0.095" size=".017" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
             </body>
           </body>
       </body>
@@ -95,6 +99,7 @@
              <body pos="-0.0466 -0.0466 0">
                 <joint axis="1 -1 0" name="tibia_rr" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
                 <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_rr_geom" size="0.015" type="capsule"/>
+               <site name="l4" pos="0 0 -0.095" size=".017" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
             </body>
           </body>
       </body>
@@ -109,13 +114,39 @@
              <body pos="-0.0466 0.04660 0">
                 <joint axis="-1 -1 0" name="tibia_rl" pos="0.0 0.0 0.0" range="-0.8 0.8" type="hinge"/>
                 <geom fromto="0.0 0.0 0.0 0.0 0.0 -0.095" name="tibia_rl_geom" size="0.015" type="capsule"/>
+               <site name="l5" pos="0 0 -0.095" size=".017" type="sphere" rgba="1.0 1.0 1.0 1.0"/>
             </body>
           </body>
       </body>
 
-
     </body>
   </worldbody>
+
+  <sensor>
+     <touch name="t0" site="l0" />
+  </sensor>
+
+  <sensor>
+     <touch name="t1" site="l1" />
+  </sensor>
+
+  <sensor>
+     <touch name="t2" site="l2" />
+  </sensor>
+
+  <sensor>
+     <touch name="t3" site="l3" />
+  </sensor>
+
+  <sensor>
+     <touch name="t4" site="l4" />
+  </sensor>
+
+  <sensor>
+     <touch name="t5" site="l5" />
+  </sensor>
+
+
   <actuator>
     <position joint="coxa_fl" kp="40"/>
     <position joint="femur_fl" kp="40"/>

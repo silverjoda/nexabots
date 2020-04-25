@@ -131,6 +131,9 @@ class HexapodController:
         self.servo_positions = [self.driver.getReg(i, P_PRESENT_POSITION_L, 1) for i in range(18)]
         self.servo_torques = [self.driver.getReg(i, P_PRESENT_LOAD_L, 1) for i in range(18)]
 
+        # Read IMU (for now spoof perfect orientation)
+        self.yaw = 0
+
         # Calculate leg contact
         self._infer_legtip_contact()
 

@@ -178,8 +178,9 @@ class Hexapod():
                 np.square(q_yaw) * 0.1 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.00003 + \
+                ctrl_pen * 0.0001 + \
                 np.square(zd) * 0.7
+
 
         r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
         r = r_pos - r_neg
@@ -245,7 +246,7 @@ class Hexapod():
         init_q = np.zeros(self.q_dim, dtype=np.float32)
         init_q[0] = 0.0 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.15
+        init_q[2] = 0.18
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
 
         if init_pos is not None:

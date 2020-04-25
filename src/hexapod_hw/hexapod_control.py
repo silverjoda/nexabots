@@ -93,10 +93,27 @@ class HexapodController:
         self.driver.setReg(1, P_GOAL_SPEED_L, [self.max_servo_speed % 256, self.max_servo_speed >> 8])
         self.driver.setReg(1, P_MAX_TORQUE_L, [self.max_servo_torque % 256, self.max_servo_torque >> 8])
 
-        self.rob_to_policy_servo_ID = [1,3,5, ]
-        self.policy_to_rob_servo_ID = {}
+        self.policy_to_servo_mapping = [1, 3, 5, 13, 15, 17, 2, 4, 6, 14, 16, 18, 8, 10, 12, 7, 9, 11]
+        self.servo_to_policy_mapping = [self.policy_to_servo_mapping.index(i + 1) for i in range(18)]
 
         return True
+
+
+    def _policy_to_servo(self, vec):
+        return [vec[self.policy_to_servo_mapping[i]] for i in range(18)]
+
+
+    def _servo_to_policy(self, vec):
+        return [vec[self.servo_to_policy_mapping[i]] for i in range(18)]
+
+
+    def test_leg_coordination(self):
+        '''
+        Perform leg test to determine correct mapping and range
+        :return:
+        '''
+        pass
+
 
     def _make_obs_for_nn(self):
         '''

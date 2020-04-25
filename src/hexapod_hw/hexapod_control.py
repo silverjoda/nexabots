@@ -49,8 +49,12 @@ class NN_PG(nn.Module):
 
 class HexapodController:
     def __init__(self, policy_path=None):
-        self.policy_path = policy_path
 
+        # Parameters
+        self.servo_low, self.servo_high = 256, 768
+        self.servo_range = self.servo_high - self.servo_low
+
+        self.policy_path = policy_path
         if self.policy_path is not None:
             logging.info("Loading policy: \"{}\" ".format(self.policy_path))
             self.nn_policy = T.load(self.policy_path)
@@ -78,13 +82,13 @@ class HexapodController:
         :return: Boolean
         '''
 
-
         self.driver = Driver(port='/dev/ttyUSB0')
 
         # Initialize variables for servos
         self.servo_positions = [None] * 18
         self.servo_torques = [None] * 18
         self.servo_goal_positions = [None] * 18
+        self.legtip_contact_vec = [None] * 6
 
         # Set servo parameters
         self.max_servo_speed = 700 # [0:1024]
@@ -96,15 +100,9 @@ class HexapodController:
         self.policy_to_servo_mapping = [1, 3, 5, 13, 15, 17, 2, 4, 6, 14, 16, 18, 8, 10, 12, 7, 9, 11]
         self.servo_to_policy_mapping = [self.policy_to_servo_mapping.index(i + 1) for i in range(18)]
 
+        self.leg_servo_indeces = [self.policy_to_servo_mapping[i*3:i*3+3] for i in range(6)]
+
         return True
-
-
-    def _policy_to_servo(self, vec):
-        return [vec[self.policy_to_servo_mapping[i]] for i in range(18)]
-
-
-    def _servo_to_policy(self, vec):
-        return [vec[self.servo_to_policy_mapping[i]] for i in range(18)]
 
 
     def test_leg_coordination(self):
@@ -115,19 +113,13 @@ class HexapodController:
         pass
 
 
-    def _make_obs_for_nn(self):
-        '''
-        Turn robot observation into observation for policy input
-        :return: obs vector
-        '''
-        pass
+    def _policy_to_servo(self, vec):
+        return [vec[self.policy_to_servo_mapping[i]] for i in range(18)]
 
-    def _make_act_for_hex(self, policy_act):
-        '''
-        Turn policy action into servo commands
-        :return: hardware packet
-        '''
-        pass
+
+    def _servo_to_policy(self, vec):
+        return [vec[self.servo_to_policy_mapping[i]] for i in range(18)]
+
 
     def hex_get_obs(self):
         '''
@@ -135,12 +127,42 @@ class HexapodController:
         :return:
         '''
 
-        is_moving = self.driver.getReg(1, P_MOVING, 1)
-        pass
+        # Read servo data
+        self.servo_positions = [self.driver.getReg(i, P_PRESENT_POSITION_L, 1) for i in range(18)]
+        self.servo_torques = [self.driver.getReg(i, P_PRESENT_LOAD_L, 1) for i in range(18)]
+
+        # Calculate leg contact
+        self._infer_legtip_contact()
+
+        # Make nn observation
+        obs = None
+
+        return obs
+
 
     def hex_write_ctrl(self, nn_act):
         '''
         Turn policy action into servo commands and write them to servos
         :return: None
         '''
-        pass
+
+        # Map correct actuator to servo
+        servo_act = np.array(self._policy_to_servo(nn_act))
+
+        # Map [-1,1] to [0, 1024]
+        servo_act = ((servo_act + 1) * 0.5) * self.servo_range + self.servo_low
+
+        statuses = [self.driver.setReg(1, P_GOAL_POSITION_L, [servo_act[i] % 256, nn_act >> 8])]
+
+        return max(statuses)
+
+
+    def _infer_legtip_contact(self):
+        def _leg_is_in_contact(servo_vec):
+            return (servo_vec[1] > 100 and servo_vec[2] > 100)
+
+        self.legtip_contact_vec = [_leg_is_in_contact(self.leg_servo_indeces[i]) for i in range(3)]
+
+
+
+

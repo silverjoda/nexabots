@@ -277,7 +277,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Scaled joints", "ID" : ID}
+              "note" : "/wo ctct", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -312,7 +312,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "5D1"
+        policy_name = "RCG" # LX3: joints + contacts + yaw
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = T.load(policy_path)
 

@@ -1,3 +1,4 @@
+import time
 import torch.nn as nn
 import torch.nn.functional as F
 import torch as T
@@ -64,6 +65,11 @@ class HexapodController:
             logging.error("Robot hardware communication issue, exiting")
             exit()
 
+        # Start control loop
+        self.start_ctrl_loop()
+
+
+    def start_ctrl_loop(self):
         logging.info("Starting control loop")
         while True:
             # Read robot servos and hardware and turn into observation for nn
@@ -100,6 +106,14 @@ class HexapodController:
         self.policy_to_servo_mapping = [1, 3, 5, 13, 15, 17, 2, 4, 6, 14, 16, 18, 8, 10, 12, 7, 9, 11]
         self.servo_to_policy_mapping = [self.policy_to_servo_mapping.index(i + 1) for i in range(18)]
 
+        self.joints_rads_low = np.array([-0.4, -1.0, -0.5] * 6)
+        self.joints_rads_high = np.array([0.4, 0.0, 0.5] * 6)
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.joints_10bit_low = ((self.joints_rads_low) / (5.23599) + 0.5) * 1024
+        self.joints_10bit_high = ((self.joints_rads_high) / (5.23599) + 0.5) * 1024
+        self.joints_10bit_diff = self.joints_10bit_high - self.joints_10bit_low
+
         self.leg_servo_indeces = [self.policy_to_servo_mapping[i*3:i*3+3] for i in range(6)]
 
         return True
@@ -110,52 +124,68 @@ class HexapodController:
         Perform leg test to determine correct mapping and range
         :return:
         '''
-        pass
 
+        logging.info("Starting leg coordination test")
 
-    def _policy_to_servo(self, vec):
-        return [vec[self.policy_to_servo_mapping[i]] for i in range(18)]
+        self.hex_write_ctrl(T.zeros((18)))
+        time.sleep(5)
 
+        self.hex_write_ctrl(T.tensor([0., -1., 1.] * 6))
+        time.sleep(5)
 
-    def _servo_to_policy(self, vec):
-        return [vec[self.servo_to_policy_mapping[i]] for i in range(18)]
+        self.hex_write_ctrl(T.tensor([0., -1., 1.] * 6))
+        time.sleep(5)
+
+        self.hex_write_ctrl(T.ones(18) * 1)
+        time.sleep(5)
+
+        self.hex_write_ctrl(T.ones(8) * - 1)
+        time.sleep(5)
+
+        logging.info("Finished leg coordination test")
 
 
     def hex_get_obs(self):
         '''
-        Read robot hardware and return observation
+        Read robot hardware and return observation tensor for pytorch
         :return:
         '''
 
         # Read servo data
         self.servo_positions = [self.driver.getReg(i, P_PRESENT_POSITION_L, 1) for i in range(18)]
-        self.servo_torques = [self.driver.getReg(i, P_PRESENT_LOAD_L, 1) for i in range(18)]
 
         # Read IMU (for now spoof perfect orientation)
         self.yaw = 0
 
-        # Calculate leg contact
-        self._infer_legtip_contact()
+        # Map servo inputs to correct NN inputs
+        mapped_servo_positions = [self.servo_positions[self.servo_to_policy_mapping[i]] for i in range(18)]
+
+        # Turn servo positions into [-1,1] for nn
+        scaled_nn_actuator_positions = ((mapped_servo_positions - self.joints_10bit_low) / self.joints_10bit_diff) * 2 - 1
 
         # Make nn observation
-        obs = None
+        obs = np.concatenate(scaled_nn_actuator_positions, [0])
 
-        return obs
+        # Make pytorch tensor from observation
+        t_obs = T.tensor(obs).unsqueeze(0)
+
+        return t_obs
 
 
     def hex_write_ctrl(self, nn_act):
         '''
-        Turn policy action into servo commands and write them to servos
+        Turn policy action tensor into servo commands and write them to servos
         :return: None
         '''
 
+        # Map [-1,1] to correct 10 bit servo value, respecting the scaling limits imposed during training
+        scaled_act = (nn_act[0].numpy() * 0.5 + 0.5) * self.joints_10bit_diff + self.joints_10bit_low
+
         # Map correct actuator to servo
-        servo_act = np.array(self._policy_to_servo(nn_act))
+        servo_act = np.array([scaled_act[self.policy_to_servo_mapping[i]] for i in range(18)])
 
-        # Map [-1,1] to [0, 1024]
-        servo_act = ((servo_act + 1) * 0.5) * self.servo_range + self.servo_low
-
-        statuses = [self.driver.setReg(1, P_GOAL_POSITION_L, [servo_act[i] % 256, nn_act >> 8])]
+        # Write commands to servos and read error statuses
+        statuses = [self.driver.setReg(1, P_GOAL_POSITION_L, [servo_act[i] % 256, nn_act >> 8]) for i in range(18)]
 
         return max(statuses)
 

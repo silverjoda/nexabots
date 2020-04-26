@@ -73,12 +73,11 @@ class Hexapod():
         self.viewer.cam.elevation = -30
         self.viewer.cam.azimuth = -10
 
-    def scale_joints(self, joints):
-        return joints
 
-        # sjoints = np.array(joints)
-        # sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
-        # return sjoints
+    def scale_joints(self, joints):
+        sjoints = np.array(joints)
+        sjoints = ((sjoints - self.joints_rads_low) / self.joints_rads_diff) * 2 - 1
+        return sjoints
 
 
     def scale_action(self, action):
@@ -180,7 +179,7 @@ class Hexapod():
         contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) - 0.5
 
         clipped_torques = np.clip(torques * 0.05, -1, 1)
-        obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]), contacts, [q_yaw]])
+        obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]), [q_yaw]])
 
         return obs, r, done, (r_pos, x)
 
@@ -208,7 +207,7 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 25
+        self.obs_dim = 19
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
         if self.use_HF:

@@ -158,13 +158,13 @@ class HexapodController:
         self.yaw = 0
 
         # Map servo inputs to correct NN inputs
-        mapped_servo_positions = [self.servo_positions[self.servo_to_policy_mapping[i]] for i in range(18)]
+        mapped_servo_positions = np.array([self.servo_positions[self.servo_to_policy_mapping[i]] for i in range(18)])
 
         # Turn servo positions into [-1,1] for nn
         scaled_nn_actuator_positions = ((mapped_servo_positions - self.joints_10bit_low) / self.joints_10bit_diff) * 2 - 1
 
         # Make nn observation
-        obs = np.concatenate(scaled_nn_actuator_positions, [0])
+        obs = np.concatenate((scaled_nn_actuator_positions, [0]))
 
         # Make pytorch tensor from observation
         t_obs = T.tensor(obs).unsqueeze(0)

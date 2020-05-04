@@ -46,8 +46,8 @@ class Hexapod():
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
         # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
-        self.joints_rads_low = np.array([-0.4, -1.0, -0.5] * 6)
-        self.joints_rads_high = np.array([0.4, 0.0, 0.5] * 6)
+        self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 0.9] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.use_HF = False
@@ -61,7 +61,6 @@ class Hexapod():
 
         #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
         #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
-
 
 
     def setupcam(self):
@@ -184,6 +183,12 @@ class Hexapod():
         return obs, r, done, (r_pos, x)
 
 
+    def step_raw(self, ctrl):
+        self.sim.data.ctrl[:] = ctrl
+        self.sim.forward()
+        self.sim.step()
+
+
     def reset(self, init_pos = None):
 
         if np.random.rand() < self.env_change_prob:
@@ -219,7 +224,7 @@ class Hexapod():
 
         # Sample initial configuration
         init_q = np.zeros(self.q_dim, dtype=np.float32)
-        init_q[0] = 0.1 # np.random.rand() * 4 - 4
+        init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
         init_q[2] = 0.2
         init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
@@ -478,6 +483,24 @@ class Hexapod():
     def demo(self):
         self.reset()
 
+        # for i in range(1000):
+        #     #self.step(np.random.randn(self.act_dim))
+        #     for i in range(100):
+        #         self.step_raw(np.zeros((self.act_dim)))
+        #         self.render()
+        #     for i in range(100):
+        #         self.step_raw(np.array([0., -1., 1.] * 6))
+        #         self.render()
+        #     for i in range(100):
+        #         self.step_raw(np.array([0., 1., -1.] * 6))
+        #         self.render()
+        #     for i in range(100):
+        #         self.step_raw(np.ones((self.act_dim)) * 1)
+        #         self.render()
+        #     for i in range(100):
+        #         self.step_raw(np.ones((self.act_dim)) * -1)
+        #         self.render()
+
         for i in range(1000):
             #self.step(np.random.randn(self.act_dim))
             for i in range(100):
@@ -487,7 +510,7 @@ class Hexapod():
                 self.step(np.array([0., -1., 1.] * 6))
                 self.render()
             for i in range(100):
-                self.step(np.array([0., -1., 1.] * 6))
+                self.step(np.array([0., 1., -1.] * 6))
                 self.render()
             for i in range(100):
                 self.step(np.ones((self.act_dim)) * 1)

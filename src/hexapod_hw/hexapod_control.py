@@ -51,22 +51,36 @@ class NN_PG(nn.Module):
 class HexapodController:
     def __init__(self, policy_path=None):
 
-        # Parameters
-        self.servo_low, self.servo_high = 256, 768
-        self.servo_range = self.servo_high - self.servo_low
+        # Set servo parameters
+        self.max_servo_speed = 700  # [0:1024]
+        self.max_servo_torque = 700  # [0:1024]
+
+        self.policy_to_servo_mapping = [1, 3, 5, 13, 15, 17, 2, 4, 6, 14, 16, 18, 8, 10, 12, 7, 9, 11]
+        self.servo_to_policy_mapping = [self.policy_to_servo_mapping.index(i + 1) for i in range(18)]
+
+        self.joints_rads_low = np.array([-0.3, -1.0, -0.5] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 0.5] * 6)
+        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
+
+        self.joints_10bit_low = ((self.joints_rads_low) / (5.23599) + 0.5) * 1024
+        self.joints_10bit_high = ((self.joints_rads_high) / (5.23599) + 0.5) * 1024
+        self.joints_10bit_diff = self.joints_10bit_high - self.joints_10bit_low
+
+        self.leg_servo_indeces = [self.policy_to_servo_mapping[i * 3:i * 3 + 3] for i in range(6)]
+
+        logging.info("Exiting for now...")
+        exit()
 
         self.policy_path = policy_path
         if self.policy_path is not None:
             logging.info("Loading policy: \"{}\" ".format(self.policy_path))
             self.nn_policy = T.load(self.policy_path)
 
+
         logging.info("Initializing robot hardware")
         if not self.init_hardware():
             logging.error("Robot hardware communication issue, exiting")
             exit()
-
-        # Start control loop
-        self.start_ctrl_loop()
 
 
     def start_ctrl_loop(self):
@@ -90,31 +104,8 @@ class HexapodController:
 
         self.driver = Driver(port='/dev/ttyUSB0')
 
-        # Initialize variables for servos
-        self.servo_positions = [None] * 18
-        self.servo_torques = [None] * 18
-        self.servo_goal_positions = [None] * 18
-        self.legtip_contact_vec = [None] * 6
-
-        # Set servo parameters
-        self.max_servo_speed = 700 # [0:1024]
-        self.max_servo_torque = 700 # [0:1024]
-
         self.driver.setReg(1, P_GOAL_SPEED_L, [self.max_servo_speed % 256, self.max_servo_speed >> 8])
         self.driver.setReg(1, P_MAX_TORQUE_L, [self.max_servo_torque % 256, self.max_servo_torque >> 8])
-
-        self.policy_to_servo_mapping = [1, 3, 5, 13, 15, 17, 2, 4, 6, 14, 16, 18, 8, 10, 12, 7, 9, 11]
-        self.servo_to_policy_mapping = [self.policy_to_servo_mapping.index(i + 1) for i in range(18)]
-
-        self.joints_rads_low = np.array([-0.4, -1.0, -0.5] * 6)
-        self.joints_rads_high = np.array([0.4, 0.0, 0.5] * 6)
-        self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
-
-        self.joints_10bit_low = ((self.joints_rads_low) / (5.23599) + 0.5) * 1024
-        self.joints_10bit_high = ((self.joints_rads_high) / (5.23599) + 0.5) * 1024
-        self.joints_10bit_diff = self.joints_10bit_high - self.joints_10bit_low
-
-        self.leg_servo_indeces = [self.policy_to_servo_mapping[i*3:i*3+3] for i in range(6)]
 
         return True
 
@@ -197,5 +188,6 @@ class HexapodController:
         self.legtip_contact_vec = [_leg_is_in_contact(self.leg_servo_indeces[i]) for i in range(3)]
 
 
-
-
+if __name__ == "__main__":
+    controller = HexapodController("Hexapod_NN_PG_27X_pg.p")
+    controller.start_ctrl_loop()

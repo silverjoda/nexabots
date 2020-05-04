@@ -110,7 +110,7 @@ def train(env, policy, params):
         if i % 500 == 0 and i > 0:
             sdir = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                 "agents/{}_{}_{}_pg.p".format(env.__class__.__name__, policy.__class__.__name__, params["ID"]))
-            T.save(policy, sdir)
+            T.save(policy.state_dict(), sdir)
             print("Saved checkpoint at {} with params {}".format(sdir, params))
 
         # if i % 500 == 0 and i > 0:
@@ -276,7 +276,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
               "note" : "/wo ctct", "ID" : ID}
 
     if socket.gethostname() == "goedel":
@@ -284,7 +284,7 @@ if __name__=="__main__":
         params["train"] = True
 
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env
-    env = env(env_list, max_n_envs=1, specific_env_len=40, s_len=350, walls=True)
+    env = env(env_list, max_n_envs=1, specific_env_len=50, s_len=300, walls=True)
 
     # Current experts:
     # Generalization: Novar: QO6, Var: OSM
@@ -304,6 +304,7 @@ if __name__=="__main__":
     # pipe: W01
     # perlin: H03
 
+
     # Test
     if params["train"]:
         print("Training")
@@ -312,9 +313,10 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "RCG" # LX3: joints + contacts + yaw
+        policy_name = "27X" # LX3: joints + contacts + yaw
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
-        policy = T.load(policy_path)
+        policy = policies.NN_PG(env, 96)
+        policy.load_state_dict(T.load(policy_path))
 
         env.test(policy, N=10)
         print(policy_path)

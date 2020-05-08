@@ -34,6 +34,7 @@ class Driver:
     through an arbotiX board or USBDynamixel. """
     def __init__(self, port="/dev/ttyUSB0",baud=38400, interpolation=False, direct=False, verbose=False):
         """ This may throw errors up the line -- that's a good thing. """
+        print("Driver baud rate: {}".format(baud))
         self.ser = serial.Serial()
         self.ser.baudrate = baud
         self.ser.port = port

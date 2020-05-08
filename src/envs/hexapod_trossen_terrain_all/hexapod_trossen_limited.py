@@ -124,16 +124,19 @@ class Hexapod():
 
 
     def step(self, ctrl):
+
         ctrl = np.clip(ctrl, -1, 1)
-        #ctrl_pen = np.square(ctrl).mean()
+        ctrl = self.scale_action(ctrl)
+        self.sim.data.ctrl[:] = ctrl
+
+        for i in range(1):
+            self.sim.forward()
+            self.sim.step()
+
+        self.step_ctr += 1
+
         torques = self.sim.data.actuator_force
         ctrl_pen = np.square(torques).mean()
-        ctrl = self.scale_action(ctrl)
-
-        self.sim.data.ctrl[:] = ctrl
-        self.sim.forward()
-        self.sim.step()
-        self.step_ctr += 1
 
         obs = self.get_obs()
 

@@ -134,7 +134,7 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         policy.soft_clip_grads(3.)
         policy_optim.step()
 
-    if False:
+    if True:
         # Symmetry loss
         batch_states_rev = batch_states.clone()
 
@@ -147,40 +147,18 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         batch_states_rev[:, 9:12] = batch_states[:, 3:6]
         batch_states_rev[:, 12:15] = batch_states[:, 15:18]
 
-        # Joint angle velocities
-        batch_states_rev[:, 0 + 18:3 + 18] = batch_states[:, 6 + 18:9 + 18]
-        batch_states_rev[:, 3 + 18:6 + 18] = batch_states[:, 9 + 18:12 + 18]
-        batch_states_rev[:, 15 + 18:18 + 18] = batch_states[:, 12 + 18:15 + 18]
-
-        batch_states_rev[:, 6 + 18:9 + 18] = batch_states[:, 0 + 18:3 + 18]
-        batch_states_rev[:, 9 + 18:12 + 18] = batch_states[:, 3 + 18:6 + 18]
-        batch_states_rev[:, 12 + 18:15 + 18] = batch_states[:, 15 + 18:18 + 18]
-
-        # Reverse yaw and y
-        batch_states_rev[44] = - batch_states[44]
-        batch_states_rev[45] = - batch_states[45]
-
-        # Reverse contacts
-        batch_states_rev[46] = batch_states[48]
-        batch_states_rev[47] = batch_states[49]
-        batch_states_rev[51] = batch_states[50]
-
-        batch_states_rev[48] = batch_states[46]
-        batch_states_rev[49] = batch_states[47]
-        batch_states_rev[50] = batch_states[51]
-
         # Actions
-        for i in range(3):
+        for i in range(1):
             actions = policy(batch_states)
             actions_rev = T.zeros_like(actions)
 
-            actions_rev[:, 0:3] = actions[:, 6:9]
-            actions_rev[:, 3:6] = actions[:, 9:12]
-            actions_rev[:, 15:18] = actions[:, 12:15]
-
-            actions_rev[:, 6:9] = actions[:, 0:3]
-            actions_rev[:, 9:12] = actions[:, 3:6]
+            actions_rev[:, 0:3] = actions[:, 3:6]
+            actions_rev[:, 6:9] = actions[:, 9:12]
             actions_rev[:, 12:15] = actions[:, 15:18]
+
+            actions_rev[:, 3:6] = actions[:, 0:3]
+            actions_rev[:, 9:12] = actions[:, 6:9]
+            actions_rev[:, 15:18] = actions[:, 12:15]
 
             loss = (actions - actions_rev).pow(2).mean()
             policy_optim.zero_grad()
@@ -277,7 +255,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
-              "note" : "/wo ctct", "ID" : ID}
+              "note" : "F 16, Normal sim rate", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -313,7 +291,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "27X" # LX3: joints + contacts + yaw
+        policy_name = "PLT" # LX3: joints + contacts + yaw
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

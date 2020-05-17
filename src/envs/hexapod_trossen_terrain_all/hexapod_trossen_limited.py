@@ -181,7 +181,9 @@ class Hexapod():
         contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) - 0.5
 
         clipped_torques = np.clip(torques * 0.05, -1, 1)
-        obs = np.concatenate([self.scale_joints(self.sim.get_state().qpos.tolist()[7:]), [q_yaw]])
+        scaled_joints = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
+        #print(scaled_joints)
+        obs = np.concatenate([scaled_joints, [0]])
 
         return obs, r, done, (r_pos, x)
 
@@ -486,41 +488,32 @@ class Hexapod():
     def demo(self):
         self.reset()
 
-        # for i in range(1000):
-        #     #self.step(np.random.randn(self.act_dim))
-        #     for i in range(100):
-        #         self.step_raw(np.zeros((self.act_dim)))
-        #         self.render()
-        #     for i in range(100):
-        #         self.step_raw(np.array([0., -1., 1.] * 6))
-        #         self.render()
-        #     for i in range(100):
-        #         self.step_raw(np.array([0., 1., -1.] * 6))
-        #         self.render()
-        #     for i in range(100):
-        #         self.step_raw(np.ones((self.act_dim)) * 1)
-        #         self.render()
-        #     for i in range(100):
-        #         self.step_raw(np.ones((self.act_dim)) * -1)
-        #         self.render()
+        scaler = 0.7
 
+        import torch as T
         for i in range(1000):
             #self.step(np.random.randn(self.act_dim))
             for i in range(100):
-                self.step(np.zeros((self.act_dim)))
+                obs = self.step(np.zeros((self.act_dim)))
                 self.render()
+            print(T.tensor(obs[0]).unsqueeze(0))
             for i in range(100):
-                self.step(np.array([0., -1., 1.] * 6))
+                obs = self.step(np.array([0., -scaler, scaler] * 6))
                 self.render()
+            print(T.tensor(obs[0]).unsqueeze(0))
             for i in range(100):
-                self.step(np.array([0., 1., -1.] * 6))
+                obs = self.step(np.array([0., scaler, -scaler] * 6))
                 self.render()
+            print(T.tensor(obs[0]).unsqueeze(0))
             for i in range(100):
-                self.step(np.ones((self.act_dim)) * 1)
+                obs = self.step(np.ones((self.act_dim)) * scaler)
                 self.render()
+            print(T.tensor(obs[0]).unsqueeze(0))
             for i in range(100):
-                self.step(np.ones((self.act_dim)) * -1)
+                obs = self.step(np.ones((self.act_dim)) * -scaler)
                 self.render()
+            print(T.tensor(obs[0]).unsqueeze(0))
+            print("Repeating...")
 
 
     def info(self):
@@ -584,6 +577,7 @@ class Hexapod():
             vr = 0
             dr = 0
             for j in range(int(self.max_steps)):
+                #obs[0:18] = obs[0:18] + np.random.randn(18) * 0.3
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, (r_v, r_d) = self.step(action[0].numpy())
                 cr += r

@@ -134,22 +134,23 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
         policy.soft_clip_grads(3.)
         policy_optim.step()
 
-    if True:
-        # Symmetry loss
-        batch_states_rev = batch_states.clone()
+        if True:
+            # Symmetry loss
+            batch_states_rev = batch_states.clone()
 
-        # Joint angles
-        batch_states_rev[:, 0:3] = batch_states[:, 6:9]
-        batch_states_rev[:, 3:6] = batch_states[:, 9:12]
-        batch_states_rev[:, 15:18] = batch_states[:, 12:15]
+            # Joint angles
+            batch_states_rev[:, 0:3] = batch_states[:, 6:9]
+            batch_states_rev[:, 3:6] = batch_states[:, 9:12]
+            batch_states_rev[:, 15:18] = batch_states[:, 12:15]
 
-        batch_states_rev[:, 6:9] = batch_states[:, 0:3]
-        batch_states_rev[:, 9:12] = batch_states[:, 3:6]
-        batch_states_rev[:, 12:15] = batch_states[:, 15:18]
+            batch_states_rev[:, 6:9] = batch_states[:, 0:3]
+            batch_states_rev[:, 9:12] = batch_states[:, 3:6]
+            batch_states_rev[:, 12:15] = batch_states[:, 15:18]
 
-        # Actions
-        for i in range(1):
+            # Actions
+
             actions = policy(batch_states)
+            actions_rev_pred = policy(batch_states_rev)
             actions_rev = T.zeros_like(actions)
 
             actions_rev[:, 0:3] = actions[:, 3:6]
@@ -160,10 +161,11 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
             actions_rev[:, 9:12] = actions[:, 6:9]
             actions_rev[:, 15:18] = actions[:, 12:15]
 
-            loss = (actions - actions_rev).pow(2).mean()
+            loss = (actions_rev_pred - actions_rev).pow(2).mean()
+            print(loss)
             policy_optim.zero_grad()
             loss.backward()
-            policy.soft_clip_grads(1.)
+            #policy.soft_clip_grads(1.)
             policy_optim.step()
 
 
@@ -254,8 +256,8 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
-              "note" : "F 16, Normal sim rate", "ID" : ID}
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "note" : "Symmetry 1x, inside ppo loop, no clip", "ID" : ID}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -291,7 +293,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "PLT" # LX3: joints + contacts + yaw
+        policy_name = "OJ9" # LX3: joints + contacts + yaw
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

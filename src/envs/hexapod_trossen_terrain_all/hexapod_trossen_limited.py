@@ -326,7 +326,7 @@ class Hexapod():
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/{}.png".format(self.ID)), total_hm)
 
-        with open(Hexapod.MODELPATH + "template.xml", "r") as in_file:
+        with open(Hexapod.MODELPATH + "limited.xml", "r") as in_file:
             buf = in_file.readlines()
 
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:

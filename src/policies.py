@@ -957,6 +957,10 @@ class NN_PG(nn.Module):
             self.log_std = nn.Parameter(T.zeros(1, self.act_dim))
 
 
+    def decay_std(self, decay=0.002):
+        self.log_std -= decay
+
+
     def forward(self, x):
         x = F.leaky_relu(self.m1(self.fc1(x)))
         x = F.leaky_relu(self.m2(self.fc2(x)))

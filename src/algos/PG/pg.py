@@ -97,6 +97,8 @@ def train(env, policy, params):
             print("Episode {}/{}, loss_V: {}, loss_policy: {}, mean ep_rew: {}".
                   format(i, params["iters"], None, None, batch_rew / params["batchsize"])) # T.exp(policy.log_std)[0][0].detach().numpy())
 
+            policy.decay_std(params["std_decay"])
+
             # Finally reset all batch lists
             batch_ctr = 0
             batch_rew = 0
@@ -256,8 +258,8 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Symmetry 1x, inside ppo loop, no clip", "ID" : ID}
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "note" : "Fixed range bugs", "ID" : ID, "std_decay" : 0.002}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -293,7 +295,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "K73" # LX3: joints + contacts + yaw
+        policy_name = "51Y" # LX3: joints + contacts + yaw
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

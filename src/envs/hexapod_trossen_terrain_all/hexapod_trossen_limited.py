@@ -91,16 +91,11 @@ class Hexapod():
         return ctrl
 
 
-    def scale_torque(self, action):
-        return action
-
-
     def get_obs(self):
         qpos = self.sim.get_state().qpos.tolist()
         qvel = self.sim.get_state().qvel.tolist()
         a = qpos + qvel
         return np.asarray(a, dtype=np.float32)
-
 
 
     def get_state(self):
@@ -488,28 +483,32 @@ class Hexapod():
     def demo(self):
         self.reset()
 
-        scaler = 0.7
+        scaler = 1.0
 
         import torch as T
         for i in range(1000):
             #self.step(np.random.randn(self.act_dim))
-            for i in range(100):
+            for i in range(200):
                 obs = self.step(np.zeros((self.act_dim)))
                 self.render()
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(100):
-                obs = self.step(np.array([0., -scaler, scaler] * 6))
+            for i in range(200):
+                act = np.array([0., -scaler, scaler] * 6)
+                obs = self.step(act)
                 self.render()
+            print(self.scale_action(act))
+            print(self.sim.get_state().qpos.tolist()[7:])
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(100):
+            exit()
+            for i in range(200):
                 obs = self.step(np.array([0., scaler, -scaler] * 6))
                 self.render()
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(100):
+            for i in range(200):
                 obs = self.step(np.ones((self.act_dim)) * scaler)
                 self.render()
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(100):
+            for i in range(200):
                 obs = self.step(np.ones((self.act_dim)) * -scaler)
                 self.render()
             print(T.tensor(obs[0]).unsqueeze(0))

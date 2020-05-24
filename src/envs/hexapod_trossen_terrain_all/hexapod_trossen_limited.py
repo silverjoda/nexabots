@@ -41,7 +41,7 @@ class Hexapod():
         self.cumulative_environment_reward = None
         self.walls = walls
 
-        self.rnd_init_yaw = False
+        self.rnd_init_yaw = True
         self.replace_envs = True
 
         # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
@@ -118,7 +118,7 @@ class Hexapod():
         self.viewer.render()
 
 
-    def step_original(self, ctrl):
+    def step(self, ctrl):
 
         ctrl = np.clip(ctrl, -1, 1)
         ctrl = self.scale_action(ctrl)
@@ -178,12 +178,12 @@ class Hexapod():
         clipped_torques = np.clip(torques * 0.05, -1, 1)
         scaled_joints = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
         #print(scaled_joints)
-        obs = np.concatenate([scaled_joints, [0]])
+        obs = np.concatenate([scaled_joints, [q_yaw]])
 
         return obs, r, done, (r_pos, x)
 
 
-    def step(self, ctrl):
+    def step_delay(self, ctrl):
         # !!!! THIS IS THE READ DELAY STEP !!!!
         ctrl = np.clip(ctrl, -1, 1)
         ctrl = self.scale_action(ctrl)
@@ -194,7 +194,8 @@ class Hexapod():
         for i in range(1):
             self.sim.forward()
             self.sim.step()
-            #self.render()
+            self.render()
+            time.sleep(0.01)
 
         # Simulate read delay
         self.model.opt.timestep = 0.0008
@@ -203,7 +204,8 @@ class Hexapod():
             joints.append(self.sim.get_state().qpos.tolist()[7 + i])
             self.sim.forward()
             self.sim.step()
-            #self.render()
+            self.render()
+            time.sleep(0.001)
 
         #joints = self.sim.get_state().qpos.tolist()[7:]
 
@@ -221,7 +223,7 @@ class Hexapod():
         self.vel_sum += xd
 
         # Reward conditions
-        target_vel = 0.30
+        target_vel = 0.10
 
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         velocity_rew = velocity_rew * (1 / (1 + 30 * np.square(yd)))
@@ -236,14 +238,13 @@ class Hexapod():
 
         # y 0.2 stable, q_yaw 0.5 stable
         r_neg = np.square(y) * 0.1 + \
-                np.square(q_yaw) * 0.1 + \
+                np.square(q_yaw) * 0.01 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.00005 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (
-                    abs(self.prev_y_deviation) - abs(y_deviation)) * 10
+        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 # + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
         r = r_pos - r_neg
 
         self.prev_deviation = yaw_deviation
@@ -302,7 +303,7 @@ class Hexapod():
         self.episodes = 0
 
         # Sample initial configuration
-        init_q = np.zeros(self.q_dim, dtype=np.float32)
+        init_q = np.random.randn(self.q_dim).astype(np.float32) * 1.
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
         init_q[2] = 0.2
@@ -657,11 +658,11 @@ class Hexapod():
             for j in range(int(self.max_steps)):
                 #obs[0:18] = obs[0:18] + np.random.randn(18) * 0.3
                 action = policy(my_utils.to_tensor(obs, True)).detach()
-                obs, r, done, (r_v, r_d) = self.step_read_delay(action[0].numpy())
+                obs, r, done, (r_v, r_d) = self.step(action[0].numpy())
                 cr += r
                 vr += r_v
                 dr = max(dr, r_d)
-                #time.sleep(0.1)
+                time.sleep(0.005)
                 if render and True:
                     self.render()
             rew += cr

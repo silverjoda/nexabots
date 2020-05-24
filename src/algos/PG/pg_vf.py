@@ -148,13 +148,9 @@ def update_ppo(policy, policy_optim, batch_states, batch_actions, batch_advantag
             batch_states_rev[:, 6:9] = batch_states[:, 0:3]
             batch_states_rev[:, 9:12] = batch_states[:, 3:6]
             batch_states_rev[:, 12:15] = batch_states[:, 15:18]
-            batch_states_rev[:, 18] = -batch_states[:, 18]
-
-            if batch_states.shape[1] > 19:
-                batch_states_rev[:, 18:24:2] = batch_states[:, 19:24:2]
-                batch_states_rev[:, 19:24:2] = batch_states[:, 18:24:2]
 
             # Actions
+
             actions = policy(batch_states)
             actions_rev_pred = policy(batch_states_rev)
             actions_rev = T.zeros_like(actions)
@@ -255,7 +251,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(1)
 
-    env_list = ["tiles"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["flat"] # ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
@@ -263,7 +259,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Target vel  = 0.1", "ID" : ID, "std_decay" : 0.000}
+              "note" : "With read delay", "ID" : ID, "std_decay" : 0.000}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -290,15 +286,6 @@ if __name__=="__main__":
     # pipe: W01
     # perlin: H03
 
-    # TODO: Tune XML to real hexapod, play with masses and actuator params
-    # TODO: Experiment with RL algo improvement, add VF to PG
-    # TODO: Experiment with decayed exploration
-    # TODO: Try different RL algos (baselines for example)
-    # TODO: Try tiles with contacts and without  (also slow vs fast speed)
-    # TODO: Try training with quantized torque on legs
-    # TODO: Make yaw and contacts on real hexapod
-    # TODO: Continue wiring up drone
-
 
     # Test
     if params["train"]:
@@ -308,7 +295,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "7OI" # LX3: joints + contacts + yaw
+        policy_name = "K9F" # LX3: joints + contacts + yaw
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

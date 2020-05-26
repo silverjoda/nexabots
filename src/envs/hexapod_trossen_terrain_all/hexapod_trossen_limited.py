@@ -20,7 +20,7 @@ class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
-    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200, walls=True):
+    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200, walls=True, target_vel=0.2):
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
@@ -53,6 +53,7 @@ class Hexapod():
         self.use_HF = False
         self.HF_width = 6
         self.HF_length = 20
+        self.target_vel = target_vel
 
         self.vel_sum = 0
 
@@ -118,15 +119,17 @@ class Hexapod():
         self.viewer.render()
 
 
-    def step(self, ctrl):
+    def step(self, ctrl, render=False):
 
         ctrl = np.clip(ctrl, -1, 1)
         ctrl = self.scale_action(ctrl)
         self.sim.data.ctrl[:] = ctrl
 
-        for i in range(1):
+        for i in range(10):
             self.sim.forward()
             self.sim.step()
+            if render:
+                self.render()
 
         self.step_ctr += 1
 
@@ -143,7 +146,7 @@ class Hexapod():
         self.vel_sum += xd
 
         # Reward conditions
-        target_vel = 0.30
+        target_vel = self.target_vel
 
         velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
         velocity_rew = velocity_rew * (1/(1 + 30 * np.square(yd)))
@@ -161,7 +164,7 @@ class Hexapod():
                 np.square(q_yaw) * 0.1 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.00005 + \
+                ctrl_pen * 0.00007 + \
                 np.square(zd) * 0.7
 
         r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
@@ -190,12 +193,12 @@ class Hexapod():
         self.sim.data.ctrl[:] = ctrl
 
         # Step for 20 ms
-        self.model.opt.timestep = 0.02
-        for i in range(1):
+        self.model.opt.timestep = 0.003
+        for i in range(10):
             self.sim.forward()
             self.sim.step()
             self.render()
-            time.sleep(0.01)
+            time.sleep(0.001)
 
         # Simulate read delay
         self.model.opt.timestep = 0.0008
@@ -286,7 +289,7 @@ class Hexapod():
                 pass
 
         self.sim = mujoco_py.MjSim(self.model)
-        self.model.opt.timestep = 0.02
+        self.model.opt.timestep = 0.003
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -595,6 +598,36 @@ class Hexapod():
             print("Repeating...")
 
 
+    def actuator_test(self):
+        self.reset()
+
+        print("Starting actuator test")
+
+
+        for i in range(60):
+
+            act = np.array([0, -1.4, 0.6] * 6)
+            self.sim.data.ctrl[:] = act
+            for i in range(200):
+                self.sim.forward()
+                self.sim.step()
+                self.render()
+
+            act[0] = 0.3
+            self.sim.data.ctrl[:] = act
+            for i in range(200):
+                self.sim.forward()
+                self.sim.step()
+                self.render()
+
+            act[0] = -0.3
+            self.sim.data.ctrl[:] = act
+            for i in range(200):
+                self.sim.forward()
+                self.sim.step()
+                self.render()
+
+
     def info(self):
         self.reset()
         for i in range(100):
@@ -606,6 +639,36 @@ class Hexapod():
 
         print("-------------------------------------------")
         print("-------------------------------------------")
+
+
+    def test(self, policy, render=True, N=30, seed=None):
+        if seed is not None:
+            self.setseed(seed)
+        self.env_change_prob = 1
+        rew = 0
+        vel_rew = 0
+        dist_rew = 0
+        for i in range(N):
+            obs = self.reset()
+            cr = 0
+            vr = 0
+            dr = 0
+            for j in range(int(self.max_steps)):
+                #obs[0:18] = obs[0:18] + np.random.randn(18) * 0.3
+                action = policy(my_utils.to_tensor(obs, True)).detach()
+                obs, r, done, (r_v, r_d) = self.step(action[0].numpy(), render=True)
+                cr += r
+                vr += r_v
+                dr = max(dr, r_d)
+
+            rew += cr
+            vel_rew += vr
+            dist_rew += dr
+            if render:
+                print("Total episode reward: {}".format(cr))
+        if render:
+            print("Total average reward = {}".format(rew / N))
+        return rew / N, vel_rew / N, dist_rew / N
 
 
     def test_record(self, policy, ID):
@@ -641,38 +704,6 @@ class Hexapod():
 
     def setseed(self, seed):
         np.random.seed(seed)
-
-
-    def test(self, policy, render=True, N=30, seed=None):
-        if seed is not None:
-            self.setseed(seed)
-        self.env_change_prob = 1
-        rew = 0
-        vel_rew = 0
-        dist_rew = 0
-        for i in range(N):
-            obs = self.reset()
-            cr = 0
-            vr = 0
-            dr = 0
-            for j in range(int(self.max_steps)):
-                #obs[0:18] = obs[0:18] + np.random.randn(18) * 0.3
-                action = policy(my_utils.to_tensor(obs, True)).detach()
-                obs, r, done, (r_v, r_d) = self.step(action[0].numpy())
-                cr += r
-                vr += r_v
-                dr = max(dr, r_d)
-                time.sleep(0.005)
-                if render and True:
-                    self.render()
-            rew += cr
-            vel_rew += vr
-            dist_rew += dr
-            if render:
-                print("Total episode reward: {}".format(cr))
-        if render:
-            print("Total average reward = {}".format(rew / N))
-        return rew / N, vel_rew / N, dist_rew / N
 
 
     def test_recurrent(self, policy, render=True, N=30, seed=None):
@@ -798,4 +829,4 @@ if __name__ == "__main__":
     ant = Hexapod()
     print(ant.obs_dim)
     print(ant.act_dim)
-    ant.demo()
+    ant.actuator_test()

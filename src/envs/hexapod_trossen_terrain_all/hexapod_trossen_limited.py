@@ -183,7 +183,7 @@ class Hexapod():
                 ctrl_pen * 0.00005 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 # + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
+        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10
         r = r_pos - r_neg
 
         self.prev_deviation = yaw_deviation
@@ -222,37 +222,31 @@ class Hexapod():
         # Angle deviation
         x, y, z, qw, qx, qy, qz = obs[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
-        #xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
-        self.vel_sum += xd
+        self.xd_queue.append(xd)
+        if len(self.xd_queue) > 15:
+            self.xd_queue.pop(0)
+        xd_av = sum(self.xd_queue) / len(self.xd_queue)
 
-        # Reward conditions
-        target_vel = self.target_vel
-
-        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
-        velocity_rew *= (0.3 / target_vel)
-        print(self.target_vel,xd)
-
+        velocity_rew = 1. / (abs(xd_av - self.target_vel) + 1.) - 1. / (self.target_vel + 1.)
+        velocity_rew *= (0.3 / self.target_vel)
 
         roll, pitch, _ = my_utils.quat_to_rpy([qw,qx,qy,qz])
         q_yaw = 2 * acos(qw)
 
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
-        y_deviation = y
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(y) * 0.1 + \
-                np.square(q_yaw) * 0.1 + \
+        r_neg = np.square(q_yaw) * 0.1 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.00007 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
+        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10
         r = r_pos - r_neg
 
         self.prev_deviation = yaw_deviation
-        self.prev_y_deviation = y_deviation
 
         # Reevaluate termination condition
         done = self.step_ctr > self.max_steps #or abs(y) > 0.3 or abs(roll) > 1.4 or abs(pitch) > 1.4
@@ -320,7 +314,7 @@ class Hexapod():
 
         # Init_quat
         if self.rnd_init_yaw:
-            self.rnd_yaw = np.random.rand() * 1.6 - 0.8
+            self.rnd_yaw = np.random.rand() * 1. - 0.5
         else:
             self.rnd_yaw = 0
 

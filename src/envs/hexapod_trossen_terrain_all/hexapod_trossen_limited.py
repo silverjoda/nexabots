@@ -21,7 +21,7 @@ class Hexapod():
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
-    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200, walls=True, target_vel=0.2):
+    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200, walls=True, target_vel=0.2, use_contacts=False):
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
@@ -36,9 +36,10 @@ class Hexapod():
         self.modelpath = Hexapod.MODELPATH
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
         self.s_len = s_len
+        self.use_contacts = use_contacts
         self.max_steps = int(self.n_envs * self.s_len * 0.7)
         self.env_change_prob = 0.2
-        self.env_width = 20
+        self.env_width = 40
         self.cumulative_environment_reward = None
         self.walls = walls
 
@@ -201,7 +202,6 @@ class Hexapod():
 
 
     def step(self, ctrl, render=False):
-
         ctrl = np.clip(ctrl, -1, 1)
         ctrl = self.scale_action(ctrl)
         self.sim.data.ctrl[:] = ctrl
@@ -243,8 +243,11 @@ class Hexapod():
                 ctrl_pen * 0.00007 + \
                 np.square(zd) * 0.7
 
-        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10
+        r_correction = abs(self.prev_deviation) - abs(yaw_deviation)
+        r_pos = velocity_rew * 5 + r_correction * 15
         r = r_pos - r_neg
+
+        #print(r_correction)
 
         self.prev_deviation = yaw_deviation
 
@@ -253,10 +256,12 @@ class Hexapod():
         #contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
         contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) - 0.5
 
-        clipped_torques = np.clip(torques * 0.05, -1, 1)
+        #clipped_torques = np.clip(torques * 0.05, -1, 1)
         scaled_joints = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
-        #print(scaled_joints)
+
         obs = np.concatenate([scaled_joints, [q_yaw]])
+        if self.use_contacts:
+            obs = np.concatenate([obs, contacts])
 
         return obs, r, done, (r_pos, x)
 
@@ -276,6 +281,17 @@ class Hexapod():
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
 
+        #
+        # with open(Hexapod.MODELPATH + "limited.xml", "r") as in_file:
+        #     buf = in_file.readlines()
+        #
+        # with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
+        #     for line in buf:
+        #         if line.startswith('    <position joint='):
+        #             out_file.write('    <hfield name="hill" file="{}.png" size="{} 1.2 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))
+        #         else:
+        #             out_file.write(line)
+
         while True:
             try:
                 self.model = mujoco_py.load_model_from_path(path)
@@ -286,15 +302,14 @@ class Hexapod():
         self.sim = mujoco_py.MjSim(self.model)
         self.model.opt.timestep = 0.003
 
+
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 19
+        self.obs_dim = 19 + self.use_contacts * 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
-        if self.use_HF:
-            self.obs_dim += self.HF_width * self.HF_length
 
         # Reset env variables
         self.step_ctr = 0
@@ -305,7 +320,7 @@ class Hexapod():
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
         init_q[2] = 0.2
-        init_qvel = np.random.randn(self.qvel_dim).astype(np.float32) * 0.1
+        init_qvel = np.zeros(self.qvel_dim)
 
         if init_pos is not None:
             init_q[0:3] += init_pos
@@ -404,7 +419,7 @@ class Hexapod():
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
-                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))
+                    out_file.write('    <hfield name="hill" file="{}.png" size="{} 1.2 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
                     out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.0" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(self.env_scaling * self.n_envs * 0.7))
                 else:

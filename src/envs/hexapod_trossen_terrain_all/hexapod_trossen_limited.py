@@ -7,6 +7,7 @@ import cv2
 import math
 from math import sqrt, acos, fabs, ceil
 from opensimplex import OpenSimplex
+import queue
 
 
 import random
@@ -55,7 +56,7 @@ class Hexapod():
         self.HF_length = 20
         self.target_vel = target_vel
 
-        self.vel_sum = 0
+        self.xd_queue = []
 
         self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
         self.reset()
@@ -119,73 +120,6 @@ class Hexapod():
         self.viewer.render()
 
 
-    def step(self, ctrl, render=False):
-
-        ctrl = np.clip(ctrl, -1, 1)
-        ctrl = self.scale_action(ctrl)
-        self.sim.data.ctrl[:] = ctrl
-
-        for i in range(10):
-            self.sim.forward()
-            self.sim.step()
-            if render:
-                self.render()
-
-        self.step_ctr += 1
-
-        torques = self.sim.data.actuator_force
-        ctrl_pen = np.square(torques).mean()
-
-        obs = self.get_obs()
-
-        # Angle deviation
-        x, y, z, qw, qx, qy, qz = obs[:7]
-        xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
-        #xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
-
-        self.vel_sum += xd
-
-        # Reward conditions
-        target_vel = self.target_vel
-
-        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
-        velocity_rew = velocity_rew * (1/(1 + 30 * np.square(yd)))
-
-        roll, pitch, _ = my_utils.quat_to_rpy([qw,qx,qy,qz])
-        ##yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
-
-        q_yaw = 2 * acos(qw)
-
-        yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
-        y_deviation = y
-
-        # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(y) * 0.1 + \
-                np.square(q_yaw) * 0.1 + \
-                np.square(pitch) * 0.5 + \
-                np.square(roll) * 0.5 + \
-                ctrl_pen * 0.00007 + \
-                np.square(zd) * 0.7
-
-        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
-        r = r_pos - r_neg
-
-        self.prev_deviation = yaw_deviation
-        self.prev_y_deviation = y_deviation
-
-        # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps #or abs(y) > 0.3 or abs(roll) > 1.4 or abs(pitch) > 1.4
-        #contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
-        contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) - 0.5
-
-        clipped_torques = np.clip(torques * 0.05, -1, 1)
-        scaled_joints = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
-        #print(scaled_joints)
-        obs = np.concatenate([scaled_joints, [q_yaw]])
-
-        return obs, r, done, (r_pos, x)
-
-
     def step_delay(self, ctrl):
         # !!!! THIS IS THE READ DELAY STEP !!!!
         ctrl = np.clip(ctrl, -1, 1)
@@ -223,12 +157,15 @@ class Hexapod():
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
         # xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
 
-        self.vel_sum += xd
+        self.xd_queue.append(xd)
+        if len(self.xd_queue) > 10:
+            self.xd_queue.pop(0)
+        xd_av = sum(self.xd_queue) / 10.
 
         # Reward conditions
         target_vel = 0.10
 
-        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
+        velocity_rew = 1. / (abs(xd_av - target_vel) + 1.) - 1. / (target_vel + 1.)
         velocity_rew = velocity_rew * (1 / (1 + 30 * np.square(yd)))
 
         roll, pitch, _ = my_utils.quat_to_rpy([qw, qx, qy, qz])
@@ -240,8 +177,7 @@ class Hexapod():
         y_deviation = y
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(y) * 0.1 + \
-                np.square(q_yaw) * 0.01 + \
+        r_neg = np.square(q_yaw) * 0.01 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.00005 + \
@@ -254,14 +190,79 @@ class Hexapod():
         self.prev_y_deviation = y_deviation
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps  # or abs(y) > 0.3 or abs(roll) > 1.4 or abs(pitch) > 1.4
-        # contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
+        done = self.step_ctr > self.max_steps
+        contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) - 0.5
+
+        #clipped_torques = np.clip(torques * 0.05, -1, 1)
+        scaled_joints = self.scale_joints(joints)
+        obs = np.concatenate([scaled_joints, [0]])
+
+        return obs, r, done, (r_pos, x)
+
+
+    def step(self, ctrl, render=False):
+
+        ctrl = np.clip(ctrl, -1, 1)
+        ctrl = self.scale_action(ctrl)
+        self.sim.data.ctrl[:] = ctrl
+
+        for i in range(10):
+            self.sim.forward()
+            self.sim.step()
+            if render:
+                self.render()
+
+        self.step_ctr += 1
+
+        torques = self.sim.data.actuator_force
+        ctrl_pen = np.square(torques).mean()
+
+        obs = self.get_obs()
+
+        # Angle deviation
+        x, y, z, qw, qx, qy, qz = obs[:7]
+        xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
+        #xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
+
+        self.vel_sum += xd
+
+        # Reward conditions
+        target_vel = self.target_vel
+
+        velocity_rew = 1. / (abs(xd - target_vel) + 1.) - 1. / (target_vel + 1.)
+        velocity_rew *= (0.3 / target_vel)
+        print(self.target_vel,xd)
+
+
+        roll, pitch, _ = my_utils.quat_to_rpy([qw,qx,qy,qz])
+        q_yaw = 2 * acos(qw)
+
+        yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
+        y_deviation = y
+
+        # y 0.2 stable, q_yaw 0.5 stable
+        r_neg = np.square(y) * 0.1 + \
+                np.square(q_yaw) * 0.1 + \
+                np.square(pitch) * 0.5 + \
+                np.square(roll) * 0.5 + \
+                ctrl_pen * 0.00007 + \
+                np.square(zd) * 0.7
+
+        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10 + (abs(self.prev_y_deviation) - abs(y_deviation)) * 10
+        r = r_pos - r_neg
+
+        self.prev_deviation = yaw_deviation
+        self.prev_y_deviation = y_deviation
+
+        # Reevaluate termination condition
+        done = self.step_ctr > self.max_steps #or abs(y) > 0.3 or abs(roll) > 1.4 or abs(pitch) > 1.4
+        #contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
         contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) - 0.5
 
         clipped_torques = np.clip(torques * 0.05, -1, 1)
-        scaled_joints = self.scale_joints(joints)
-        # print(scaled_joints)
-        obs = np.concatenate([scaled_joints, [0]])
+        scaled_joints = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
+        #print(scaled_joints)
+        obs = np.concatenate([scaled_joints, [q_yaw]])
 
         return obs, r, done, (r_pos, x)
 
@@ -306,7 +307,7 @@ class Hexapod():
         self.episodes = 0
 
         # Sample initial configuration
-        init_q = np.random.randn(self.q_dim).astype(np.float32) * 1.
+        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.5
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
         init_q[2] = 0.2
@@ -332,7 +333,7 @@ class Hexapod():
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(20):
+        for i in range(5):
             self.sim.forward()
             self.sim.step()
 
@@ -355,7 +356,6 @@ class Hexapod():
 
 
     def generate_hybrid_env(self, n_envs, steps):
-        #self.env_list = ["tiles", "pipe", "pipe"]
         envs = np.random.choice(self.env_list, n_envs, replace=self.replace_envs)
 
         if n_envs == 1:
@@ -412,7 +412,7 @@ class Hexapod():
                 if line.startswith('    <hfield name="hill"'):
                     out_file.write('    <hfield name="hill" file="{}.png" size="{} 0.6 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))
                 elif line.startswith('    <geom name="floor" conaffinity="1" condim="3"'):
-                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.5" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(self.env_scaling * self.n_envs * 0.7))
+                    out_file.write('    <geom name="floor" conaffinity="1" condim="3" material="MatPlane" pos="{} 0 -.0" rgba="0.8 0.9 0.8 1" type="hfield" hfield="hill"/>'.format(self.env_scaling * self.n_envs * 0.7))
                 else:
                     out_file.write(line)
 

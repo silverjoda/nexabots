@@ -231,14 +231,12 @@ class Hexapod():
         self.sim = mujoco_py.MjSim(self.model)
         self.model.opt.timestep = 0.003
 
-
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
         self.obs_dim = 22 + self.use_contacts * 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
-
 
         # Reset env variables
         self.step_ctr = 0

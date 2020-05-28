@@ -5,7 +5,7 @@
 
   <default>
     <joint armature="0.1" damping="1.0" limited="true"/>
-    <geom conaffinity="0" condim="3" density="5.0" friction="0.3 0.5 0.5" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>
+    <geom conaffinity="0" condim="3" density="5.0" friction="1.0 1.0 1.0" margin="0.0001" rgba="0.2 0.2 0.2 0.8"/>
   </default>
 
   <asset>

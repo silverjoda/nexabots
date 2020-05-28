@@ -121,19 +121,17 @@ class Hexapod():
         self.viewer.render()
 
 
-    def step_delay(self, ctrl):
-        # !!!! THIS IS THE READ DELAY STEP !!!!
+    def step(self, ctrl, render=False):
         ctrl = np.clip(ctrl, -1, 1)
         ctrl = self.scale_action(ctrl)
         self.sim.data.ctrl[:] = ctrl
 
-        # Step for 20 ms
         self.model.opt.timestep = 0.003
-        for i in range(10):
+        for i in range(27):
             self.sim.forward()
             self.sim.step()
-            self.render()
-            time.sleep(0.001)
+            if render:
+                self.render()
 
         # Simulate read delay
         self.model.opt.timestep = 0.0008
@@ -142,75 +140,6 @@ class Hexapod():
             joints.append(self.sim.get_state().qpos.tolist()[7 + i])
             self.sim.forward()
             self.sim.step()
-            self.render()
-            time.sleep(0.001)
-
-        #joints = self.sim.get_state().qpos.tolist()[7:]
-
-        self.step_ctr += 1
-        obs = self.get_obs()
-
-        torques = self.sim.data.actuator_force
-        ctrl_pen = np.square(torques).mean()
-
-        # Angle deviation
-        x, y, z, qw, qx, qy, qz = obs[:7]
-        xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
-        # xa, ya, za, tha, phia, psia = self.sim.data.qacc.tolist()[:6]
-
-        self.xd_queue.append(xd)
-        if len(self.xd_queue) > 10:
-            self.xd_queue.pop(0)
-        xd_av = sum(self.xd_queue) / 10.
-
-        # Reward conditions
-        target_vel = 0.10
-
-        velocity_rew = 1. / (abs(xd_av - target_vel) + 1.) - 1. / (target_vel + 1.)
-        velocity_rew = velocity_rew * (1 / (1 + 30 * np.square(yd)))
-
-        roll, pitch, _ = my_utils.quat_to_rpy([qw, qx, qy, qz])
-        # yaw_deviation = np.min((abs((yaw % 6.183) - (0 % 6.183)), abs(yaw - 0)))
-
-        q_yaw = 2 * acos(qw)
-
-        yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
-        y_deviation = y
-
-        # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(q_yaw) * 0.01 + \
-                np.square(pitch) * 0.5 + \
-                np.square(roll) * 0.5 + \
-                ctrl_pen * 0.00005 + \
-                np.square(zd) * 0.7
-
-        r_pos = velocity_rew * 6 + (abs(self.prev_deviation) - abs(yaw_deviation)) * 10
-        r = r_pos - r_neg
-
-        self.prev_deviation = yaw_deviation
-        self.prev_y_deviation = y_deviation
-
-        # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps
-        contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) - 0.5
-
-        #clipped_torques = np.clip(torques * 0.05, -1, 1)
-        scaled_joints = self.scale_joints(joints)
-        obs = np.concatenate([scaled_joints, [0]])
-
-        return obs, r, done, (r_pos, x)
-
-
-    def step(self, ctrl, render=False):
-        ctrl = np.clip(ctrl, -1, 1)
-        ctrl = self.scale_action(ctrl)
-        self.sim.data.ctrl[:] = ctrl
-
-        for i in range(10):
-            self.sim.forward()
-            self.sim.step()
-            if render:
-                self.render()
 
         self.step_ctr += 1
 
@@ -237,17 +166,16 @@ class Hexapod():
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(q_yaw) * 0.1 + \
+        r_neg = np.square(q_yaw) * 0.2 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.00007 + \
+                ctrl_pen * 0.00005 + \
                 np.square(zd) * 0.7
 
-        r_correction = abs(self.prev_deviation) - abs(yaw_deviation)
-        r_pos = velocity_rew * 5 + r_correction * 15
-        r = r_pos - r_neg
+        r_correction = np.clip(abs(self.prev_deviation) - abs(yaw_deviation), -1, 1)
+        r_pos = velocity_rew * 4 + r_correction * 15
+        r = np.clip(r_pos - r_neg, -3, 3)
 
-        #print(r_correction)
 
         self.prev_deviation = yaw_deviation
 
@@ -259,9 +187,10 @@ class Hexapod():
         #clipped_torques = np.clip(torques * 0.05, -1, 1)
         scaled_joints = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
 
-        obs = np.concatenate([scaled_joints, [q_yaw]])
         if self.use_contacts:
             obs = np.concatenate([obs, contacts])
+
+        obs = np.concatenate([scaled_joints, obs[3:7]])
 
         return obs, r, done, (r_pos, x)
 
@@ -307,7 +236,7 @@ class Hexapod():
         self.q_dim = self.sim.get_state().qpos.shape[0]
         self.qvel_dim = self.sim.get_state().qvel.shape[0]
 
-        self.obs_dim = 19 + self.use_contacts * 6
+        self.obs_dim = 22 + self.use_contacts * 6
         self.act_dim = self.sim.data.actuator_length.shape[0]
 
 
@@ -319,7 +248,7 @@ class Hexapod():
         init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.5
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.2
+        init_q[2] = 0.3
         init_qvel = np.zeros(self.qvel_dim)
 
         if init_pos is not None:
@@ -342,9 +271,12 @@ class Hexapod():
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-        for i in range(5):
+
+        while True:
             self.sim.forward()
             self.sim.step()
+            if  np.max(self.sim.get_state().qvel.tolist()[0:7]) < 0.1:
+                break
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
 
@@ -579,30 +511,25 @@ class Hexapod():
 
         import torch as T
         for i in range(1000):
-            #self.step(np.random.randn(self.act_dim))
-            for i in range(200):
-                obs = self.step(np.zeros((self.act_dim)))
-                self.render()
+
+            for i in range(100):
+                obs = self.step(np.zeros((self.act_dim)), render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(200):
+            for i in range(100):
                 act = np.array([0., -scaler, scaler] * 6)
-                obs = self.step(act)
-                self.render()
-            print(self.scale_action(act))
-            print(self.sim.get_state().qpos.tolist()[7:])
+                obs = self.step(act, render=True)
+            # print(self.scale_action(act))
+            # print(self.sim.get_state().qpos.tolist()[7:])
+            # print(T.tensor(obs[0]).unsqueeze(0))
+            # exit()
+            for i in range(100):
+                obs = self.step(np.array([0., scaler, -scaler] * 6), render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            exit()
-            for i in range(200):
-                obs = self.step(np.array([0., scaler, -scaler] * 6))
-                self.render()
+            for i in range(100):
+                obs = self.step(np.ones((self.act_dim)) * scaler, render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(200):
-                obs = self.step(np.ones((self.act_dim)) * scaler)
-                self.render()
-            print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(200):
-                obs = self.step(np.ones((self.act_dim)) * -scaler)
-                self.render()
+            for i in range(100):
+                obs = self.step(np.ones((self.act_dim)) * -scaler, render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
             print("Repeating...")
 
@@ -838,4 +765,4 @@ if __name__ == "__main__":
     ant = Hexapod()
     print(ant.obs_dim)
     print(ant.act_dim)
-    ant.actuator_test()
+    ant.demo()

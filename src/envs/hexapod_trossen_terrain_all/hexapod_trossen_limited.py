@@ -176,23 +176,21 @@ class Hexapod():
         r_pos = velocity_rew * 4 + r_correction * 15
         r = np.clip(r_pos - r_neg, -3, 3)
 
-
         self.prev_deviation = yaw_deviation
 
         # Reevaluate termination condition
-        done = self.step_ctr > self.max_steps #or abs(y) > 0.3 or abs(roll) > 1.4 or abs(pitch) > 1.4
-        #contacts = (np.abs(np.array(self.sim.data.cfrc_ext[[4, 7, 10, 13, 16, 19]])).sum(axis=1) > 0.05).astype(np.float32)
-        contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) - 0.5
+        done = self.step_ctr > self.max_steps
+        contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) * 2 - 1.
 
         #clipped_torques = np.clip(torques * 0.05, -1, 1)
-        scaled_joints = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
+        c_obs = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
 
         if self.use_contacts:
-            obs = np.concatenate([obs, contacts])
+            c_obs = np.concatenate([c_obs, contacts])
 
-        obs = np.concatenate([scaled_joints, obs[3:7]])
+        c_obs = np.concatenate([c_obs, obs[3:7]])
 
-        return obs, r, done, (r_pos, x)
+        return c_obs, r, done, (r_pos, x)
 
 
     def step_raw(self, ctrl):

@@ -7,19 +7,17 @@ import cv2
 import math
 from math import sqrt, acos, fabs, ceil
 from opensimplex import OpenSimplex
-import queue
+import gym
+from gym import spaces
 
 
-import random
-import string
-#
-# import gym
-# from gym import spaces
-# from gym.utils import seeding
-
-class Hexapod():
+class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
+
+    metadata = {
+        'render.modes': ['human'],
+    }
 
     def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200, walls=True, target_vel=0.2, use_contacts=False):
         print("Trossen hexapod envs: {}".format(env_list))
@@ -46,8 +44,6 @@ class Hexapod():
         self.rnd_init_yaw = True
         self.replace_envs = True
 
-        # self.joints_rads_low = np.array([-0.4, -1.2, -1.0] * 6)
-        # self.joints_rads_high = np.array([0.4, 0.2, 0.6] * 6)
         self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)
         self.joints_rads_high = np.array([0.3, 0.0, 0.9] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
@@ -62,8 +58,8 @@ class Hexapod():
         self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
         self.reset()
 
-        #self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
-        #self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
+        self.observation_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.obs_dim,))
+        self.action_space = spaces.Box(low=-1, high=1, dtype=np.float32, shape=(self.act_dim,))
 
 
     def setupcam(self):
@@ -117,7 +113,12 @@ class Hexapod():
     def render(self):
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
+        self.viewer.render()
 
+
+    def myrender(self):
+        if self.viewer is None:
+            self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.render()
 
 
@@ -169,7 +170,7 @@ class Hexapod():
         r_neg = np.square(q_yaw) * 0.2 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
-                ctrl_pen * 0.00005 + \
+                ctrl_pen * 0.00001 + \
                 np.square(zd) * 0.7
 
         r_correction = np.clip(abs(self.prev_deviation) - abs(yaw_deviation), -1, 1)
@@ -190,7 +191,7 @@ class Hexapod():
 
         c_obs = np.concatenate([c_obs, obs[3:7]])
 
-        return c_obs, r, done, (r_pos, x)
+        return c_obs, r, done, {}
 
 
     def step_raw(self, ctrl):
@@ -574,6 +575,11 @@ class Hexapod():
 
 
     def test(self, policy, render=True, N=30, seed=None):
+
+        # obs = np.array([1, 0, 0] * 3 + [0, 1, 0] * 3 + [0, 0, 0, 1])
+        # action = policy(my_utils.to_tensor(obs, True)).detach()
+        # exit()
+
         if seed is not None:
             self.setseed(seed)
         self.env_change_prob = 1
@@ -588,10 +594,8 @@ class Hexapod():
             for j in range(int(self.max_steps)):
                 #obs[0:18] = obs[0:18] + np.random.randn(18) * 0.3
                 action = policy(my_utils.to_tensor(obs, True)).detach()
-                obs, r, done, (r_v, r_d) = self.step(action[0].numpy(), render=True)
+                obs, r, done, _ = self.step(action[0].numpy(), render=True)
                 cr += r
-                vr += r_v
-                dr = max(dr, r_d)
 
             rew += cr
             vel_rew += vr
@@ -755,6 +759,10 @@ class Hexapod():
                          "data/{}_states.npy".format(self.env_name))
             np.save(filename, h_episodes_arr)
 
+
+    def close(self):
+        if self.viewer is not None:
+            self.viewer = None
 
 
 if __name__ == "__main__":

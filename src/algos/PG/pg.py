@@ -263,7 +263,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.995, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : False}
+              "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.05, "use_contacts" : True}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
@@ -271,24 +271,6 @@ if __name__=="__main__":
 
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env
     env = env(env_list, max_n_envs=1, specific_env_len=70, s_len=100, walls=True, target_vel=params["target_vel"], use_contacts=params["use_contacts"])
-
-    # Current experts:
-    # Generalization: Novar: QO6, Var: OSM
-    # flat: P92, DFE
-    # tiles: K4F
-    # triangles: I08
-    # Stairs: HOS
-    # pipe: 9GV
-    # perlin: P92
-
-    # Current experts w/ orientation rew:
-    # flat: KYH
-    # holes: 2CW
-    # tiles: YI7
-    # triangles: M3X
-    # Stairs: H1Y
-    # pipe: W01
-    # perlin: H03
 
     # TODO: Experiment with RL algo improvement, add VF to PG
     # TODO: Experiment with decayed exploration
@@ -307,7 +289,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "EPQ" # LX3: joints + contacts + yaw
+        policy_name = "0JJ" # LX3: joints + contacts + yaw
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

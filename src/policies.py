@@ -1083,7 +1083,6 @@ class NN_PG_VF(nn.Module):
         return log_density.sum(1, keepdim=True)
 
 
-
 class NN_PG_CONVMEM(nn.Module):
     def __init__(self, env, hid_dim=32, tanh=False, std_fixed=True):
         super(NN_PG_CONVMEM, self).__init__()
@@ -3645,4 +3644,22 @@ class NN_HEX(nn.Module):
         log_density = - T.pow(batch_actions - action_means, 2) / (2 * var) - 0.5 * np.log(2 * np.pi) - log_std_batch
 
         return log_density.sum(1, keepdim=True)
+
+
+class CYC_HEX(nn.Module):
+    def __init__(self):
+        super(CYC_HEX, self).__init__()
+
+        self.phase_stepsize = 0.1
+        self.phase_global = 0
+
+        self.phase_scale_global = T.nn.Parameter(data=T.ones(1), requires_grad=True)
+        self.offset_joints = T.nn.Parameter(data=T.zeros(18), requires_grad=True)
+
+
+    def forward(self):
+        act = T.sin(self.phase_global + self.offset_joints)
+        self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
+        return act
+
 

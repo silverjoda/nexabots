@@ -12,6 +12,7 @@ import random
 import string
 import socket
 
+
 class Valuefun(nn.Module):
     def __init__(self, env):
         super(Valuefun, self).__init__()

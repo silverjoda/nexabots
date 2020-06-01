@@ -18,7 +18,7 @@ def f_wrapper(env, policy, animate):
     def f(w):
         reward = 0
         done = False
-        obs = env.reset()
+        _ = env.reset()
 
         vector_to_parameters(torch.from_numpy(w).float(), policy.parameters())
 
@@ -26,10 +26,10 @@ def f_wrapper(env, policy, animate):
 
             # Get action from policy
             with torch.no_grad():
-                act = policy(my_utils.to_tensor(obs, True))
+                act = policy()
 
             # Step environment
-            obs, rew, done, _ = env.step(act.squeeze(0).numpy())
+            obs, rew, done, _ = env.step(act.numpy())
 
             if animate:
                 env.render()

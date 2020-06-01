@@ -35,7 +35,7 @@ class Hexapod(gym.Env):
         self.n_envs = np.minimum(max_n_envs, len(self.env_list))
         self.s_len = s_len
         self.use_contacts = use_contacts
-        self.max_steps = int(self.n_envs * self.s_len * 0.7)
+        self.max_steps = int(self.n_envs * self.s_len * 1.0)
         self.env_change_prob = 0.2
         self.env_width = 40
         self.cumulative_environment_reward = None

@@ -6,6 +6,7 @@ from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common.vec_env import SubprocVecEnv
 import time
+import tensorflow as tf
 import sys
 import random
 import string
@@ -14,7 +15,7 @@ import socket
 
 def make_env(env_id, params):
     def _init():
-        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=100, walls=True, target_vel=params["target_vel"], use_contacts=params["use_contacts"])
+        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=150, walls=True, target_vel=params["target_vel"], use_contacts=params["use_contacts"])
         return env
     return _init
 
@@ -27,8 +28,8 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"steps": 200000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+    params = {"steps": 1000000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : True}
 
     if socket.gethostname() == "goedel":
@@ -49,17 +50,22 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
-        env = SubprocVecEnv([make_env(env_id, params) for _ in range(10)])
-        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=24, tensorboard_log="/tmp", gamma=0.99)
+        env = SubprocVecEnv([make_env(env_id, params) for _ in range(6)], start_method='fork')
+        policy_kwargs = dict(act_fun=tf.nn.relu, net_arch=[96, 96])
+        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         model.learn(total_timesteps=int(params["steps"]))
+        print("Done learning, saving model")
         model.save("agents/SBL_{}".format(params["ID"]))
+        print("Saved model, closing env")
         env.close()
+        print("Done")
+
     else:
         env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=100, walls=True,
                      target_vel=params["target_vel"], use_contacts=params["use_contacts"])
 
         print("Testing")
-        policy_name = "7JY" # LX3: joints + contacts + yaw
+        policy_name = "YP3" # LX3: joints + contacts + yaw
         policy_path = 'agents/SBL_{}'.format(policy_name)
         model = A2C.load(policy_path)
         print("Loading policy from: {}".format(policy_path))
@@ -67,12 +73,15 @@ if __name__=="__main__":
         obs = env.reset()
         for _ in range(100):
             cum_rew = 0
+            t1 = time.time()
             for i in range(800):
                 action, _states = model.predict(obs, deterministic=True)
                 obs, reward, done, info = env.step(action, render=True)
                 cum_rew += reward
                 #env.render()
                 if done:
+                    t2 = time.time()
+                    print("Time taken for episode: {}".format(t2-t1))
                     obs = env.reset()
                     print(cum_rew)
                     break

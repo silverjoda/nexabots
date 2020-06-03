@@ -3650,15 +3650,15 @@ class CYC_HEX(nn.Module):
     def __init__(self):
         super(CYC_HEX, self).__init__()
 
-        self.phase_stepsize = 0.1
+        self.phase_stepsize = 0.3
         self.phase_global = 0
 
-        self.phase_scale_global = T.nn.Parameter(data=T.ones(1), requires_grad=True)
-        self.offset_joints = T.nn.Parameter(data=T.zeros(18), requires_grad=True)
+        self.phase_scale_global = T.nn.Parameter(T.ones(1))
+        self.offset_joints = T.nn.Parameter(T.zeros(18))
 
 
-    def forward(self):
-        act = T.sin(self.phase_global + self.offset_joints)
+    def forward(self, _):
+        act = 0.6 * T.sin(self.phase_global + self.offset_joints).unsqueeze(0)
         self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
         return act
 

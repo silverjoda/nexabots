@@ -44,8 +44,10 @@ class Hexapod(gym.Env):
         self.rnd_init_yaw = True
         self.replace_envs = True
 
-        self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)
-        self.joints_rads_high = np.array([0.3, 0.0, 0.9] * 6)
+        #self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)
+        #self.joints_rads_high = np.array([0.3, 0.0, 0.9] * 6)
+        self.joints_rads_low = np.array([-0.3, -1.7, 1.0] * 6)
+        self.joints_rads_high = np.array([0.3, -0.7, 1.8] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.use_HF = False
@@ -186,10 +188,12 @@ class Hexapod(gym.Env):
         #clipped_torques = np.clip(torques * 0.05, -1, 1)
         c_obs = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
 
+        quat = obs[3:7]
+
         if self.use_contacts:
             c_obs = np.concatenate([c_obs, contacts])
 
-        c_obs = np.concatenate([c_obs, obs[3:7]])
+        c_obs = np.concatenate([c_obs, quat])
 
         return c_obs, r, done, {}
 
@@ -342,7 +346,7 @@ class Hexapod(gym.Env):
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/{}.png".format(self.ID)), total_hm)
 
-        with open(Hexapod.MODELPATH + "limited.xml", "r") as in_file:
+        with open(Hexapod.MODELPATH + "limited_experimental.xml", "r") as in_file:
             buf = in_file.readlines()
 
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
@@ -509,23 +513,19 @@ class Hexapod(gym.Env):
         import torch as T
         for i in range(1000):
 
-            for i in range(100):
+            for i in range(30):
                 obs = self.step(np.zeros((self.act_dim)), render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(100):
+            for i in range(30):
                 act = np.array([0., -scaler, scaler] * 6)
                 obs = self.step(act, render=True)
-            # print(self.scale_action(act))
-            # print(self.sim.get_state().qpos.tolist()[7:])
-            # print(T.tensor(obs[0]).unsqueeze(0))
-            # exit()
-            for i in range(100):
+            for i in range(30):
                 obs = self.step(np.array([0., scaler, -scaler] * 6), render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(100):
+            for i in range(30):
                 obs = self.step(np.ones((self.act_dim)) * scaler, render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(100):
+            for i in range(30):
                 obs = self.step(np.ones((self.act_dim)) * -scaler, render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
             print("Repeating...")

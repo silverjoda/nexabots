@@ -15,6 +15,13 @@ class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
+    print(
+        "WARNING: THIS ENV HAS TEMPORARILY NO RND YAW AND OMNI VELOCITY REWARD, LOWER YAW PENALTY, AND NO JOINT LIMIT!! CHANGE WHEN NECESSARY")
+    print(
+        "WARNING: THIS ENV HAS TEMPORARILY NO RND YAW AND OMNI VELOCITY REWARD, LOWER YAW PENALTY, AND NO JOINT LIMIT!! CHANGE WHEN NECESSARY")
+    print(
+        "WARNING: THIS ENV HAS TEMPORARILY NO RND YAW AND OMNI VELOCITY REWARD, LOWER YAW PENALTY, AND NO JOINT LIMIT!! CHANGE WHEN NECESSARY")
+
     metadata = {
         'render.modes': ['human'],
     }
@@ -41,7 +48,7 @@ class Hexapod(gym.Env):
         self.cumulative_environment_reward = None
         self.walls = walls
 
-        self.rnd_init_yaw = True
+        self.rnd_init_yaw = False
         self.replace_envs = True
 
         #self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)
@@ -155,6 +162,8 @@ class Hexapod(gym.Env):
         x, y, z, qw, qx, qy, qz = obs[:7]
         xd, yd, zd, thd, phid, psid = self.sim.get_state().qvel.tolist()[:6]
 
+        xd = np.sqrt(xd**2 + yd**2)
+
         self.xd_queue.append(xd)
         if len(self.xd_queue) > 15:
             self.xd_queue.pop(0)
@@ -168,8 +177,8 @@ class Hexapod(gym.Env):
 
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
 
-        # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(q_yaw) * 0.2 + \
+        # TMP CHANGED HERE from 0.2 to 0.1 q_yaw penalty
+        r_neg = np.square(q_yaw) * 0.0 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.00001 + \

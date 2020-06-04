@@ -63,8 +63,8 @@ def train(params):
                 T.save(policy, sdir)
                 print("Saved checkpoint, {}".format(sdir))
 
-            print(es.result.xbest)
-            print("Weight: ", es.mean.min(), es.mean.max())
+            #print(es.result.xbest)
+            #print("Weight: ", es.mean.min(), es.mean.max())
             X = es.ask()
 
             es.tell(X, [f(x) for x in X])
@@ -75,22 +75,22 @@ def train(params):
 
     return es.result.xbest
 
-
+print("W/o amplitude")
 from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env
 env = env(["flat"], max_n_envs=1, specific_env_len=70, s_len=100, walls=True, target_vel=0.1, use_contacts=True)
 
 policy = policies.CYC_HEX()
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = False
+TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    sol = train((env, policy, 50, False, ID))
+    sol = train((env, policy, 70, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/ZP4_es.p")
+    policy = T.load("agents/AQU_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

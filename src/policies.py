@@ -3690,8 +3690,6 @@ class CYC_HEX_BS(nn.Module):
                                               self.phase_offset_joints[3:6].repeat(2),
                                               self.phase_offset_joints[6:].repeat(2)])
 
-        JF = T.cat([self.phase_LR_vec * self.phase_offset_joints, self.phase_LR_vec * phase_offset_joints_expanded])
-
-        act = self.amplitude_offset_joints.repeat(6) + self.amplitude_scale_joints.repeat(6) * T.sin(JF).unsqueeze(0)
+        act = self.amplitude_offset_joints.repeat(6) + self.amplitude_scale_joints.repeat(6) * T.sin(phase_LR_vec * phase_offset_joints_expanded).unsqueeze(0)
         self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
         return act

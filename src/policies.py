@@ -3656,11 +3656,10 @@ class CYC_HEX(nn.Module):
         self.phase_scale_global = T.nn.Parameter(T.ones(1))
         self.phase_offset_joints = T.nn.Parameter(T.zeros(18))
         self.amplitude_offset_joints = T.nn.Parameter(T.zeros(3)) # TODO: THE COXA JOINT SHOULD HAVE ZERO OFFSET ALWAYS
-        self.amplitude_scale_joints = T.nn.Parameter(T.ones(3)) * 0.6
+        self.amplitude_scale_joints = T.nn.Parameter(T.ones(3))
 
 
     def forward(self, _):
-        #act = 0.6 * T.sin(self.phase_global + self.phase_offset_joints).unsqueeze(0) # Original
         act = self.amplitude_offset_joints.repeat(6) + self.amplitude_scale_joints.repeat(6) * T.sin(self.phase_global + self.phase_offset_joints).unsqueeze(0)
         self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
         return act

@@ -82,9 +82,9 @@ ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True
 
-# TODO: IF all ok, then start experimenting with reward shaping
+# TODO: IF all ok, then start experimenting with reward shaping, try adding to body movement penalty, power loss, etc
 # TODO: IF all ok, then start experimenting with NN feedback
-# TODO: THE COXA JOINT SHOULD HAVE ZERO OFFSET ALWAYS
+# TODO: THE COXA JOINT SHOULD HAVE ZERO OFFSET ALWAYS! REMOVE FROM LEARNABLE PARAMETER
 # TODO: BILATERAL SYMMETRY CONSTRAINT PROBABLY IS NOT WORKING DUE TO THE ACTIONS BEING MIRRORED ON COXA!!!
 
 if TRAIN:

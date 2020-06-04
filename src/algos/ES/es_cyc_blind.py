@@ -86,11 +86,11 @@ TRAIN = True
 
 if TRAIN:
     t1 = time.clock()
-    sol = train((env, policy, 10, False, ID))
+    sol = train((env, policy, 50, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/O6S_es.p")
+    policy = T.load("agents/X55_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

@@ -15,13 +15,6 @@ class Hexapod(gym.Env):
     MODELPATH = os.path.join(os.path.dirname(os.path.realpath(__file__)),
                              "assets/hexapod_trossen_")
 
-    print(
-        "WARNING: THIS ENV HAS TEMPORARILY NO RND YAW AND OMNI VELOCITY REWARD, LOWER YAW PENALTY, AND NO JOINT LIMIT!! CHANGE WHEN NECESSARY")
-    print(
-        "WARNING: THIS ENV HAS TEMPORARILY NO RND YAW AND OMNI VELOCITY REWARD, LOWER YAW PENALTY, AND NO JOINT LIMIT!! CHANGE WHEN NECESSARY")
-    print(
-        "WARNING: THIS ENV HAS TEMPORARILY NO RND YAW AND OMNI VELOCITY REWARD, LOWER YAW PENALTY, AND NO JOINT LIMIT!! CHANGE WHEN NECESSARY")
-
     metadata = {
         'render.modes': ['human'],
     }
@@ -177,7 +170,7 @@ class Hexapod(gym.Env):
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
 
         # TMP CHANGED HERE from 0.2 to 0.1 q_yaw penalty
-        r_neg = np.square(q_yaw) * 0.0 + \
+        r_neg = np.square(q_yaw) * 0.2 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.00001 + \

@@ -47,8 +47,6 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-    print(es.result.xbest)
-    print("Weight: ", es.mean.min(), es.mean.max())
 
     it = 0
     try:
@@ -79,18 +77,23 @@ print("W/o amplitude")
 from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_cyc import Hexapod as env
 env = env(["flat"], max_n_envs=1, specific_env_len=70, s_len=100, walls=True, target_vel=0.1, use_contacts=True)
 
-policy = policies.CYC_HEX_BS()
+policy = policies.CYC_HEX()
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 TRAIN = True
 
+# TODO: IF all ok, then start experimenting with reward shaping
+# TODO: IF all ok, then start experimenting with NN feedback
+# TODO: THE COXA JOINT SHOULD HAVE ZERO OFFSET ALWAYS
+# TODO: BILATERAL SYMMETRY CONSTRAINT PROBABLY IS NOT WORKING DUE TO THE ACTIONS BEING MIRRORED ON COXA!!!
+
 if TRAIN:
     t1 = time.clock()
-    sol = train((env, policy, 50, False, ID))
+    sol = train((env, policy, 70, False, ID))
     t2 = time.clock()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/X55_es.p")
+    policy = T.load("agents/ZK3_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

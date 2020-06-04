@@ -3672,7 +3672,7 @@ class CYC_HEX_BS(nn.Module):
         super(CYC_HEX_BS, self).__init__()
 
         self.phase_stepsize = 0.3
-        self.phase_global = 0
+        self.phase_global = 0.0
 
 
         self.phase_scale_global = T.nn.Parameter(T.ones(1))
@@ -3684,8 +3684,8 @@ class CYC_HEX_BS(nn.Module):
     def forward(self, _):
 
         phase_L = self.phase_global
-        phase_R = -self.phase_global
-        phase_LR_vec = T.cat([phase_L, phase_L, phase_L, phase_R, phase_R, phase_R]).repeat(3)
+        phase_R = (self.phase_global + np.pi) % (2 * np.pi)
+        phase_LR_vec = T.tensor([phase_L, phase_L, phase_L, phase_R, phase_R, phase_R]).repeat(3)
         phase_offset_joints_expanded = T.cat([self.phase_offset_joints[0:3].repeat(2),
                                               self.phase_offset_joints[3:6].repeat(2),
                                               self.phase_offset_joints[6:].repeat(2)])

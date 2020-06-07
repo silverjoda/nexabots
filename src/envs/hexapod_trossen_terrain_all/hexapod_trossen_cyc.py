@@ -169,7 +169,6 @@ class Hexapod(gym.Env):
 
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
 
-        # TMP CHANGED HERE from 0.2 to 0.1 q_yaw penalty
         r_neg = np.square(q_yaw) * 0.2 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
@@ -177,7 +176,7 @@ class Hexapod(gym.Env):
                 np.square(zd) * 0.7
 
         r_correction = np.clip(abs(self.prev_deviation) - abs(yaw_deviation), -1, 1)
-        r_pos = velocity_rew * 4 + r_correction * 15
+        r_pos = velocity_rew * 4 + r_correction * 0
         r = np.clip(r_pos - r_neg, -3, 3)
 
         self.prev_deviation = yaw_deviation
@@ -247,7 +246,7 @@ class Hexapod(gym.Env):
         self.episodes = 0
 
         # Sample initial configuration
-        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.5
+        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.0
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
         init_q[2] = 0.3

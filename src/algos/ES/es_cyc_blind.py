@@ -77,21 +77,21 @@ print("W/o amplitude")
 from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_cyc import Hexapod as env
 env = env(["flat"], max_n_envs=1, specific_env_len=70, s_len=100, walls=True, target_vel=0.1, use_contacts=True)
 
-policy = policies.CYC_HEX()
+policy = policies.CYC_HEX_BS()
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = "T"
+TRAIN = "F"
 
 # TODO: IF all ok, then start experimenting with reward shaping, try adding to body movement penalty, power loss, etc
 # TODO: IF all ok, then start experimenting with NN feedback
 
 if TRAIN == "T":
     t1 = time.time()
-    sol = train((env, policy, 50, False, ID))
+    sol = train((env, policy, 70, False, ID))
     t2 = time.time()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/NYE_es.p")
+    policy = T.load("agents/P83_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

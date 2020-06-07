@@ -3663,10 +3663,12 @@ class CYC_HEX(nn.Module):
         amplitude_offset_joints_expanded = T.cat([self.amplitude_offset_joints[0:3].repeat(2),
                                                   self.amplitude_offset_joints[3:6].repeat(2),
                                                   self.amplitude_offset_joints[6:].repeat(2)])
+        # amplitude_scale_joints_expanded = T.cat([self.amplitude_scale_joints[0:3].repeat(2),
+        #                                           self.amplitude_scale_joints[3:6].repeat(2),
+        #                                           self.amplitude_scale_joints[6:].repeat(2)])
         act = amplitude_offset_joints_expanded + self.amplitude_scale_joints.repeat(6) * T.sin(self.phase_global + self.phase_offset_joints).unsqueeze(0)
         self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
         return act
-
 
 
 class CYC_HEX_BS(nn.Module):
@@ -3679,8 +3681,8 @@ class CYC_HEX_BS(nn.Module):
         self.phase_scale_global = T.nn.Parameter(T.ones(1))
         #self.phase_offset_R = T.nn.Parameter(T.ones(1))
         self.phase_offset_joints = T.nn.Parameter(T.zeros(9))
-        self.amplitude_offset_joints = T.nn.Parameter(T.zeros(2))
-        self.amplitude_scale_joints = T.nn.Parameter(T.ones(3))
+        self.amplitude_offset_joints = T.nn.Parameter(T.zeros(9))
+        self.amplitude_scale_joints = T.nn.Parameter(T.ones(9))
 
 
     def forward(self, _):
@@ -3690,28 +3692,35 @@ class CYC_HEX_BS(nn.Module):
         phase_offset_joints_expanded = T.cat([self.phase_offset_joints[0:3].repeat(2),
                                               self.phase_offset_joints[3:6].repeat(2),
                                               self.phase_offset_joints[6:].repeat(2)])
+        amplitude_offset_joints_expanded = T.cat([self.amplitude_offset_joints[0:3].repeat(2),
+                                                  self.amplitude_offset_joints[3:6].repeat(2),
+                                                  self.amplitude_offset_joints[6:].repeat(2)])
+        amplitude_scale_joints_expanded = T.cat([self.amplitude_scale_joints[0:3].repeat(2),
+                                                  self.amplitude_scale_joints[3:6].repeat(2),
+                                                  self.amplitude_scale_joints[6:].repeat(2)])
 
-        act = T.cat((T.tensor([0.]), self.amplitude_offset_joints)).repeat(6) + self.amplitude_scale_joints.repeat(6) * T.sin(phase_LR_vec + phase_offset_joints_expanded).unsqueeze(0)
+        act = amplitude_offset_joints_expanded + amplitude_scale_joints_expanded * T.sin(phase_LR_vec + phase_offset_joints_expanded).unsqueeze(0)
         self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
         return act
 
 
-
 class CYC_HEX_NN(nn.Module):
-    def __init__(self):
+    def __init__(self, obs_dim):
         super(CYC_HEX_NN, self).__init__()
+
+        self.obs_dim = obs_dim
+        self.act_dim = 18
 
         self.phase_stepsize = 0.3
         self.phase_global = 0
 
-        self.phase_scale_global = T.nn.Parameter(T.ones(1))
-        self.phase_offset_joints = T.nn.Parameter(T.zeros(18))
-        self.amplitude_offset_joints = T.nn.Parameter(T.zeros(3))
-        self.amplitude_scale_joints = T.nn.Parameter(T.ones(3)) * 0.6
+        self.l1 = nn.Linear(self.obs_dim, self.act_dim)
 
+    def forward(self, x):
+        l1 = self.l1(x)
 
-    def forward(self, _):
-        #act = 0.6 * T.sin(self.phase_global + self.phase_offset_joints).unsqueeze(0) # Original
-        act = self.amplitude_offset_joints.repeat(6) + self.amplitude_scale_joints.repeat(6) * T.sin(self.phase_global + self.phase_offset_joints).unsqueeze(0)
+        act = amplitude_offset_joints_expanded + self.amplitude_scale_joints.repeat(6) * T.sin(
+            self.phase_global + self.phase_offset_joints).unsqueeze(0)
         self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
         return act
+

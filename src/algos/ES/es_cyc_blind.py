@@ -80,20 +80,18 @@ env = env(["flat"], max_n_envs=1, specific_env_len=70, s_len=100, walls=True, ta
 policy = policies.CYC_HEX()
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
-TRAIN = True
+TRAIN = "T"
 
 # TODO: IF all ok, then start experimenting with reward shaping, try adding to body movement penalty, power loss, etc
 # TODO: IF all ok, then start experimenting with NN feedback
-# TODO: THE COXA JOINT SHOULD HAVE ZERO OFFSET ALWAYS! REMOVE FROM LEARNABLE PARAMETER
-# TODO: BILATERAL SYMMETRY CONSTRAINT PROBABLY IS NOT WORKING DUE TO THE ACTIONS BEING MIRRORED ON COXA!!!
 
-if TRAIN:
-    t1 = time.clock()
-    sol = train((env, policy, 70, False, ID))
-    t2 = time.clock()
+if TRAIN == "T":
+    t1 = time.time()
+    sol = train((env, policy, 50, False, ID))
+    t2 = time.time()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/ZK3_es.p")
+    policy = T.load("agents/NYE_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

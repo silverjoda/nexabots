@@ -41,7 +41,7 @@ class Hexapod(gym.Env):
         self.cumulative_environment_reward = None
         self.walls = walls
 
-        self.rnd_init_yaw = True
+        self.rnd_init_yaw = False
         self.replace_envs = True
 
         #self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)

@@ -3712,7 +3712,7 @@ class CYC_HEX_NN(nn.Module):
         self.act_dim = 18 + 1
         self.hidden_dim = 8
 
-        self.phase_stepsize = 0.3
+        self.phase_stepsize = 0.1
         self.phase_global = 0
 
         self.f1 = nn.Linear(self.obs_dim, self.act_dim)

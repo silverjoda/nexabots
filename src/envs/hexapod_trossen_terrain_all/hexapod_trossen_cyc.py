@@ -169,7 +169,7 @@ class Hexapod(gym.Env):
 
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
 
-        r_neg = np.square(q_yaw) * 0.2 + \
+        r_neg = np.square(q_yaw) * 0.1 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.00001 + \
@@ -195,7 +195,7 @@ class Hexapod(gym.Env):
 
         c_obs = np.concatenate([c_obs, quat])
 
-        return c_obs, r, done, {}
+        return np.array(quat), r, done, {}
 
 
     def step_raw(self, ctrl):

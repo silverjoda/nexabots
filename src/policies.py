@@ -3709,18 +3709,50 @@ class CYC_HEX_NN(nn.Module):
         super(CYC_HEX_NN, self).__init__()
 
         self.obs_dim = obs_dim
-        self.act_dim = 18
+        self.act_dim = 18 + 1
+        self.hidden_dim = 8
 
         self.phase_stepsize = 0.3
         self.phase_global = 0
 
-        self.l1 = nn.Linear(self.obs_dim, self.act_dim)
+        self.f1 = nn.Linear(self.obs_dim, self.act_dim)
+        #self.f2 = nn.Linear(self.hidden_dim, self.act_dim)
 
     def forward(self, x):
-        l1 = self.l1(x)
+        x = T.ones((1,4))
+        #x1 = T.tanh(self.f1(x))
+        out = self.f1(x)
 
-        act = amplitude_offset_joints_expanded + self.amplitude_scale_joints.repeat(6) * T.sin(
-            self.phase_global + self.phase_offset_joints).unsqueeze(0)
-        self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
+        act = T.sin(self.phase_global + out[:, :18])
+        self.phase_global = (self.phase_global + self.phase_stepsize * (out[:, 18] + 1)) % (2 * np.pi)
         return act
 
+
+class CYC_HEX_NN2(nn.Module):
+    def __init__(self, obs_dim):
+        super(CYC_HEX_NN2, self).__init__()
+
+        self.obs_dim = obs_dim
+        self.act_dim = 18 + 1
+        self.hidden_dim = 8
+
+        self.phase_stepsize = 0.3
+        self.phase_global = 0
+
+        self.phase_scale_global = T.ones(1,1)
+        self.phase_offset_joints = T.zeros(1,18)
+
+        self.l1 = nn.Linear(self.obs_dim, self.hidden_dim)
+        self.l2 = nn.Linear(self.hidden_dim, self.act_dim)
+
+
+    def forward(self, x):
+        x1 = T.nn.tanh(self.l1(x))
+        inc = self.l2(x1)
+
+        self.phase_scale_global += inc[:, 18]
+        self.phase_offset_joints += inc[:, :18]
+
+        act = T.sin(self.phase_global + self.phase_offset_joints)
+        self.phase_global = (self.phase_global + self.phase_stepsize * self.phase_scale_global) % (2 * np.pi)
+        return act

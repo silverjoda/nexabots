@@ -129,20 +129,11 @@ class Hexapod(gym.Env):
         ctrl = self.scale_action(ctrl)
         self.sim.data.ctrl[:] = ctrl
 
-        self.model.opt.timestep = 0.003
-        for i in range(27):
-            self.sim.forward()
-            self.sim.step()
-            if render:
-                self.render()
-
-        # Simulate read delay
-        self.model.opt.timestep = 0.0008
-        joints = []
-        for i in range(18):
-            joints.append(self.sim.get_state().qpos.tolist()[7 + i])
-            self.sim.forward()
-            self.sim.step()
+        self.sim.forward()
+        self.sim.step()
+        if render:
+            self.render()
+            time.sleep(0.001)
 
         self.step_ctr += 1
 
@@ -213,17 +204,6 @@ class Hexapod(gym.Env):
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
 
-        #
-        # with open(Hexapod.MODELPATH + "limited.xml", "r") as in_file:
-        #     buf = in_file.readlines()
-        #
-        # with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
-        #     for line in buf:
-        #         if line.startswith('    <position joint='):
-        #             out_file.write('    <hfield name="hill" file="{}.png" size="{} 1.2 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))
-        #         else:
-        #             out_file.write(line)
-
         while True:
             try:
                 self.model = mujoco_py.load_model_from_path(path)
@@ -232,7 +212,7 @@ class Hexapod(gym.Env):
                 pass
 
         self.sim = mujoco_py.MjSim(self.model)
-        self.model.opt.timestep = 0.003
+        self.model.opt.timestep = 0.01
 
         # Environment dimensions
         self.q_dim = self.sim.get_state().qpos.shape[0]
@@ -246,10 +226,10 @@ class Hexapod(gym.Env):
         self.episodes = 0
 
         # Sample initial configuration
-        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.0
+        init_q = np.concatenate((np.zeros(7), np.tile([0, -0.5, 0.5], 6)))  #np.random.randn(self.q_dim).astype(np.float32) * 0.0
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.3
+        init_q[2] = 0.2
         init_qvel = np.zeros(self.qvel_dim)
 
         if init_pos is not None:
@@ -271,7 +251,6 @@ class Hexapod(gym.Env):
 
         # Set environment state
         self.set_state(init_q, init_qvel)
-
 
         while True:
             self.sim.forward()
@@ -513,19 +492,19 @@ class Hexapod(gym.Env):
         import torch as T
         for i in range(1000):
 
-            for i in range(30):
+            for i in range(300):
                 obs = self.step(np.zeros((self.act_dim)), render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(30):
+            for i in range(300):
                 act = np.array([0., -scaler, scaler] * 6)
                 obs = self.step(act, render=True)
-            for i in range(30):
+            for i in range(300):
                 obs = self.step(np.array([0., scaler, -scaler] * 6), render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(30):
+            for i in range(300):
                 obs = self.step(np.ones((self.act_dim)) * scaler, render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
-            for i in range(30):
+            for i in range(300):
                 obs = self.step(np.ones((self.act_dim)) * -scaler, render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
             print("Repeating...")
@@ -595,6 +574,7 @@ class Hexapod(gym.Env):
                 #obs[0:18] = obs[0:18] + np.random.randn(18) * 0.3
                 action = policy(my_utils.to_tensor(obs, True)).detach()
                 obs, r, done, _ = self.step(action[0].numpy(), render=True)
+
                 cr += r
 
             rew += cr
@@ -607,157 +587,10 @@ class Hexapod(gym.Env):
         return rew / N, vel_rew / N, dist_rew / N
 
 
-    def test_record(self, policy, ID):
-        episode_states = []
-        episode_acts = []
-        for i in range(10):
-            s = self.reset()
-            cr = 0
-
-            states = []
-            acts = []
-
-            for j in range(self.max_steps):
-                states.append(s)
-                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy()
-                acts.append(action)
-                s, r, done, od, = self.step(action)
-                cr += r
-
-            episode_states.append(np.concatenate(states))
-            episode_acts.append(np.concatenate(acts))
-
-            print("Total episode reward: {}".format(cr))
-
-        np_states = np.concatenate(episode_states)
-        np_acts = np.concatenate(episode_acts)
-
-        np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "data/{}_states.npy".format(ID)) , np_states)
-        np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "data/{}_acts.npy".format(ID)), np_acts)
-
 
     def setseed(self, seed):
         np.random.seed(seed)
 
-
-    def test_recurrent(self, policy, render=True, N=30, seed=None):
-        if seed is not None:
-            np.random.seed(seed)
-        self.env_change_prob = 1
-
-        rew = 0
-        vel_rew = 0
-        dist_rew = 0
-        for i in range(N):
-            obs = self.reset()
-            h = None
-            cr = 0
-            vr = 0
-            dr = 0
-            for j in range(self.max_steps):
-                action, h = policy((my_utils.to_tensor(obs, True).unsqueeze(0), h))
-                obs, r, done, (r_v, r_d) = self.step(action[0].detach().numpy())
-                cr += r
-                vr += r_v
-                dr = max(dr, r_d)
-
-                time.sleep(0.000)
-                if render:
-                    self.render()
-
-            rew += cr
-            vel_rew += vr
-            dist_rew += dr
-
-            if render:
-                print("Total episode reward: {}".format(cr))
-
-        return rew / N, vel_rew / N, dist_rew / N
-
-
-    def test_adapt(self, p1, p2, ID):
-        self.env_list = ["flatpipe"]
-
-        episode_states = []
-        episode_acts = []
-        ctr = 0
-        while ctr < 1000:
-            print("Iter: {}".format(ctr))
-            current_policy_name = "p1"
-            rnd_x = - 0.1 + np.random.rand() * 0.3 + np.random.randint(0,2) * 1.2
-            s = self.reset(init_pos = np.array([rnd_x, 0, 0]))
-            cr = 0
-            states = []
-            acts = []
-
-            policy = p1
-
-            for j in range(self.max_steps):
-                x = self.sim.get_state().qpos.tolist()[0]
-
-                if 2.2 > x > 0.8 and current_policy_name == "p1":
-                    policy = p2
-                    current_policy_name = "p2"
-                    print("Policy switched to p2")
-
-                if not (2.2 > x > 0.8) and current_policy_name == "p2":
-                    policy = p1
-                    current_policy_name = "p1"
-                    print("Policy switched to p1")
-
-                states.append(s)
-                action = policy(my_utils.to_tensor(s, True)).detach()[0].numpy()
-                acts.append(action)
-                s, r, done, od, = self.step(action)
-                cr += r
-
-                #self.render()
-
-            if cr < 50:
-                continue
-            ctr += 1
-
-            episode_states.append(np.stack(states))
-            episode_acts.append(np.stack(acts))
-
-            print("Total episode reward: {}".format(cr))
-
-        np_states = np.stack(episode_states)
-        np_acts = np.stack(episode_acts)
-
-        np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "data/states_{}.npy".format(ID)), np_states)
-        np.save(os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                             "data/acts_{}.npy".format(ID)), np_acts)
-
-
-    def test_record_hidden(self, policy):
-            self.reset()
-            h_episodes = []
-            for i in range(10):
-                h_list = []
-                obs = self.reset()
-                h = None
-                cr = 0
-                for j in range(self.max_steps  * 2):
-                    action, h = policy((my_utils.to_tensor(obs, True), h))
-                    obs, r, done, od, = self.step(action[0].detach().numpy())
-                    cr += r
-                    time.sleep(0.001)
-                    self.render()
-                    h_list.append(h[0].detach().numpy())
-                print("Total episode reward: {}".format(cr))
-                h_arr = np.concatenate(h_list)
-                h_episodes.append(h_arr)
-
-            h_episodes_arr = np.stack(h_episodes)
-
-            # Save hidden states
-            filename = os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                         "data/{}_states.npy".format(self.env_name))
-            np.save(filename, h_episodes_arr)
 
 
     def close(self):

@@ -12,7 +12,7 @@ import src.policies as policies
 import random
 import string
 
-T.set_num_threads(1)
+#T.set_num_threads(1)
 
 def f_wrapper(env, policy, animate):
     def f(w):
@@ -47,7 +47,6 @@ def train(params):
     es = cma.CMAEvolutionStrategy(w, 0.5)
     f = f_wrapper(env, policy, animate)
 
-
     it = 0
     try:
         while not es.stop():
@@ -61,8 +60,8 @@ def train(params):
                 T.save(policy, sdir)
                 print("Saved checkpoint, {}".format(sdir))
 
-            #print(es.result.xbest)
-            #print("Weight: ", es.mean.min(), es.mean.max())
+                #print(es.result.xbest)
+                print("Weight: ", es.mean.min(), es.mean.max())
             X = es.ask()
 
             es.tell(X, [f(x) for x in X])
@@ -75,7 +74,7 @@ def train(params):
 
 
 from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_cyc import Hexapod as env
-env = env(["flat"], max_n_envs=1, specific_env_len=70, s_len=100, walls=True, target_vel=0.2, use_contacts=True)
+env = env(["flat"], max_n_envs=1, specific_env_len=70, s_len=400, walls=True, target_vel=0.2, use_contacts=True)
 
 policy = policies.CYC_HEX_NN(4)
 ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
@@ -84,16 +83,13 @@ print("Policy: %s" % policy.__class__.__name__)
 
 TRAIN = "T"
 
-# TODO: IF all ok, then start experimenting with reward shaping, try adding to body movement penalty, power loss, etc
-# TODO: IF all ok, then start experimenting with NN feedback
-
 if TRAIN == "T":
     t1 = time.time()
-    sol = train((env, policy, 100, False, ID))
+    sol = train((env, policy, 200, False, ID))
     t2 = time.time()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/R3B_es.p")
+    policy = T.load("agents/0JG_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

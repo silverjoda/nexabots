@@ -3719,7 +3719,7 @@ class CYC_HEX_NN(nn.Module):
         #self.f2 = nn.Linear(self.hidden_dim, self.act_dim)
 
     def forward(self, x):
-        x = T.ones((1,4))
+        #x = T.tensor([[1.,0.,0.,0.]])
         #x1 = T.tanh(self.f1(x))
         out = self.f1(x)
 

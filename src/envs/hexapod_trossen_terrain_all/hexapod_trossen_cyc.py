@@ -41,7 +41,7 @@ class Hexapod(gym.Env):
         self.cumulative_environment_reward = None
         self.walls = walls
 
-        self.rnd_init_yaw = False
+        self.rnd_init_yaw = True
         self.replace_envs = True
 
         #self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)
@@ -160,14 +160,14 @@ class Hexapod(gym.Env):
 
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
 
-        r_neg = np.square(q_yaw) * 0.1 + \
+        r_neg = np.square(q_yaw) * 0.2 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.00001 + \
                 np.square(zd) * 0.7
 
         r_correction = np.clip(abs(self.prev_deviation) - abs(yaw_deviation), -1, 1)
-        r_pos = velocity_rew * 4 + r_correction * 0
+        r_pos = velocity_rew * 4 + r_correction * 10
         r = np.clip(r_pos - r_neg, -3, 3)
 
         self.prev_deviation = yaw_deviation
@@ -199,7 +199,7 @@ class Hexapod(gym.Env):
 
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
-            time.sleep(0.3)
+            time.sleep(0.1)
 
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)

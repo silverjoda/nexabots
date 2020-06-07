@@ -81,15 +81,15 @@ ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
 
 print("Policy: %s" % policy.__class__.__name__)
 
-TRAIN = "T"
+TRAIN = "F"
 
 if TRAIN == "T":
     t1 = time.time()
-    sol = train((env, policy, 200, False, ID))
+    sol = train((env, policy, 300, False, ID))
     t2 = time.time()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/0JG_es.p")
+    policy = T.load("agents/SWU_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

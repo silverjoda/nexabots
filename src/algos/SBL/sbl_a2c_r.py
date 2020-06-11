@@ -28,8 +28,8 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"steps": 500000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+    params = {"steps": 300000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
               "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : True}
 
     if socket.gethostname() == "goedel":
@@ -53,7 +53,7 @@ if __name__=="__main__":
         print(params)
         env = SubprocVecEnv([make_env(env_id, params) for _ in range(6)], start_method='fork')
         policy_kwargs = dict()
-        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
+        model = A2C('MlpLstmPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         model.learn(total_timesteps=int(params["steps"]))
         print("Done learning, saving model")
         model.save("agents/SBL_{}".format(params["ID"]))
@@ -61,8 +61,7 @@ if __name__=="__main__":
         env.close()
         print("Finished training with ID: {}".format(ID))
     else:
-        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=120, walls=True,
-                     target_vel=params["target_vel"], use_contacts=params["use_contacts"])
+        env = SubprocVecEnv([make_env(env_id, params) for _ in range(6)], start_method='fork')
 
         print("Testing")
         policy_name = "SIW" # LX3: joints + contacts + yaw
@@ -76,10 +75,10 @@ if __name__=="__main__":
             t1 = time.time()
             for i in range(800):
                 action, _states = model.predict(obs, deterministic=True)
-                obs, reward, done, info = env.step(action, render=True)
+                obs, reward, done, info = env.step(action)
                 cum_rew += reward
                 #env.render()
-                if done:
+                if done.any():
                     t2 = time.time()
                     print("Time taken for episode: {}".format(t2-t1))
                     obs = env.reset()

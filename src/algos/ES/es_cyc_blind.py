@@ -90,7 +90,7 @@ if TRAIN == "T":
     t2 = time.time()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/PFG_es.p")
+    policy = T.load("agents/L4G_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

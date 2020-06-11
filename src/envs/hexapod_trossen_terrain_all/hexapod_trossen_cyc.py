@@ -326,7 +326,7 @@ class Hexapod(gym.Env):
         with open(Hexapod.MODELPATH + "limited_cyc.xml", "r") as in_file:
             buf = in_file.readlines()
 
-        with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
+        with open(Hexapod.MODELPATH + "{}.xml".format(self.ID), "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
                     out_file.write('    <hfield name="hill" file="{}.png" size="{} 1.2 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))

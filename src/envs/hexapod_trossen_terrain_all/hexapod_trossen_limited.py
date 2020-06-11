@@ -36,7 +36,7 @@ class Hexapod(gym.Env):
         self.s_len = s_len
         self.use_contacts = use_contacts
         self.max_steps = int(self.n_envs * self.s_len * 1.0)
-        self.env_change_prob = 0.1
+        self.env_change_prob = 0.0
         self.env_width = 40
         self.cumulative_environment_reward = None
         self.walls = walls
@@ -167,7 +167,7 @@ class Hexapod(gym.Env):
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
 
         # y 0.2 stable, q_yaw 0.5 stable
-        r_neg = np.square(q_yaw) * 0.2 + \
+        r_neg = np.square(q_yaw) * 0.5 + \
                 np.square(pitch) * 0.5 + \
                 np.square(roll) * 0.5 + \
                 ctrl_pen * 0.00001 + \
@@ -184,7 +184,7 @@ class Hexapod(gym.Env):
         contacts = (np.abs(np.array(self.sim.data.sensordata[0:6], dtype=np.float32)) > 0.05).astype(np.float32) * 2 - 1.
 
         #clipped_torques = np.clip(torques * 0.05, -1, 1)
-        c_obs = self.scale_joints(self.sim.get_state().qpos.tolist()[7:])
+        c_obs = self.scale_joints(joints)
 
         quat = obs[3:7]
 
@@ -203,7 +203,6 @@ class Hexapod(gym.Env):
 
 
     def reset(self, init_pos = None):
-
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
             time.sleep(0.1)
@@ -244,7 +243,7 @@ class Hexapod(gym.Env):
         self.episodes = 0
 
         # Sample initial configuration
-        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.3
+        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.0
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
         init_q[2] = 0.15
@@ -347,7 +346,7 @@ class Hexapod(gym.Env):
         with open(Hexapod.MODELPATH + "limited.xml", "r") as in_file:
             buf = in_file.readlines()
 
-        with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
+        with open(Hexapod.MODELPATH + "{}.xml".format(self.ID), "w") as out_file:
             for line in buf:
                 if line.startswith('    <hfield name="hill"'):
                     out_file.write('    <hfield name="hill" file="{}.png" size="{} 1.2 {} 0.1" /> \n '.format(self.ID, self.env_scaling * self.n_envs, 0.6 * height_SF))

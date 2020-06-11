@@ -44,10 +44,8 @@ class Hexapod(gym.Env):
         self.rnd_init_yaw = False
         self.replace_envs = True
 
-        #self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)
-        #self.joints_rads_high = np.array([0.3, 0.0, 0.9] * 6)
-        self.joints_rads_low = np.array([-0.4, -2.0, 0.6] * 6)
-        self.joints_rads_high = np.array([0.4, -0.0, 2.0] * 6)
+        self.joints_rads_low = np.array([-0.3, -1.6, 0.7] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 1.9] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.use_HF = False
@@ -325,7 +323,7 @@ class Hexapod(gym.Env):
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/{}.png".format(self.ID)), total_hm)
 
-        with open(Hexapod.MODELPATH + "limited_experimental.xml", "r") as in_file:
+        with open(Hexapod.MODELPATH + "limited_cyc.xml", "r") as in_file:
             buf = in_file.readlines()
 
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:

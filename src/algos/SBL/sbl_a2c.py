@@ -29,7 +29,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"steps": 1000000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
               "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : True}
 
     if socket.gethostname() == "goedel":
@@ -50,6 +50,7 @@ if __name__=="__main__":
     # Test
     if params["train"]:
         print("Training")
+        print(params)
         env = SubprocVecEnv([make_env(env_id, params) for _ in range(6)], start_method='fork')
         policy_kwargs = dict(act_fun=tf.nn.relu, net_arch=[96, 96])
         model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
@@ -59,13 +60,12 @@ if __name__=="__main__":
         print("Saved model, closing env")
         env.close()
         print("Done")
-
     else:
-        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=100, walls=True,
+        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=120, walls=True,
                      target_vel=params["target_vel"], use_contacts=params["use_contacts"])
 
         print("Testing")
-        policy_name = "YP3" # LX3: joints + contacts + yaw
+        policy_name = "IOL" # LX3: joints + contacts + yaw
         policy_path = 'agents/SBL_{}'.format(policy_name)
         model = A2C.load(policy_path)
         print("Loading policy from: {}".format(policy_path))

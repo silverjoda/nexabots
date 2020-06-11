@@ -19,7 +19,7 @@ class Hexapod(gym.Env):
         'render.modes': ['human'],
     }
 
-    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=200, walls=True, target_vel=0.2, use_contacts=False):
+    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=100, walls=True, target_vel=0.2, use_contacts=False):
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
@@ -36,7 +36,7 @@ class Hexapod(gym.Env):
         self.s_len = s_len
         self.use_contacts = use_contacts
         self.max_steps = int(self.n_envs * self.s_len * 1.0)
-        self.env_change_prob = 0.2
+        self.env_change_prob = 0.1
         self.env_width = 40
         self.cumulative_environment_reward = None
         self.walls = walls
@@ -44,10 +44,8 @@ class Hexapod(gym.Env):
         self.rnd_init_yaw = True
         self.replace_envs = True
 
-        #self.joints_rads_low = np.array([-0.3, -1.4, 0.6] * 6)
-        #self.joints_rads_high = np.array([0.3, 0.0, 0.9] * 6)
-        self.joints_rads_low = np.array([-0.3, -1.7, 1.0] * 6)
-        self.joints_rads_high = np.array([0.3, -0.7, 1.8] * 6)
+        self.joints_rads_low = np.array([-0.3, -1.6, 0.7] * 6)
+        self.joints_rads_high = np.array([0.3, 0.0, 1.9] * 6)
         self.joints_rads_diff = self.joints_rads_high - self.joints_rads_low
 
         self.use_HF = False
@@ -208,7 +206,7 @@ class Hexapod(gym.Env):
 
         if np.random.rand() < self.env_change_prob:
             self.generate_hybrid_env(self.n_envs, self.specific_env_len * self.n_envs)
-            time.sleep(0.3)
+            time.sleep(0.1)
 
         self.viewer = None
         path = Hexapod.MODELPATH + "{}.xml".format(self.ID)
@@ -246,10 +244,10 @@ class Hexapod(gym.Env):
         self.episodes = 0
 
         # Sample initial configuration
-        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.5
+        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.3
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.3
+        init_q[2] = 0.15
         init_qvel = np.zeros(self.qvel_dim)
 
         if init_pos is not None:
@@ -346,7 +344,7 @@ class Hexapod(gym.Env):
         cv2.imwrite(os.path.join(os.path.dirname(os.path.realpath(__file__)),
                                  "assets/{}.png".format(self.ID)), total_hm)
 
-        with open(Hexapod.MODELPATH + "limited_experimental.xml", "r") as in_file:
+        with open(Hexapod.MODELPATH + "limited.xml", "r") as in_file:
             buf = in_file.readlines()
 
         with open(Hexapod.MODELPATH + self.ID + ".xml", "w") as out_file:
@@ -522,6 +520,7 @@ class Hexapod(gym.Env):
             for i in range(30):
                 obs = self.step(np.array([0., scaler, -scaler] * 6), render=True)
             print(T.tensor(obs[0]).unsqueeze(0))
+
             for i in range(30):
                 obs = self.step(np.ones((self.act_dim)) * scaler, render=True)
             print(T.tensor(obs[0]).unsqueeze(0))

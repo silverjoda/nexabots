@@ -3650,7 +3650,7 @@ class CYC_HEX(nn.Module):
     def __init__(self):
         super(CYC_HEX, self).__init__()
 
-        self.phase_stepsize = 0.3
+        self.phase_stepsize = 0.1
         self.phase_global = 0
 
         self.phase_scale_global = T.nn.Parameter(T.ones(1))
@@ -3683,7 +3683,6 @@ class CYC_HEX_BS(nn.Module):
         self.phase_offset_joints = T.nn.Parameter(T.zeros(9))
         self.amplitude_offset_joints = T.nn.Parameter(T.zeros(9))
         self.amplitude_scale_joints = T.nn.Parameter(T.ones(9))
-
 
     def forward(self, _):
         phase_L = self.phase_global

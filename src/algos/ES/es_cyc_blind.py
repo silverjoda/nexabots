@@ -74,7 +74,7 @@ def train(params):
 
 
 from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_cyc import Hexapod as env
-env = env(["flat"], max_n_envs=1, specific_env_len=70, s_len=400, walls=True, target_vel=0.10, use_contacts=False)
+env = env(["flat"], max_n_envs=1, specific_env_len=70, s_len=400, walls=True, target_vel=0.20, use_contacts=False)
 
 policy = policies.CYC_HEX_BS()
 #policy = policies.CYC_HEX_NN(4)
@@ -90,7 +90,7 @@ if TRAIN == "T":
     t2 = time.time()
     print("Elapsed time: {}".format(t2 - t1))
 else:
-    policy = T.load("agents/JJL_es.p")
+    policy = T.load("agents/PFG_es.p")
     print(list(policy.parameters()))
     env.test(policy, render=True)
 

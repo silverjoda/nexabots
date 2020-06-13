@@ -12,7 +12,6 @@ import random
 import string
 import socket
 
-
 class Valuefun(nn.Module):
     def __init__(self, env):
         super(Valuefun, self).__init__()
@@ -290,7 +289,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "LH3"
+        policy_name = "LH3" # Try LH3 on real robot (spoof IMU and with contacts)
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

@@ -28,7 +28,7 @@ if __name__=="__main__":
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"steps": 300000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
+    params = {"steps": 3000000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : True}
 

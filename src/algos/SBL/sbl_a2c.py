@@ -65,7 +65,7 @@ if __name__=="__main__":
                      target_vel=params["target_vel"], use_contacts=params["use_contacts"])
 
         print("Testing")
-        policy_name = "SIW" # LX3: joints + contacts + yaw
+        policy_name = "MK6" # LX3: joints + contacts + yaw
         policy_path = 'agents/SBL_{}'.format(policy_name)
         model = A2C.load(policy_path)
         print("Loading policy from: {}".format(policy_path))

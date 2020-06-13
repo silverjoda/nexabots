@@ -110,11 +110,16 @@ class Hexapod(gym.Env):
         self.sim.forward()
 
 
-    def render(self):
+    def render(self, mode='human'):
         if self.viewer is None:
             self.viewer = mujoco_py.MjViewer(self.sim)
         self.viewer.render()
 
+
+    def draw(self):
+        if self.viewer is None:
+            self.viewer = mujoco_py.MjViewer(self.sim)
+        self.viewer.render()
 
     def myrender(self):
         if self.viewer is None:
@@ -243,11 +248,14 @@ class Hexapod(gym.Env):
         self.episodes = 0
 
         # Sample initial configuration
-        init_q = np.random.randn(self.q_dim).astype(np.float32) * 0.0
+        init_q = np.zeros(self.q_dim, dtype=np.float32)
+        init_q[7:] = self.scale_action([0] * 18)
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.15
+        init_q[2] = 0.3
         init_qvel = np.zeros(self.qvel_dim)
+
+        # TODO: Change initial q
 
         if init_pos is not None:
             init_q[0:3] += init_pos
@@ -269,11 +277,15 @@ class Hexapod(gym.Env):
         # Set environment state
         self.set_state(init_q, init_qvel)
 
-
+        ctr = 0
         while True:
+            ctr += 1
             self.sim.forward()
             self.sim.step()
-            if  np.max(self.sim.get_state().qvel.tolist()[0:7]) < 0.1:
+            #self.render()
+            #time.sleep(0.01)
+
+            if np.max(self.sim.get_state().qvel.tolist()[0:7]) < 0.15 and ctr > 10:
                 break
 
         obs, _, _, _ = self.step(np.zeros(self.act_dim))
@@ -503,7 +515,6 @@ class Hexapod(gym.Env):
 
 
     def demo(self):
-        self.reset()
 
         scaler = 1.0
 
@@ -764,7 +775,7 @@ class Hexapod(gym.Env):
 
 
 if __name__ == "__main__":
-    ant = Hexapod()
-    print(ant.obs_dim)
-    print(ant.act_dim)
-    ant.demo()
+    hex = Hexapod()
+    print(hex.obs_dim)
+    print(hex.act_dim)
+    hex.demo()

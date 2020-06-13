@@ -11,7 +11,7 @@ import sys
 import random
 import string
 import socket
-
+import numpy as np
 
 def make_env(env_id, params):
     def _init():
@@ -29,7 +29,7 @@ if __name__=="__main__":
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"steps": 300000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : True}
 
     if socket.gethostname() == "goedel":
@@ -51,7 +51,7 @@ if __name__=="__main__":
     if params["train"]:
         print("Training")
         print(params)
-        env = SubprocVecEnv([make_env(env_id, params) for _ in range(6)], start_method='fork')
+        env = SubprocVecEnv([make_env(env_id, params) for _ in range(4)], start_method='fork')
         policy_kwargs = dict()
         model = A2C('MlpLstmPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
         model.learn(total_timesteps=int(params["steps"]))
@@ -61,10 +61,12 @@ if __name__=="__main__":
         env.close()
         print("Finished training with ID: {}".format(ID))
     else:
-        env = SubprocVecEnv([make_env(env_id, params) for _ in range(6)], start_method='fork')
+        #env_vec = SubprocVecEnv([make_env(env_id, params) for _ in range(4)], start_method='fork')
+        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=150, walls=True,
+                     target_vel=params["target_vel"], use_contacts=params["use_contacts"])
 
         print("Testing")
-        policy_name = "SIW" # LX3: joints + contacts + yaw
+        policy_name = "PQA" # LX3: joints + contacts + yaw
         policy_path = 'agents/SBL_{}'.format(policy_name)
         model = A2C.load(policy_path)
         print("Loading policy from: {}".format(policy_path))
@@ -73,12 +75,14 @@ if __name__=="__main__":
         for _ in range(100):
             cum_rew = 0
             t1 = time.time()
+            env_idx = 0
             for i in range(800):
-                action, _states = model.predict(obs, deterministic=True)
-                obs, reward, done, info = env.step(action)
+                actions, _states = model.predict(np.tile(obs, (4,1)), deterministic=True)
+                obs, reward, done, info = env.step(actions[env_idx], render=True)
                 cum_rew += reward
-                #env.render()
-                if done.any():
+                #env.render(mode='human')
+                #time.sleep(0.05)
+                if done:
                     t2 = time.time()
                     print("Time taken for episode: {}".format(t2-t1))
                     obs = env.reset()

@@ -256,20 +256,19 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(2)
 
-    env_list = ["tiles"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["flat"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : True, "env_list" : env_list,
+              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.1, "use_contacts" : True}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
-
 
     from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env
     env = env(env_list, max_n_envs=1, specific_env_len=70, s_len=120, walls=True, target_vel=params["target_vel"], use_contacts=params["use_contacts"])
@@ -291,7 +290,7 @@ if __name__=="__main__":
         train(env, policy, params)
     else:
         print("Testing")
-        policy_name = "VGC"
+        policy_name = "LH3"
         policy_path = 'agents/{}_NN_PG_{}_pg.p'.format(env.__class__.__name__, policy_name)
         policy = policies.NN_PG(env, 96)
         policy.load_state_dict(T.load(policy_path))

@@ -22,7 +22,17 @@ def make_env(env_id, params):
 
 
 if __name__=="__main__":
-    env_list = ["tiles"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["flat"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+
+    # DEPLOY SCHEDULE:
+    # Flat ->  turn_dir: None, env_list: flat, note: Flat
+    # Rough ->  turn_dir: None, env_list: tiles/perlin, note: Rough
+    # Turn left flat -> turn_dir: Left, env_list: flat, note: Turn left flat
+    # Turn right flat -> turn_dir: right, env_list: flat, not: Turn right flat
+    # Stairs up -> turn_dir: None, env_list: stairs, note: Stairs up
+    # Stairs down -> turn_dir: None, env_list: stairs_down, note: Stairs down
+    # Stairs turn left -> turn_dir: Left, env_list: stairs, note: Stairs u/d turn left
+    # Stairs turn right -> turn_dir: Right, env_list: stairs, note: Stairs u/d turn right
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]

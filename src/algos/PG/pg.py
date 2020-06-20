@@ -263,7 +263,7 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.1, "use_contacts" : True, "turn_dir" : params["turn_dir"]}
+              "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.1, "use_contacts" : True, "turn_dir" : None}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False

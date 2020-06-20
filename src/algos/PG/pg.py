@@ -255,7 +255,7 @@ def calc_advantages_MC(gamma, batch_rewards, batch_terminals):
 if __name__=="__main__":
     T.set_num_threads(2)
 
-    env_list = ["flat"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["flat"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "stairs_down", "perlin"]
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
@@ -263,14 +263,15 @@ if __name__=="__main__":
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
     params = {"iters": 500000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.1, "use_contacts" : True}
+              "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.1, "use_contacts" : True, "turn_dir" : params["turn_dir"]}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env
-    env = env(env_list, max_n_envs=1, specific_env_len=70, s_len=120, walls=True, target_vel=params["target_vel"], use_contacts=params["use_contacts"])
+    from src.envs.hexapod_trossen_terrain_all.hexapod_deploy_default import Hexapod as env
+    env = env(env_list, max_n_envs=1, specific_env_len=70, s_len=120, walls=True,
+              target_vel=params["target_vel"], use_contacts=params["use_contacts"], turn_dir="LEFT")
 
     # TODO: Experiment with RL algo improvement, add VF to PG
     # TODO: Experiment with decayed exploration

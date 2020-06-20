@@ -22,13 +22,13 @@ def make_env(env_id, params):
 
 if __name__=="__main__":
 
-    env_list = ["flat"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["tiles"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"steps": 3000000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
+    params = {"steps": 10000000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
               "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
               "note" : "Straight line with yaw", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : True}
 
@@ -66,7 +66,7 @@ if __name__=="__main__":
                      target_vel=params["target_vel"], use_contacts=params["use_contacts"])
 
         print("Testing")
-        policy_name = "PQA" # LX3: joints + contacts + yaw
+        policy_name = "QWZ" # LX3: joints + contacts + yaw
         policy_path = 'agents/SBL_{}'.format(policy_name)
         model = A2C.load(policy_path)
         print("Loading policy from: {}".format(policy_path))

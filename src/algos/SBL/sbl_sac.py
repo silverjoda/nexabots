@@ -1,7 +1,7 @@
 import gym
 from stable_baselines.common.policies import MlpPolicy
 from stable_baselines.common.vec_env import DummyVecEnv
-from stable_baselines import PPO2, DQN, A2C
+from stable_baselines import PPO2, A2C, SAC, TD3
 from stable_baselines.common.evaluation import evaluate_policy
 from stable_baselines.common.env_checker import check_env
 from stable_baselines.common.vec_env import SubprocVecEnv
@@ -15,29 +15,27 @@ import socket
 
 def make_env(env_id, params):
     def _init():
-        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=150, walls=True,
-                     target_vel=params["target_vel"], use_contacts=params["use_contacts"], turn_dir=params["turn_dir"])
+        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=150, walls=True, target_vel=params["target_vel"], use_contacts=params["use_contacts"])
         return env
     return _init
 
 
 if __name__=="__main__":
-    env_list = ["tiles"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["flat"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
 
     if len(sys.argv) > 1:
         env_list = [sys.argv[1]]
 
     ID = ''.join(random.choices(string.ascii_uppercase + string.digits, k=3))
-    params = {"steps": 15000000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
-              "ppo_update_iters": 6, "animate": True, "train" : False, "env_list" : env_list,
-              "note" : "...", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : True, "turn_dir" : None}
+    params = {"steps": 500000, "batchsize": 60, "gamma": 0.99, "policy_lr": 0.0007, "weight_decay" : 0.0001, "ppo": True,
+              "ppo_update_iters": 6, "animate": False, "train" : True, "env_list" : env_list,
+              "note" : "...", "ID" : ID, "std_decay" : 0.000, "target_vel" : 0.10, "use_contacts" : True}
 
     if socket.gethostname() == "goedel":
         params["animate"] = False
         params["train"] = True
 
-    #from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env_id
-    from src.envs.hexapod_trossen_terrain_all.hexapod_deploy_default import Hexapod as env_id
+    from src.envs.hexapod_trossen_terrain_all.hexapod_trossen_limited import Hexapod as env_id
 
     # TODO: Experiment with RL algo improvement, add VF to PG
     # TODO: Experiment with decayed exploration
@@ -52,9 +50,10 @@ if __name__=="__main__":
     if params["train"]:
         print("Training")
         print(params)
-        env = SubprocVecEnv([make_env(env_id, params) for _ in range(4)], start_method='fork')
-        policy_kwargs = dict(act_fun=tf.nn.tanh, net_arch=[96, 96])
-        model = A2C('MlpPolicy', env, learning_rate=1e-3, verbose=1, n_steps=64, tensorboard_log="/tmp", gamma=0.99, policy_kwargs=policy_kwargs)
+        env = env_id(params["env_list"], max_n_envs=1, specific_env_len=70, s_len=150, walls=True,
+                     target_vel=params["target_vel"], use_contacts=params["use_contacts"])
+
+        model = SAC('MlpPolicy', env, learning_rate=3e-3, verbose=1, batch_size=64, tensorboard_log="/tmp", gamma=0.99)
         model.learn(total_timesteps=int(params["steps"]))
         print("Done learning, saving model")
         model.save("agents/SBL_{}".format(params["ID"]))
@@ -66,13 +65,12 @@ if __name__=="__main__":
                      target_vel=params["target_vel"], use_contacts=params["use_contacts"])
 
         print("Testing")
-        policy_name = "0TY" # LX3, 63W (tiles): joints + contacts + yaw
+        policy_name = "H02" # LX3, 63W (tiles): joints + contacts + yaw
         policy_path = 'agents/SBL_{}'.format(policy_name)
-        model = A2C.load(policy_path)
+        model = SAC.load(policy_path)
         print("Loading policy from: {}".format(policy_path))
 
         obs = env.reset()
-        env.current_difficulty = 1.
         for _ in range(100):
             cum_rew = 0
             t1 = time.time()

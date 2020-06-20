@@ -19,11 +19,11 @@ class Hexapod(gym.Env):
         'render.modes': ['human'],
     }
 
-    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=100, walls=True, target_vel=0.2, use_contacts=False):
+    def __init__(self, env_list=None, max_n_envs=3, specific_env_len=30, s_len=100, walls=True, target_vel=0.2, use_contacts=False, turn_dir=None):
         print("Trossen hexapod envs: {}".format(env_list))
 
         if env_list is None:
-            self.env_list = ["stairs_down"]
+            self.env_list = ["flat"]
         else:
             self.env_list = env_list
 
@@ -42,6 +42,7 @@ class Hexapod(gym.Env):
         self.difficulty_per_step_increment = 2e-7
         self.cumulative_environment_reward = None
         self.walls = walls
+        self.turn_dir = turn_dir
 
         self.rnd_init_yaw = True
         self.replace_envs = True
@@ -174,14 +175,34 @@ class Hexapod(gym.Env):
         yaw_deviation = np.min((abs((q_yaw % 6.183) - (0 % 6.183)), abs(q_yaw - 0)))
 
         r_neg = np.square(q_yaw) * 0.5 + \
-                np.square(pitch) * 1.5 * self.current_difficulty + \
-                np.square(roll) * 1.5 * self.current_difficulty + \
-                ctrl_pen * 0.00000 + \
-                np.square(zd) * 1.5 * self.current_difficulty
+                np.square(pitch) * 0.5 + \
+                np.square(roll) * 0.5 + \
+                ctrl_pen * 0.000001 + \
+                np.square(zd) * 0.7
+
+        if self.env_list == ["flat"]:
+            r_neg += ctrl_pen * 0.01
 
         r_correction = np.clip(abs(self.prev_deviation) - abs(yaw_deviation), -1, 1)
         r_pos = velocity_rew * 7 + r_correction * 15
         r = np.clip(r_pos - r_neg, -3, 3)
+
+        if self.env_list == ["stairs"] or self.env_list == ["stairs_down"]:
+            velocity_rew = 1. / (abs(xd_av - self.target_vel * 0.7) + 1.) - 1. / (self.target_vel * 0.7 + 1.)
+            velocity_rew *= (0.3 / (self.target_vel * 0.7))
+
+            r_neg = np.square(q_yaw) * 0.5 + \
+                    np.square(pitch) * 0 + \
+                    np.square(roll) * 0.2 + \
+                    ctrl_pen * 0.00000 + \
+                    np.square(zd) * 0
+
+            r_correction = np.clip(abs(self.prev_deviation) - abs(yaw_deviation), -1, 1)
+            r_pos = velocity_rew * 7 + r_correction * 15
+            r = np.clip(r_pos - r_neg, -3, 3)
+
+        if self.turn_dir is not None:
+            r = np.clip(psid * (1 - 2 * (self.turn_dir == "LEFT")), -3, 3)
 
         self.prev_deviation = yaw_deviation
 
@@ -255,10 +276,8 @@ class Hexapod(gym.Env):
         init_q[7:] = self.scale_action([0] * 18)
         init_q[0] = 0.2 # np.random.rand() * 4 - 4
         init_q[1] = 0.0 # np.random.rand() * 8 - 4
-        init_q[2] = 0.3
+        init_q[2] = 0.3 + int(self.env_list == ["stairs_down"]) * 1.2
         init_qvel = np.zeros(self.qvel_dim)
-
-        # TODO: Change initial q
 
         if init_pos is not None:
             init_q[0:3] += init_pos
@@ -379,7 +398,7 @@ class Hexapod(gym.Env):
 
         if env_name == "tiles":
             sf = 3
-            hm = np.random.randint(0, 45,
+            hm = np.random.randint(0, 50,
                                    size=(self.env_width // sf, env_length // sf)).repeat(sf, axis=0).repeat(sf, axis=1)
             hm_pad = np.zeros((self.env_width, env_length))
             hm_pad[:hm.shape[0], :hm.shape[1]] = hm
@@ -444,6 +463,20 @@ class Hexapod(gym.Env):
 
             hm[:, n_steps * stair_width:] = current_height
 
+        if env_name == "stairs_down":
+            stair_height = 45
+            stair_width = 4
+            initial_offset = 0
+            n_steps = math.floor(env_length / stair_width) - 1
+            current_height += stair_height * n_steps
+
+            hm = np.ones((self.env_width, env_length)) * current_height
+
+            for i in range(n_steps):
+                hm[:, initial_offset + i * stair_width: initial_offset  + i * stair_width + stair_width] = current_height
+                current_height -= stair_height
+
+            hm[:, n_steps * stair_width:] = current_height
 
         if env_name == "verts":
             wdiv = 4

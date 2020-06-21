@@ -22,7 +22,7 @@ def make_env(env_id, params):
 
 
 if __name__=="__main__":
-    env_list = ["flat"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
+    env_list = ["tiles"] #  ["flat", "tiles", "triangles", "holes", "pipe", "stairs", "perlin"]
 
     # DEPLOY SCHEDULE:
     # Flat ->  turn_dir: None, env_list: flat, note: Flat
@@ -76,7 +76,7 @@ if __name__=="__main__":
                      target_vel=params["target_vel"], use_contacts=params["use_contacts"])
 
         print("Testing")
-        policy_name = "0TY" # LX3, 63W (tiles): joints + contacts + yaw
+        policy_name = "THG" # LX3, 63W (tiles): joints + contacts + yaw
         policy_path = 'agents/SBL_{}'.format(policy_name)
         model = A2C.load(policy_path)
         print("Loading policy from: {}".format(policy_path))
